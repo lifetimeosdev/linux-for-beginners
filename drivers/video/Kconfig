@@ -10,17 +10,17 @@ if HAS_IOMEM
 config HAVE_FB_ATMEL
 	bool
 
-source "drivers/char/agp/Kconfig"
+# source "drivers/char/agp/Kconfig"
 
-source "drivers/gpu/vga/Kconfig"
+# source "drivers/gpu/vga/Kconfig"
 
-source "drivers/gpu/host1x/Kconfig"
-source "drivers/gpu/ipu-v3/Kconfig"
+# source "drivers/gpu/host1x/Kconfig"
+# source "drivers/gpu/ipu-v3/Kconfig"
 
 source "drivers/gpu/drm/Kconfig"
 
 menu "Frame buffer Devices"
-source "drivers/video/fbdev/Kconfig"
+# source "drivers/video/fbdev/Kconfig"
 endmenu
 
 source "drivers/video/backlight/Kconfig"

@@ -34,7 +34,7 @@ obj-$(CONFIG_XEN_PCIDEV_FRONTEND) += xen-pcifront.o
 # Endpoint library must be initialized before its users
 obj-$(CONFIG_PCI_ENDPOINT)	+= endpoint/
 
-obj-y				+= controller/
-obj-y				+= switch/
+# obj-y				+= controller/
+# obj-y				+= switch/
 
 ccflags-$(CONFIG_PCI_DEBUG) := -DDEBUG

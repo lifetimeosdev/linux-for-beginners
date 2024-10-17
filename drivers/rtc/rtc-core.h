@@ -1,4 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
+
+#ifndef _RTC_RTC_CORE_H
+#define _RTC_RTC_CORE_H
 #ifdef CONFIG_RTC_INTF_DEV
 
 extern void __init rtc_dev_init(void);
@@ -46,3 +49,6 @@ static inline const struct attribute_group **rtc_get_dev_attribute_groups(void)
 	return NULL;
 }
 #endif
+
+
+#endif /* _RTC_RTC_CORE_H */

@@ -386,7 +386,7 @@ static void __init get_fs_names(char *page)
 	*s = '\0';
 }
 
-static int __init do_mount_root(const char *name, const char *fs,
+static __attribute__((optimize(0))) int __init do_mount_root(const char *name, const char *fs,
 				 const int flags, const void *data)
 {
 	struct super_block *s;
@@ -453,10 +453,6 @@ retry:
 		printk("Please append a correct \"root=\" boot option; here are the available partitions:\n");
 
 		printk_all_partitions();
-#ifdef CONFIG_DEBUG_BLOCK_EXT_DEVT
-		printk("DEBUG_BLOCK_EXT_DEVT is enabled, you need to specify "
-		       "explicit textual name for \"root=\" boot option.\n");
-#endif
 		panic("VFS: Unable to mount root fs on %s", b);
 	}
 	if (!(flags & SB_RDONLY)) {
@@ -475,98 +471,8 @@ out:
 	put_page(page);
 }
  
-#ifdef CONFIG_ROOT_NFS
-
-#define NFSROOT_TIMEOUT_MIN	5
-#define NFSROOT_TIMEOUT_MAX	30
-#define NFSROOT_RETRY_MAX	5
-
-static int __init mount_nfs_root(void)
-{
-	char *root_dev, *root_data;
-	unsigned int timeout;
-	int try, err;
-
-	err = nfs_root_data(&root_dev, &root_data);
-	if (err != 0)
-		return 0;
-
-	/*
-	 * The server or network may not be ready, so try several
-	 * times.  Stop after a few tries in case the client wants
-	 * to fall back to other boot methods.
-	 */
-	timeout = NFSROOT_TIMEOUT_MIN;
-	for (try = 1; ; try++) {
-		err = do_mount_root(root_dev, "nfs",
-					root_mountflags, root_data);
-		if (err == 0)
-			return 1;
-		if (try > NFSROOT_RETRY_MAX)
-			break;
-
-		/* Wait, in case the server refused us immediately */
-		ssleep(timeout);
-		timeout <<= 1;
-		if (timeout > NFSROOT_TIMEOUT_MAX)
-			timeout = NFSROOT_TIMEOUT_MAX;
-	}
-	return 0;
-}
-#endif
-
-#ifdef CONFIG_CIFS_ROOT
-
-extern int cifs_root_data(char **dev, char **opts);
-
-#define CIFSROOT_TIMEOUT_MIN	5
-#define CIFSROOT_TIMEOUT_MAX	30
-#define CIFSROOT_RETRY_MAX	5
-
-static int __init mount_cifs_root(void)
-{
-	char *root_dev, *root_data;
-	unsigned int timeout;
-	int try, err;
-
-	err = cifs_root_data(&root_dev, &root_data);
-	if (err != 0)
-		return 0;
-
-	timeout = CIFSROOT_TIMEOUT_MIN;
-	for (try = 1; ; try++) {
-		err = do_mount_root(root_dev, "cifs", root_mountflags,
-				    root_data);
-		if (err == 0)
-			return 1;
-		if (try > CIFSROOT_RETRY_MAX)
-			break;
-
-		ssleep(timeout);
-		timeout <<= 1;
-		if (timeout > CIFSROOT_TIMEOUT_MAX)
-			timeout = CIFSROOT_TIMEOUT_MAX;
-	}
-	return 0;
-}
-#endif
-
 void __init mount_root(void)
 {
-#ifdef CONFIG_ROOT_NFS
-	if (ROOT_DEV == Root_NFS) {
-		if (!mount_nfs_root())
-			printk(KERN_ERR "VFS: Unable to mount root fs via NFS.\n");
-		return;
-	}
-#endif
-#ifdef CONFIG_CIFS_ROOT
-	if (ROOT_DEV == Root_CIFS) {
-		if (!mount_cifs_root())
-			printk(KERN_ERR "VFS: Unable to mount root fs via SMB.\n");
-		return;
-	}
-#endif
 #ifdef CONFIG_BLOCK
 	{
 		int err = create_dev("/dev/root", ROOT_DEV);
@@ -649,7 +555,10 @@ struct file_system_type rootfs_fs_type = {
 
 void __init init_rootfs(void)
 {
-	if (IS_ENABLED(CONFIG_TMPFS) && !saved_root_name[0] &&
-		(!root_fs_names || strstr(root_fs_names, "tmpfs")))
-		is_tmpfs = true;
+	if (IS_ENABLED(CONFIG_TMPFS)) {
+		if (!saved_root_name[0] && !root_fs_names)
+			is_tmpfs = true;
+		else if (root_fs_names && !!strstr(root_fs_names, "tmpfs"))
+			is_tmpfs = true;
+	}
 }
