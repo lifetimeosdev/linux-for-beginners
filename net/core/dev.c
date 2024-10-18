@@ -2718,14 +2718,6 @@ int __netif_set_xps_queue(struct net_device *dev, const unsigned long *mask,
 
 			if (pos == map->len)
 				map->queues[map->len++] = index;
-#ifdef CONFIG_NUMA
-			if (!is_rxqs_map) {
-				if (numa_node_id == -2)
-					numa_node_id = cpu_to_node(j);
-				else if (numa_node_id != cpu_to_node(j))
-					numa_node_id = -1;
-			}
-#endif
 		} else if (dev_maps) {
 			/* fill in the new device map from the old device map */
 			map = xmap_dereference(dev_maps->attr_map[tci]);

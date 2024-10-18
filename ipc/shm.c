@@ -548,34 +548,6 @@ static unsigned long shm_pagesize(struct vm_area_struct *vma)
 	return PAGE_SIZE;
 }
 
-#ifdef CONFIG_NUMA
-static int shm_set_policy(struct vm_area_struct *vma, struct mempolicy *new)
-{
-	struct file *file = vma->vm_file;
-	struct shm_file_data *sfd = shm_file_data(file);
-	int err = 0;
-
-	if (sfd->vm_ops->set_policy)
-		err = sfd->vm_ops->set_policy(vma, new);
-	return err;
-}
-
-static struct mempolicy *shm_get_policy(struct vm_area_struct *vma,
-					unsigned long addr)
-{
-	struct file *file = vma->vm_file;
-	struct shm_file_data *sfd = shm_file_data(file);
-	struct mempolicy *pol = NULL;
-
-	if (sfd->vm_ops->get_policy)
-		pol = sfd->vm_ops->get_policy(vma, addr);
-	else if (vma->vm_policy)
-		pol = vma->vm_policy;
-
-	return pol;
-}
-#endif
-
 static int shm_mmap(struct file *file, struct vm_area_struct *vma)
 {
 	struct shm_file_data *sfd = shm_file_data(file);

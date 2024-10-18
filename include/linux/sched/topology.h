@@ -49,13 +49,6 @@ static inline int cpu_core_flags(void)
 }
 #endif
 
-#ifdef CONFIG_NUMA
-static inline int cpu_numa_flags(void)
-{
-	return SD_NUMA;
-}
-#endif
-
 extern int arch_asym_cpu_priority(int cpu);
 
 struct sched_domain_attr {

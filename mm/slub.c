@@ -2002,61 +2002,6 @@ static void *get_partial_node(struct kmem_cache *s, struct kmem_cache_node *n,
 static void *get_any_partial(struct kmem_cache *s, gfp_t flags,
 		struct kmem_cache_cpu *c)
 {
-#ifdef CONFIG_NUMA
-	struct zonelist *zonelist;
-	struct zoneref *z;
-	struct zone *zone;
-	enum zone_type highest_zoneidx = gfp_zone(flags);
-	void *object;
-	unsigned int cpuset_mems_cookie;
-
-	/*
-	 * The defrag ratio allows a configuration of the tradeoffs between
-	 * inter node defragmentation and node local allocations. A lower
-	 * defrag_ratio increases the tendency to do local allocations
-	 * instead of attempting to obtain partial slabs from other nodes.
-	 *
-	 * If the defrag_ratio is set to 0 then kmalloc() always
-	 * returns node local objects. If the ratio is higher then kmalloc()
-	 * may return off node objects because partial slabs are obtained
-	 * from other nodes and filled up.
-	 *
-	 * If /sys/kernel/slab/xx/remote_node_defrag_ratio is set to 100
-	 * (which makes defrag_ratio = 1000) then every (well almost)
-	 * allocation will first attempt to defrag slab caches on other nodes.
-	 * This means scanning over all nodes to look for partial slabs which
-	 * may be expensive if we do it every time we are trying to find a slab
-	 * with available objects.
-	 */
-	if (!s->remote_node_defrag_ratio ||
-			get_cycles() % 1024 > s->remote_node_defrag_ratio)
-		return NULL;
-
-	do {
-		cpuset_mems_cookie = read_mems_allowed_begin();
-		zonelist = node_zonelist(mempolicy_slab_node(), flags);
-		for_each_zone_zonelist(zone, z, zonelist, highest_zoneidx) {
-			struct kmem_cache_node *n;
-
-			n = get_node(s, zone_to_nid(zone));
-
-			if (n && cpuset_zone_allowed(zone, flags) &&
-					n->nr_partial > s->min_partial) {
-				object = get_partial_node(s, n, c, flags);
-				if (object) {
-					/*
-					 * Don't check read_mems_allowed_retry()
-					 * here - if mems_allowed was updated in
-					 * parallel, that was a harmless race
-					 * between allocation and the cpuset
-					 * update
-					 */
-					return object;
-				}
-			}
-		}
-	} while (read_mems_allowed_retry(cpuset_mems_cookie));
-#endif	/* CONFIG_NUMA */
 	return NULL;
 }
 
@@ -2493,10 +2438,6 @@ static int slub_cpu_dead(unsigned int cpu)
  */
 static inline int node_match(struct page *page, int node)
 {
-#ifdef CONFIG_NUMA
-	if (node != NUMA_NO_NODE && page_to_nid(page) != node)
-		return 0;
-#endif
 	return 1;
 }
 
@@ -2925,35 +2866,6 @@ void *kmem_cache_alloc_trace(struct kmem_cache *s, gfp_t gfpflags, size_t size)
 }
 EXPORT_SYMBOL(kmem_cache_alloc_trace);
 #endif
-
-#ifdef CONFIG_NUMA
-void *kmem_cache_alloc_node(struct kmem_cache *s, gfp_t gfpflags, int node)
-{
-	void *ret = slab_alloc_node(s, gfpflags, node, _RET_IP_);
-
-	trace_kmem_cache_alloc_node(_RET_IP_, ret,
-				    s->object_size, s->size, gfpflags, node);
-
-	return ret;
-}
-EXPORT_SYMBOL(kmem_cache_alloc_node);
-
-#ifdef CONFIG_TRACING
-void *kmem_cache_alloc_node_trace(struct kmem_cache *s,
-				    gfp_t gfpflags,
-				    int node, size_t size)
-{
-	void *ret = slab_alloc_node(s, gfpflags, node, _RET_IP_);
-
-	trace_kmalloc_node(_RET_IP_, ret,
-			   size, s->size, gfpflags, node);
-
-	ret = kasan_kmalloc(s, ret, size, gfpflags);
-	return ret;
-}
-EXPORT_SYMBOL(kmem_cache_alloc_node_trace);
-#endif
-#endif	/* CONFIG_NUMA */
 
 /*
  * Slow path handling. This may still be called frequently since objects
@@ -3818,10 +3730,6 @@ static int kmem_cache_open(struct kmem_cache *s, slab_flags_t flags)
 
 	set_cpu_partial(s);
 
-#ifdef CONFIG_NUMA
-	s->remote_node_defrag_ratio = 1000;
-#endif
-
 	/* Initialize the pre-computed randomized freelist if slab is up */
 	if (slab_state >= UP) {
 		if (init_cache_random_seq(s))
@@ -3973,55 +3881,6 @@ void *__kmalloc(size_t size, gfp_t flags)
 	return ret;
 }
 EXPORT_SYMBOL(__kmalloc);
-
-#ifdef CONFIG_NUMA
-static void *kmalloc_large_node(size_t size, gfp_t flags, int node)
-{
-	struct page *page;
-	void *ptr = NULL;
-	unsigned int order = get_order(size);
-
-	flags |= __GFP_COMP;
-	page = alloc_pages_node(node, flags, order);
-	if (page) {
-		ptr = page_address(page);
-		mod_lruvec_page_state(page, NR_SLAB_UNRECLAIMABLE_B,
-				      PAGE_SIZE << order);
-	}
-
-	return kmalloc_large_node_hook(ptr, size, flags);
-}
-
-void *__kmalloc_node(size_t size, gfp_t flags, int node)
-{
-	struct kmem_cache *s;
-	void *ret;
-
-	if (unlikely(size > KMALLOC_MAX_CACHE_SIZE)) {
-		ret = kmalloc_large_node(size, flags, node);
-
-		trace_kmalloc_node(_RET_IP_, ret,
-				   size, PAGE_SIZE << get_order(size),
-				   flags, node);
-
-		return ret;
-	}
-
-	s = kmalloc_slab(size, flags);
-
-	if (unlikely(ZERO_OR_NULL_PTR(s)))
-		return s;
-
-	ret = slab_alloc_node(s, flags, node, _RET_IP_);
-
-	trace_kmalloc_node(_RET_IP_, ret, size, s->size, flags, node);
-
-	ret = kasan_kmalloc(s, ret, size, flags);
-
-	return ret;
-}
-EXPORT_SYMBOL(__kmalloc_node);
-#endif	/* CONFIG_NUMA */
 
 #ifdef CONFIG_HARDENED_USERCOPY
 /*
@@ -4470,38 +4329,6 @@ void *__kmalloc_track_caller(size_t size, gfp_t gfpflags, unsigned long caller)
 	return ret;
 }
 EXPORT_SYMBOL(__kmalloc_track_caller);
-
-#ifdef CONFIG_NUMA
-void *__kmalloc_node_track_caller(size_t size, gfp_t gfpflags,
-					int node, unsigned long caller)
-{
-	struct kmem_cache *s;
-	void *ret;
-
-	if (unlikely(size > KMALLOC_MAX_CACHE_SIZE)) {
-		ret = kmalloc_large_node(size, gfpflags, node);
-
-		trace_kmalloc_node(caller, ret,
-				   size, PAGE_SIZE << get_order(size),
-				   gfpflags, node);
-
-		return ret;
-	}
-
-	s = kmalloc_slab(size, gfpflags);
-
-	if (unlikely(ZERO_OR_NULL_PTR(s)))
-		return s;
-
-	ret = slab_alloc_node(s, gfpflags, node, caller);
-
-	/* Honor the call site pointer we received. */
-	trace_kmalloc_node(caller, ret, size, s->size, gfpflags, node);
-
-	return ret;
-}
-EXPORT_SYMBOL(__kmalloc_node_track_caller);
-#endif
 
 #ifdef CONFIG_SYSFS
 static int count_inuse(struct page *page)
@@ -4995,12 +4822,6 @@ static ssize_t show_slab_objects(struct kmem_cache *s,
 		}
 	}
 	x = sprintf(buf, "%lu", total);
-#ifdef CONFIG_NUMA
-	for (node = 0; node < nr_node_ids; node++)
-		if (nodes[node])
-			x += sprintf(buf + x, " N%d=%lu",
-					node, nodes[node]);
-#endif
 	kfree(nodes);
 	return x + sprintf(buf + x, "\n");
 }
@@ -5306,31 +5127,6 @@ static ssize_t shrink_store(struct kmem_cache *s,
 }
 SLAB_ATTR(shrink);
 
-#ifdef CONFIG_NUMA
-static ssize_t remote_node_defrag_ratio_show(struct kmem_cache *s, char *buf)
-{
-	return sprintf(buf, "%u\n", s->remote_node_defrag_ratio / 10);
-}
-
-static ssize_t remote_node_defrag_ratio_store(struct kmem_cache *s,
-				const char *buf, size_t length)
-{
-	unsigned int ratio;
-	int err;
-
-	err = kstrtouint(buf, 10, &ratio);
-	if (err)
-		return err;
-	if (ratio > 100)
-		return -ERANGE;
-
-	s->remote_node_defrag_ratio = ratio * 10;
-
-	return length;
-}
-SLAB_ATTR(remote_node_defrag_ratio);
-#endif
-
 #ifdef CONFIG_SLUB_STATS
 static int show_stat(struct kmem_cache *s, char *buf, enum stat_item si)
 {
@@ -5445,9 +5241,6 @@ static struct attribute *slab_attrs[] = {
 #endif
 #ifdef CONFIG_ZONE_DMA
 	&cache_dma_attr.attr,
-#endif
-#ifdef CONFIG_NUMA
-	&remote_node_defrag_ratio_attr.attr,
 #endif
 #ifdef CONFIG_SLUB_STATS
 	&alloc_fastpath_attr.attr,

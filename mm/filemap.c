@@ -962,27 +962,6 @@ int add_to_page_cache_lru(struct page *page, struct address_space *mapping,
 }
 EXPORT_SYMBOL_GPL(add_to_page_cache_lru);
 
-#ifdef CONFIG_NUMA
-struct page *__page_cache_alloc(gfp_t gfp)
-{
-	int n;
-	struct page *page;
-
-	if (cpuset_do_page_mem_spread()) {
-		unsigned int cpuset_mems_cookie;
-		do {
-			cpuset_mems_cookie = read_mems_allowed_begin();
-			n = cpuset_mem_spread_node();
-			page = __alloc_pages_node(n, gfp, 0);
-		} while (!page && read_mems_allowed_retry(cpuset_mems_cookie));
-
-		return page;
-	}
-	return alloc_pages(gfp, 0);
-}
-EXPORT_SYMBOL(__page_cache_alloc);
-#endif
-
 /*
  * In order to wait for pages to become available there must be
  * waitqueues associated with pages. By using a hash table of

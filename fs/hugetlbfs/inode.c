@@ -85,19 +85,6 @@ static const struct fs_parameter_spec hugetlb_fs_parameters[] = {
 	{}
 };
 
-#ifdef CONFIG_NUMA
-static inline void hugetlb_set_vma_policy(struct vm_area_struct *vma,
-					struct inode *inode, pgoff_t index)
-{
-	vma->vm_policy = mpol_shared_policy_lookup(&HUGETLBFS_I(inode)->policy,
-							index);
-}
-
-static inline void hugetlb_drop_vma_policy(struct vm_area_struct *vma)
-{
-	mpol_cond_put(vma->vm_policy);
-}
-#else
 static inline void hugetlb_set_vma_policy(struct vm_area_struct *vma,
 					struct inode *inode, pgoff_t index)
 {
@@ -106,7 +93,6 @@ static inline void hugetlb_set_vma_policy(struct vm_area_struct *vma,
 static inline void hugetlb_drop_vma_policy(struct vm_area_struct *vma)
 {
 }
-#endif
 
 static void huge_pagevec_release(struct pagevec *pvec)
 {

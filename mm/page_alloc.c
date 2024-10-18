@@ -2925,29 +2925,6 @@ static int rmqueue_bulk(struct zone *zone, unsigned int order,
 	return alloced;
 }
 
-#ifdef CONFIG_NUMA
-/*
- * Called from the vmstat counter updater to drain pagesets of this
- * currently executing processor on remote nodes after they have
- * expired.
- *
- * Note that this function must be called with the thread pinned to
- * a single processor.
- */
-void drain_zone_pages(struct zone *zone, struct per_cpu_pages *pcp)
-{
-	unsigned long flags;
-	int to_drain, batch;
-
-	local_irq_save(flags);
-	batch = READ_ONCE(pcp->batch);
-	to_drain = min(pcp->count, batch);
-	if (to_drain > 0)
-		free_pcppages_bulk(zone, to_drain, pcp);
-	local_irq_restore(flags);
-}
-#endif
-
 /*
  * Drain pcplists of the indicated processor and zone.
  *
@@ -3352,24 +3329,6 @@ void __putback_isolated_page(struct page *page, unsigned int order, int mt)
  */
 static inline void zone_statistics(struct zone *preferred_zone, struct zone *z)
 {
-#ifdef CONFIG_NUMA
-	enum numa_stat_item local_stat = NUMA_LOCAL;
-
-	/* skip numa counters update if numa stats is disabled */
-	if (!static_branch_likely(&vm_numa_stat_key))
-		return;
-
-	if (zone_to_nid(z) != numa_node_id())
-		local_stat = NUMA_OTHER;
-
-	if (zone_to_nid(z) == zone_to_nid(preferred_zone))
-		__inc_numa_state(z, NUMA_HIT);
-	else {
-		__inc_numa_state(z, NUMA_MISS);
-		__inc_numa_state(preferred_zone, NUMA_FOREIGN);
-	}
-	__inc_numa_state(z, local_stat);
-#endif
 }
 
 /* Remove page from the per-cpu list, caller must protect the list */
@@ -3722,18 +3681,10 @@ bool zone_watermark_ok_safe(struct zone *z, unsigned int order,
 								free_pages);
 }
 
-#ifdef CONFIG_NUMA
-static bool zone_allows_reclaim(struct zone *local_zone, struct zone *zone)
-{
-	return node_distance(zone_to_nid(local_zone), zone_to_nid(zone)) <=
-				node_reclaim_distance;
-}
-#else	/* CONFIG_NUMA */
 static bool zone_allows_reclaim(struct zone *local_zone, struct zone *zone)
 {
 	return true;
 }
-#endif	/* CONFIG_NUMA */
 
 /*
  * The restriction on ZONE_DMA32 as being a suitable zone to use to avoid
@@ -5400,39 +5351,6 @@ void si_meminfo(struct sysinfo *val)
 
 EXPORT_SYMBOL(si_meminfo);
 
-#ifdef CONFIG_NUMA
-void si_meminfo_node(struct sysinfo *val, int nid)
-{
-	int zone_type;		/* needs to be signed */
-	unsigned long managed_pages = 0;
-	unsigned long managed_highpages = 0;
-	unsigned long free_highpages = 0;
-	pg_data_t *pgdat = NODE_DATA(nid);
-
-	for (zone_type = 0; zone_type < MAX_NR_ZONES; zone_type++)
-		managed_pages += zone_managed_pages(&pgdat->node_zones[zone_type]);
-	val->totalram = managed_pages;
-	val->sharedram = node_page_state(pgdat, NR_SHMEM);
-	val->freeram = sum_zone_node_page_state(nid, NR_FREE_PAGES);
-#ifdef CONFIG_HIGHMEM
-	for (zone_type = 0; zone_type < MAX_NR_ZONES; zone_type++) {
-		struct zone *zone = &pgdat->node_zones[zone_type];
-
-		if (is_highmem(zone)) {
-			managed_highpages += zone_managed_pages(zone);
-			free_highpages += zone_page_state(zone, NR_FREE_PAGES);
-		}
-	}
-	val->totalhigh = managed_highpages;
-	val->freehigh = free_highpages;
-#else
-	val->totalhigh = managed_highpages;
-	val->freehigh = free_highpages;
-#endif
-	val->mem_unit = PAGE_SIZE;
-}
-#endif
-
 /*
  * Determine whether the node should be displayed or not, depending on whether
  * SHOW_MEM_FILTER_NODES was passed to show_free_areas().
@@ -5715,201 +5633,6 @@ static int build_zonerefs_node(pg_data_t *pgdat, struct zoneref *zonerefs)
 	return nr_zones;
 }
 
-#ifdef CONFIG_NUMA
-
-static int __parse_numa_zonelist_order(char *s)
-{
-	/*
-	 * We used to support different zonlists modes but they turned
-	 * out to be just not useful. Let's keep the warning in place
-	 * if somebody still use the cmd line parameter so that we do
-	 * not fail it silently
-	 */
-	if (!(*s == 'd' || *s == 'D' || *s == 'n' || *s == 'N')) {
-		pr_warn("Ignoring unsupported numa_zonelist_order value:  %s\n", s);
-		return -EINVAL;
-	}
-	return 0;
-}
-
-char numa_zonelist_order[] = "Node";
-
-/*
- * sysctl handler for numa_zonelist_order
- */
-int numa_zonelist_order_handler(struct ctl_table *table, int write,
-		void *buffer, size_t *length, loff_t *ppos)
-{
-	if (write)
-		return __parse_numa_zonelist_order(buffer);
-	return proc_dostring(table, write, buffer, length, ppos);
-}
-
-
-#define MAX_NODE_LOAD (nr_online_nodes)
-static int node_load[MAX_NUMNODES];
-
-/**
- * find_next_best_node - find the next node that should appear in a given node's fallback list
- * @node: node whose fallback list we're appending
- * @used_node_mask: nodemask_t of already used nodes
- *
- * We use a number of factors to determine which is the next node that should
- * appear on a given node's fallback list.  The node should not have appeared
- * already in @node's fallback list, and it should be the next closest node
- * according to the distance array (which contains arbitrary distance values
- * from each node to each node in the system), and should also prefer nodes
- * with no CPUs, since presumably they'll have very little allocation pressure
- * on them otherwise.
- *
- * Return: node id of the found node or %NUMA_NO_NODE if no node is found.
- */
-static int find_next_best_node(int node, nodemask_t *used_node_mask)
-{
-	int n, val;
-	int min_val = INT_MAX;
-	int best_node = NUMA_NO_NODE;
-
-	/* Use the local node if we haven't already */
-	if (!node_isset(node, *used_node_mask)) {
-		node_set(node, *used_node_mask);
-		return node;
-	}
-
-	for_each_node_state(n, N_MEMORY) {
-
-		/* Don't want a node to appear more than once */
-		if (node_isset(n, *used_node_mask))
-			continue;
-
-		/* Use the distance array to find the distance */
-		val = node_distance(node, n);
-
-		/* Penalize nodes under us ("prefer the next node") */
-		val += (n < node);
-
-		/* Give preference to headless and unused nodes */
-		if (!cpumask_empty(cpumask_of_node(n)))
-			val += PENALTY_FOR_NODE_WITH_CPUS;
-
-		/* Slight preference for less loaded node */
-		val *= (MAX_NODE_LOAD*MAX_NUMNODES);
-		val += node_load[n];
-
-		if (val < min_val) {
-			min_val = val;
-			best_node = n;
-		}
-	}
-
-	if (best_node >= 0)
-		node_set(best_node, *used_node_mask);
-
-	return best_node;
-}
-
-
-/*
- * Build zonelists ordered by node and zones within node.
- * This results in maximum locality--normal zone overflows into local
- * DMA zone, if any--but risks exhausting DMA zone.
- */
-static void build_zonelists_in_node_order(pg_data_t *pgdat, int *node_order,
-		unsigned nr_nodes)
-{
-	struct zoneref *zonerefs;
-	int i;
-
-	zonerefs = pgdat->node_zonelists[ZONELIST_FALLBACK]._zonerefs;
-
-	for (i = 0; i < nr_nodes; i++) {
-		int nr_zones;
-
-		pg_data_t *node = NODE_DATA(node_order[i]);
-
-		nr_zones = build_zonerefs_node(node, zonerefs);
-		zonerefs += nr_zones;
-	}
-	zonerefs->zone = NULL;
-	zonerefs->zone_idx = 0;
-}
-
-/*
- * Build gfp_thisnode zonelists
- */
-static void build_thisnode_zonelists(pg_data_t *pgdat)
-{
-	struct zoneref *zonerefs;
-	int nr_zones;
-
-	zonerefs = pgdat->node_zonelists[ZONELIST_NOFALLBACK]._zonerefs;
-	nr_zones = build_zonerefs_node(pgdat, zonerefs);
-	zonerefs += nr_zones;
-	zonerefs->zone = NULL;
-	zonerefs->zone_idx = 0;
-}
-
-/*
- * Build zonelists ordered by zone and nodes within zones.
- * This results in conserving DMA zone[s] until all Normal memory is
- * exhausted, but results in overflowing to remote node while memory
- * may still exist in local DMA zone.
- */
-
-static void build_zonelists(pg_data_t *pgdat)
-{
-	static int node_order[MAX_NUMNODES];
-	int node, load, nr_nodes = 0;
-	nodemask_t used_mask = NODE_MASK_NONE;
-	int local_node, prev_node;
-
-	/* NUMA-aware ordering of nodes */
-	local_node = pgdat->node_id;
-	load = nr_online_nodes;
-	prev_node = local_node;
-
-	memset(node_order, 0, sizeof(node_order));
-	while ((node = find_next_best_node(local_node, &used_mask)) >= 0) {
-		/*
-		 * We don't want to pressure a particular node.
-		 * So adding penalty to the first node in same
-		 * distance group to make it round-robin.
-		 */
-		if (node_distance(local_node, node) !=
-		    node_distance(local_node, prev_node))
-			node_load[node] = load;
-
-		node_order[nr_nodes++] = node;
-		prev_node = node;
-		load--;
-	}
-
-	build_zonelists_in_node_order(pgdat, node_order, nr_nodes);
-	build_thisnode_zonelists(pgdat);
-}
-
-#ifdef CONFIG_HAVE_MEMORYLESS_NODES
-/*
- * Return node id of node used for "local" allocations.
- * I.e., first node id of first zone in arg node's generic zonelist.
- * Used for initializing percpu 'numa_mem', which is used primarily
- * for kernel allocations, so use GFP_KERNEL flags to locate zonelist.
- */
-int local_memory_node(int node)
-{
-	struct zoneref *z;
-
-	z = first_zones_zonelist(node_zonelist(node, GFP_KERNEL),
-				   gfp_zone(GFP_KERNEL),
-				   NULL);
-	return zone_to_nid(z->zone);
-}
-#endif
-
-static void setup_min_unmapped_ratio(void);
-static void setup_min_slab_ratio(void);
-#else	/* CONFIG_NUMA */
-
 static void build_zonelists(pg_data_t *pgdat)
 {
 	int node, local_node;
@@ -5946,8 +5669,6 @@ static void build_zonelists(pg_data_t *pgdat)
 	zonerefs->zone = NULL;
 	zonerefs->zone_idx = 0;
 }
-
-#endif	/* CONFIG_NUMA */
 
 /*
  * Boot pageset table. One per cpu which is going to be used for all
@@ -5989,10 +5710,6 @@ static void __build_all_zonelists(void *data)
 	 */
 	printk_deferred_enter();
 	write_seqlock(&zonelist_update_seq);
-
-#ifdef CONFIG_NUMA
-	memset(node_load, 0, sizeof(node_load));
-#endif
 
 	/*
 	 * This node is hotadded and no memory is yet present.   So just
@@ -6087,9 +5804,6 @@ void __ref build_all_zonelists(pg_data_t *pgdat)
 		nr_online_nodes,
 		page_group_by_mobility_disabled ? "off" : "on",
 		vm_total_pages);
-#ifdef CONFIG_NUMA
-	pr_info("Policy zone: %s\n", zone_names[policy_zone]);
-#endif
 }
 
 /* If zone is ZONE_MOVABLE but memory is mirrored, it is an overlapped init */
@@ -6534,20 +6248,6 @@ void __init setup_per_cpu_pageset(void)
 
 	for_each_populated_zone(zone)
 		setup_zone_pageset(zone);
-
-#ifdef CONFIG_NUMA
-	/*
-	 * Unpopulated zones continue using the boot pagesets.
-	 * The numa stats for these pagesets need to be reset.
-	 * Otherwise, they will end up skewing the stats of
-	 * the nodes these zones are associated with.
-	 */
-	for_each_possible_cpu(cpu) {
-		struct per_cpu_pageset *pcp = &per_cpu(boot_pageset, cpu);
-		memset(pcp->vm_numa_stat_diff, 0,
-		       sizeof(pcp->vm_numa_stat_diff));
-	}
-#endif
 
 	for_each_online_pgdat(pgdat)
 		pgdat->per_cpu_nodestats =
@@ -7817,27 +7517,9 @@ static int page_alloc_cpu_dead(unsigned int cpu)
 	return 0;
 }
 
-#ifdef CONFIG_NUMA
-int hashdist = HASHDIST_DEFAULT;
-
-static int __init set_hashdist(char *str)
-{
-	if (!str)
-		return 0;
-	hashdist = simple_strtoul(str, &str, 0);
-	return 1;
-}
-__setup("hashdist=", set_hashdist);
-#endif
-
 void __init page_alloc_init(void)
 {
 	int ret;
-
-#ifdef CONFIG_NUMA
-	if (num_node_state(N_MEMORY) == 1)
-		hashdist = 0;
-#endif
 
 	ret = cpuhp_setup_state_nocalls(CPUHP_PAGE_ALLOC_DEAD,
 					"mm/page_alloc:dead", NULL,
@@ -8043,11 +7725,6 @@ int __meminit init_per_zone_wmark_min(void)
 	refresh_zone_stat_thresholds();
 	setup_per_zone_lowmem_reserve();
 
-#ifdef CONFIG_NUMA
-	setup_min_unmapped_ratio();
-	setup_min_slab_ratio();
-#endif
-
 	khugepaged_min_free_kbytes_update();
 
 	return 0;
@@ -8089,63 +7766,6 @@ int watermark_scale_factor_sysctl_handler(struct ctl_table *table, int write,
 
 	return 0;
 }
-
-#ifdef CONFIG_NUMA
-static void setup_min_unmapped_ratio(void)
-{
-	pg_data_t *pgdat;
-	struct zone *zone;
-
-	for_each_online_pgdat(pgdat)
-		pgdat->min_unmapped_pages = 0;
-
-	for_each_zone(zone)
-		zone->zone_pgdat->min_unmapped_pages += (zone_managed_pages(zone) *
-						         sysctl_min_unmapped_ratio) / 100;
-}
-
-
-int sysctl_min_unmapped_ratio_sysctl_handler(struct ctl_table *table, int write,
-		void *buffer, size_t *length, loff_t *ppos)
-{
-	int rc;
-
-	rc = proc_dointvec_minmax(table, write, buffer, length, ppos);
-	if (rc)
-		return rc;
-
-	setup_min_unmapped_ratio();
-
-	return 0;
-}
-
-static void setup_min_slab_ratio(void)
-{
-	pg_data_t *pgdat;
-	struct zone *zone;
-
-	for_each_online_pgdat(pgdat)
-		pgdat->min_slab_pages = 0;
-
-	for_each_zone(zone)
-		zone->zone_pgdat->min_slab_pages += (zone_managed_pages(zone) *
-						     sysctl_min_slab_ratio) / 100;
-}
-
-int sysctl_min_slab_ratio_sysctl_handler(struct ctl_table *table, int write,
-		void *buffer, size_t *length, loff_t *ppos)
-{
-	int rc;
-
-	rc = proc_dointvec_minmax(table, write, buffer, length, ppos);
-	if (rc)
-		return rc;
-
-	setup_min_slab_ratio();
-
-	return 0;
-}
-#endif
 
 /*
  * lowmem_reserve_ratio_sysctl_handler - just a wrapper around

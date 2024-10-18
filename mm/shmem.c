@@ -2212,24 +2212,6 @@ unsigned long shmem_get_unmapped_area(struct file *file,
 	return inflated_addr;
 }
 
-#ifdef CONFIG_NUMA
-static int shmem_set_policy(struct vm_area_struct *vma, struct mempolicy *mpol)
-{
-	struct inode *inode = file_inode(vma->vm_file);
-	return mpol_set_shared_policy(&SHMEM_I(inode)->policy, vma, mpol);
-}
-
-static struct mempolicy *shmem_get_policy(struct vm_area_struct *vma,
-					  unsigned long addr)
-{
-	struct inode *inode = file_inode(vma->vm_file);
-	pgoff_t index;
-
-	index = ((addr - vma->vm_start) >> PAGE_SHIFT) + vma->vm_pgoff;
-	return mpol_shared_policy_lookup(&SHMEM_I(inode)->policy, index);
-}
-#endif
-
 int shmem_lock(struct file *file, int lock, struct user_struct *user)
 {
 	struct inode *inode = file_inode(file);
@@ -3974,10 +3956,6 @@ static const struct super_operations shmem_ops = {
 static const struct vm_operations_struct shmem_vm_ops = {
 	.fault		= shmem_fault,
 	.map_pages	= filemap_map_pages,
-#ifdef CONFIG_NUMA
-	.set_policy     = shmem_set_policy,
-	.get_policy     = shmem_get_policy,
-#endif
 };
 
 int shmem_init_fs_context(struct fs_context *fc)

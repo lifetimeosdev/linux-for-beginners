@@ -88,9 +88,6 @@ static void desc_smp_init(struct irq_desc *desc, int node,
 #ifdef CONFIG_GENERIC_PENDING_IRQ
 	cpumask_clear(desc->pending_mask);
 #endif
-#ifdef CONFIG_NUMA
-	desc->irq_common_data.node = node;
-#endif
 }
 
 #else

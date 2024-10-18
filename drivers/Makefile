@@ -12,8 +12,8 @@ obj-y				+= bus/
 obj-$(CONFIG_GENERIC_PHY)	+= phy/
 
 # GPIO must come after pinctrl as gpios may need to mux pins etc
-obj-$(CONFIG_PINCTRL)		+= pinctrl/
-obj-$(CONFIG_GPIOLIB)		+= gpio/
+# obj-$(CONFIG_PINCTRL)		+= pinctrl/
+# obj-$(CONFIG_GPIOLIB)		+= gpio/
 # obj-y				+= pwm/
 
 obj-y				+= pci/
@@ -60,7 +60,7 @@ obj-y				+= char/
 obj-y				+= iommu/
 
 # gpu/ comes after char for AGP vs DRM startup and after iommu
-obj-y				+= gpu/
+# obj-y				+= gpu/
 
 # obj-$(CONFIG_CONNECTOR)		+= connector/
 
@@ -82,7 +82,7 @@ obj-$(CONFIG_DMA_SHARED_BUFFER) += dma-buf/
 # obj-$(CONFIG_ATA)		+= ata/
 # obj-$(CONFIG_TARGET_CORE)	+= target/
 # obj-$(CONFIG_MTD)		+= mtd/
-obj-$(CONFIG_SPI)		+= spi/
+# obj-$(CONFIG_SPI)		+= spi/
 obj-$(CONFIG_SPMI)		+= spmi/
 # obj-$(CONFIG_HSI)		+= hsi/
 # obj-$(CONFIG_SLIMBUS)		+= slimbus/
@@ -111,13 +111,13 @@ obj-$(CONFIG_SERIO)		+= input/serio/
 # obj-$(CONFIG_GAMEPORT)		+= input/gameport/
 obj-$(CONFIG_INPUT)		+= input/
 obj-$(CONFIG_RTC_LIB)		+= rtc/
-obj-y				+= i2c/
+# obj-y				+= i2c/
 obj-$(CONFIG_PPS)		+= pps/
 obj-y				+= ptp/
 # obj-$(CONFIG_W1)		+= w1/
-obj-y				+= power/
+# obj-y				+= power/
 # obj-$(CONFIG_HWMON)		+= hwmon/
-obj-$(CONFIG_THERMAL)		+= thermal/
+# obj-$(CONFIG_THERMAL)		+= thermal/
 # obj-$(CONFIG_WATCHDOG)		+= watchdog/
 # obj-$(CONFIG_MD)		+= md/
 # obj-$(CONFIG_BT)		+= bluetooth/
@@ -125,7 +125,7 @@ obj-$(CONFIG_THERMAL)		+= thermal/
 # obj-$(CONFIG_ISDN)		+= isdn/
 # obj-$(CONFIG_EDAC)		+= edac/
 # obj-$(CONFIG_EISA)		+= eisa/
-obj-$(CONFIG_PM_OPP)		+= opp/
+# obj-$(CONFIG_PM_OPP)		+= opp/
 obj-$(CONFIG_CPU_FREQ)		+= cpufreq/
 obj-$(CONFIG_CPU_IDLE)		+= cpuidle/
 obj-y				+= mmc/
@@ -171,7 +171,7 @@ obj-$(CONFIG_VIRT_DRIVERS)	+= virt/
 # obj-$(CONFIG_NTB)		+= ntb/
 # obj-$(CONFIG_POWERCAP)		+= powercap/
 # obj-$(CONFIG_MCB)		+= mcb/
-obj-$(CONFIG_PERF_EVENTS)	+= perf/
+# obj-$(CONFIG_PERF_EVENTS)	+= perf/
 # obj-$(CONFIG_RAS)		+= ras/
 # obj-$(CONFIG_USB4)		+= thunderbolt/
 # obj-$(CONFIG_CORESIGHT)		+= hwtracing/coresight/

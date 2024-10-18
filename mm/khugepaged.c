@@ -834,66 +834,6 @@ static inline gfp_t alloc_hugepage_khugepaged_gfpmask(void)
 	return khugepaged_defrag() ? GFP_TRANSHUGE : GFP_TRANSHUGE_LIGHT;
 }
 
-#ifdef CONFIG_NUMA
-static int khugepaged_find_target_node(void)
-{
-	static int last_khugepaged_target_node = NUMA_NO_NODE;
-	int nid, target_node = 0, max_value = 0;
-
-	/* find first node with max normal pages hit */
-	for (nid = 0; nid < MAX_NUMNODES; nid++)
-		if (khugepaged_node_load[nid] > max_value) {
-			max_value = khugepaged_node_load[nid];
-			target_node = nid;
-		}
-
-	/* do some balance if several nodes have the same hit record */
-	if (target_node <= last_khugepaged_target_node)
-		for (nid = last_khugepaged_target_node + 1; nid < MAX_NUMNODES;
-				nid++)
-			if (max_value == khugepaged_node_load[nid]) {
-				target_node = nid;
-				break;
-			}
-
-	last_khugepaged_target_node = target_node;
-	return target_node;
-}
-
-static bool khugepaged_prealloc_page(struct page **hpage, bool *wait)
-{
-	if (IS_ERR(*hpage)) {
-		if (!*wait)
-			return false;
-
-		*wait = false;
-		*hpage = NULL;
-		khugepaged_alloc_sleep();
-	} else if (*hpage) {
-		put_page(*hpage);
-		*hpage = NULL;
-	}
-
-	return true;
-}
-
-static struct page *
-khugepaged_alloc_page(struct page **hpage, gfp_t gfp, int node)
-{
-	VM_BUG_ON_PAGE(*hpage, *hpage);
-
-	*hpage = __alloc_pages_node(node, gfp, HPAGE_PMD_ORDER);
-	if (unlikely(!*hpage)) {
-		count_vm_event(THP_COLLAPSE_ALLOC_FAILED);
-		*hpage = ERR_PTR(-ENOMEM);
-		return NULL;
-	}
-
-	prep_transhuge_page(*hpage);
-	count_vm_event(THP_COLLAPSE_ALLOC);
-	return *hpage;
-}
-#else
 static int khugepaged_find_target_node(void)
 {
 	return 0;
@@ -960,7 +900,6 @@ khugepaged_alloc_page(struct page **hpage, gfp_t gfp, int node)
 
 	return  *hpage;
 }
-#endif
 
 /*
  * If mmap_lock temporarily dropped, revalidate vma

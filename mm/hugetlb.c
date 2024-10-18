@@ -2879,27 +2879,6 @@ static ssize_t nr_hugepages_store(struct kobject *kobj,
 }
 HSTATE_ATTR(nr_hugepages);
 
-#ifdef CONFIG_NUMA
-
-/*
- * hstate attribute for optionally mempolicy-based constraint on persistent
- * huge page alloc/free.
- */
-static ssize_t nr_hugepages_mempolicy_show(struct kobject *kobj,
-				       struct kobj_attribute *attr, char *buf)
-{
-	return nr_hugepages_show_common(kobj, attr, buf);
-}
-
-static ssize_t nr_hugepages_mempolicy_store(struct kobject *kobj,
-	       struct kobj_attribute *attr, const char *buf, size_t len)
-{
-	return nr_hugepages_store_common(true, kobj, buf, len);
-}
-HSTATE_ATTR(nr_hugepages_mempolicy);
-#endif
-
-
 static ssize_t nr_overcommit_hugepages_show(struct kobject *kobj,
 					struct kobj_attribute *attr, char *buf)
 {
@@ -2977,9 +2956,6 @@ static struct attribute *hstate_attrs[] = {
 	&free_hugepages_attr.attr,
 	&resv_hugepages_attr.attr,
 	&surplus_hugepages_attr.attr,
-#ifdef CONFIG_NUMA
-	&nr_hugepages_mempolicy_attr.attr,
-#endif
 	NULL,
 };
 
@@ -3024,138 +3000,6 @@ static void __init hugetlb_sysfs_init(void)
 	}
 }
 
-#ifdef CONFIG_NUMA
-
-/*
- * node_hstate/s - associate per node hstate attributes, via their kobjects,
- * with node devices in node_devices[] using a parallel array.  The array
- * index of a node device or _hstate == node id.
- * This is here to avoid any static dependency of the node device driver, in
- * the base kernel, on the hugetlb module.
- */
-struct node_hstate {
-	struct kobject		*hugepages_kobj;
-	struct kobject		*hstate_kobjs[HUGE_MAX_HSTATE];
-};
-static struct node_hstate node_hstates[MAX_NUMNODES];
-
-/*
- * A subset of global hstate attributes for node devices
- */
-static struct attribute *per_node_hstate_attrs[] = {
-	&nr_hugepages_attr.attr,
-	&free_hugepages_attr.attr,
-	&surplus_hugepages_attr.attr,
-	NULL,
-};
-
-static const struct attribute_group per_node_hstate_attr_group = {
-	.attrs = per_node_hstate_attrs,
-};
-
-/*
- * kobj_to_node_hstate - lookup global hstate for node device hstate attr kobj.
- * Returns node id via non-NULL nidp.
- */
-static struct hstate *kobj_to_node_hstate(struct kobject *kobj, int *nidp)
-{
-	int nid;
-
-	for (nid = 0; nid < nr_node_ids; nid++) {
-		struct node_hstate *nhs = &node_hstates[nid];
-		int i;
-		for (i = 0; i < HUGE_MAX_HSTATE; i++)
-			if (nhs->hstate_kobjs[i] == kobj) {
-				if (nidp)
-					*nidp = nid;
-				return &hstates[i];
-			}
-	}
-
-	BUG();
-	return NULL;
-}
-
-/*
- * Unregister hstate attributes from a single node device.
- * No-op if no hstate attributes attached.
- */
-static void hugetlb_unregister_node(struct node *node)
-{
-	struct hstate *h;
-	struct node_hstate *nhs = &node_hstates[node->dev.id];
-
-	if (!nhs->hugepages_kobj)
-		return;		/* no hstate attributes */
-
-	for_each_hstate(h) {
-		int idx = hstate_index(h);
-		if (nhs->hstate_kobjs[idx]) {
-			kobject_put(nhs->hstate_kobjs[idx]);
-			nhs->hstate_kobjs[idx] = NULL;
-		}
-	}
-
-	kobject_put(nhs->hugepages_kobj);
-	nhs->hugepages_kobj = NULL;
-}
-
-
-/*
- * Register hstate attributes for a single node device.
- * No-op if attributes already registered.
- */
-static void hugetlb_register_node(struct node *node)
-{
-	struct hstate *h;
-	struct node_hstate *nhs = &node_hstates[node->dev.id];
-	int err;
-
-	if (nhs->hugepages_kobj)
-		return;		/* already allocated */
-
-	nhs->hugepages_kobj = kobject_create_and_add("hugepages",
-							&node->dev.kobj);
-	if (!nhs->hugepages_kobj)
-		return;
-
-	for_each_hstate(h) {
-		err = hugetlb_sysfs_add_hstate(h, nhs->hugepages_kobj,
-						nhs->hstate_kobjs,
-						&per_node_hstate_attr_group);
-		if (err) {
-			pr_err("HugeTLB: Unable to add hstate %s for node %d\n",
-				h->name, node->dev.id);
-			hugetlb_unregister_node(node);
-			break;
-		}
-	}
-}
-
-/*
- * hugetlb init time:  register hstate attributes for all registered node
- * devices of nodes that have memory.  All on-line nodes should have
- * registered their associated device by this time.
- */
-static void __init hugetlb_register_all_nodes(void)
-{
-	int nid;
-
-	for_each_node_state(nid, N_MEMORY) {
-		struct node *node = node_devices[nid];
-		if (node->dev.id == nid)
-			hugetlb_register_node(node);
-	}
-
-	/*
-	 * Let the node device driver know we're here so it can
-	 * [un]register hstate attributes on node hotplug.
-	 */
-	register_hugetlbfs_with_node(hugetlb_register_node,
-				     hugetlb_unregister_node);
-}
-#else	/* !CONFIG_NUMA */
-
 static struct hstate *kobj_to_node_hstate(struct kobject *kobj, int *nidp)
 {
 	BUG();
@@ -3165,8 +3009,6 @@ static struct hstate *kobj_to_node_hstate(struct kobject *kobj, int *nidp)
 }
 
 static void hugetlb_register_all_nodes(void) { }
-
-#endif
 
 static int __init hugetlb_init(void)
 {
@@ -3478,15 +3320,6 @@ int hugetlb_sysctl_handler(struct ctl_table *table, int write,
 	return hugetlb_sysctl_handler_common(false, table, write,
 							buffer, length, ppos);
 }
-
-#ifdef CONFIG_NUMA
-int hugetlb_mempolicy_sysctl_handler(struct ctl_table *table, int write,
-			  void *buffer, size_t *length, loff_t *ppos)
-{
-	return hugetlb_sysctl_handler_common(true, table, write,
-							buffer, length, ppos);
-}
-#endif /* CONFIG_NUMA */
 
 int hugetlb_overcommit_handler(struct ctl_table *table, int write,
 		void *buffer, size_t *length, loff_t *ppos)

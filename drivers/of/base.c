@@ -128,13 +128,6 @@ int of_n_size_cells(struct device_node *np)
 }
 EXPORT_SYMBOL(of_n_size_cells);
 
-#ifdef CONFIG_NUMA
-int __weak of_node_to_nid(struct device_node *np)
-{
-	return NUMA_NO_NODE;
-}
-#endif
-
 #define OF_PHANDLE_CACHE_BITS	7
 #define OF_PHANDLE_CACHE_SZ	BIT(OF_PHANDLE_CACHE_BITS)
 

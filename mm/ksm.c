@@ -42,13 +42,8 @@
 #include <asm/tlbflush.h>
 #include "internal.h"
 
-#ifdef CONFIG_NUMA
-#define NUMA(x)		(x)
-#define DO_NUMA(x)	do { (x); } while (0)
-#else
 #define NUMA(x)		(0)
 #define DO_NUMA(x)	do { } while (0)
-#endif
 
 /**
  * DOC: Overview
@@ -175,9 +170,6 @@ struct stable_node {
 	 */
 #define STABLE_NODE_CHAIN -1024
 	int rmap_hlist_len;
-#ifdef CONFIG_NUMA
-	int nid;
-#endif
 };
 
 /**
@@ -196,9 +188,6 @@ struct rmap_item {
 	struct rmap_item *rmap_list;
 	union {
 		struct anon_vma *anon_vma;	/* when stable */
-#ifdef CONFIG_NUMA
-		int nid;		/* when node of unstable tree */
-#endif
 	};
 	struct mm_struct *mm;
 	unsigned long address;		/* + low bits used for flags below */
@@ -278,14 +267,8 @@ static unsigned int zero_checksum __read_mostly;
 /* Whether to merge empty (zeroed) pages with actual zero pages */
 static bool ksm_use_zero_pages __read_mostly;
 
-#ifdef CONFIG_NUMA
-/* Zeroed when merging across nodes is not allowed */
-static unsigned int ksm_merge_across_nodes = 1;
-static int ksm_nr_node_ids = 1;
-#else
 #define ksm_merge_across_nodes	1U
 #define ksm_nr_node_ids		1
-#endif
 
 #define KSM_RUN_STOP	0
 #define KSM_RUN_MERGE	1
@@ -2926,64 +2909,6 @@ static ssize_t run_store(struct kobject *kobj, struct kobj_attribute *attr,
 }
 KSM_ATTR(run);
 
-#ifdef CONFIG_NUMA
-static ssize_t merge_across_nodes_show(struct kobject *kobj,
-				struct kobj_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%u\n", ksm_merge_across_nodes);
-}
-
-static ssize_t merge_across_nodes_store(struct kobject *kobj,
-				   struct kobj_attribute *attr,
-				   const char *buf, size_t count)
-{
-	int err;
-	unsigned long knob;
-
-	err = kstrtoul(buf, 10, &knob);
-	if (err)
-		return err;
-	if (knob > 1)
-		return -EINVAL;
-
-	mutex_lock(&ksm_thread_mutex);
-	wait_while_offlining();
-	if (ksm_merge_across_nodes != knob) {
-		if (ksm_pages_shared || remove_all_stable_nodes())
-			err = -EBUSY;
-		else if (root_stable_tree == one_stable_tree) {
-			struct rb_root *buf;
-			/*
-			 * This is the first time that we switch away from the
-			 * default of merging across nodes: must now allocate
-			 * a buffer to hold as many roots as may be needed.
-			 * Allocate stable and unstable together:
-			 * MAXSMP NODES_SHIFT 10 will use 16kB.
-			 */
-			buf = kcalloc(nr_node_ids + nr_node_ids, sizeof(*buf),
-				      GFP_KERNEL);
-			/* Let us assume that RB_ROOT is NULL is zero */
-			if (!buf)
-				err = -ENOMEM;
-			else {
-				root_stable_tree = buf;
-				root_unstable_tree = buf + nr_node_ids;
-				/* Stable tree is empty but not the unstable */
-				root_unstable_tree[0] = one_unstable_tree[0];
-			}
-		}
-		if (!err) {
-			ksm_merge_across_nodes = knob;
-			ksm_nr_node_ids = knob ? 1 : nr_node_ids;
-		}
-	}
-	mutex_unlock(&ksm_thread_mutex);
-
-	return err ? err : count;
-}
-KSM_ATTR(merge_across_nodes);
-#endif
-
 static ssize_t use_zero_pages_show(struct kobject *kobj,
 				struct kobj_attribute *attr, char *buf)
 {
@@ -3141,9 +3066,6 @@ static struct attribute *ksm_attrs[] = {
 	&pages_unshared_attr.attr,
 	&pages_volatile_attr.attr,
 	&full_scans_attr.attr,
-#ifdef CONFIG_NUMA
-	&merge_across_nodes_attr.attr,
-#endif
 	&max_page_sharing_attr.attr,
 	&stable_node_chains_attr.attr,
 	&stable_node_dups_attr.attr,

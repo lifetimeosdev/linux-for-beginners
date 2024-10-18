@@ -72,59 +72,10 @@ static inline bool is_memcg_oom(struct oom_control *oc)
 	return oc->memcg != NULL;
 }
 
-#ifdef CONFIG_NUMA
-/**
- * oom_cpuset_eligible() - check task eligiblity for kill
- * @start: task struct of which task to consider
- * @oc: pointer to struct oom_control
- *
- * Task eligibility is determined by whether or not a candidate task, @tsk,
- * shares the same mempolicy nodes as current if it is bound by such a policy
- * and whether or not it has the same set of allowed cpuset nodes.
- *
- * This function is assuming oom-killer context and 'current' has triggered
- * the oom-killer.
- */
-static bool oom_cpuset_eligible(struct task_struct *start,
-				struct oom_control *oc)
-{
-	struct task_struct *tsk;
-	bool ret = false;
-	const nodemask_t *mask = oc->nodemask;
-
-	if (is_memcg_oom(oc))
-		return true;
-
-	rcu_read_lock();
-	for_each_thread(start, tsk) {
-		if (mask) {
-			/*
-			 * If this is a mempolicy constrained oom, tsk's
-			 * cpuset is irrelevant.  Only return true if its
-			 * mempolicy intersects current, otherwise it may be
-			 * needlessly killed.
-			 */
-			ret = mempolicy_nodemask_intersects(tsk, mask);
-		} else {
-			/*
-			 * This is not a mempolicy constrained oom, so only
-			 * check the mems of tsk's cpuset.
-			 */
-			ret = cpuset_mems_allowed_intersects(current, tsk);
-		}
-		if (ret)
-			break;
-	}
-	rcu_read_unlock();
-
-	return ret;
-}
-#else
 static bool oom_cpuset_eligible(struct task_struct *tsk, struct oom_control *oc)
 {
 	return true;
 }
-#endif /* CONFIG_NUMA */
 
 /*
  * The process p may have detached its own ->mm while exiting or through

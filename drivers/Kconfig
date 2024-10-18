@@ -60,11 +60,11 @@ source "drivers/input/Kconfig"
 
 source "drivers/char/Kconfig"
 
-source "drivers/i2c/Kconfig"
+# source "drivers/i2c/Kconfig"
 
 # source "drivers/i3c/Kconfig"
 
-source "drivers/spi/Kconfig"
+# source "drivers/spi/Kconfig"
 
 source "drivers/spmi/Kconfig"
 
@@ -74,17 +74,17 @@ source "drivers/pps/Kconfig"
 
 source "drivers/ptp/Kconfig"
 
-source "drivers/pinctrl/Kconfig"
+# source "drivers/pinctrl/Kconfig"
 
-source "drivers/gpio/Kconfig"
+# source "drivers/gpio/Kconfig"
 
 # source "drivers/w1/Kconfig"
 
-source "drivers/power/Kconfig"
+# source "drivers/power/Kconfig"
 
 # source "drivers/hwmon/Kconfig"
 
-source "drivers/thermal/Kconfig"
+# source "drivers/thermal/Kconfig"
 
 # source "drivers/watchdog/Kconfig"
 
@@ -196,7 +196,7 @@ source "drivers/phy/Kconfig"
 
 # source "drivers/mcb/Kconfig"
 
-source "drivers/perf/Kconfig"
+# source "drivers/perf/Kconfig"
 
 #source "drivers/ras/Kconfig"
 
@@ -222,7 +222,7 @@ source "drivers/nvmem/Kconfig"
 
 source "drivers/mux/Kconfig"
 
-source "drivers/opp/Kconfig"
+# source "drivers/opp/Kconfig"
 
 # source "drivers/visorbus/Kconfig"
 
