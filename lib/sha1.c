@@ -35,9 +35,7 @@
  * the stack frame size simply explode and performance goes down the drain.
  */
 
-#ifdef CONFIG_X86
-  #define setW(x, val) (*(volatile __u32 *)&W(x) = (val))
-#elif defined(CONFIG_ARM)
+#if defined(CONFIG_ARM)
   #define setW(x, val) do { W(x) = (val); __asm__("":::"memory"); } while (0)
 #else
   #define setW(x, val) (W(x) = (val))

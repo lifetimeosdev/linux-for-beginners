@@ -1472,11 +1472,7 @@ static void dump_line(char *data, int offset, int limit)
 		error ^= POISON_FREE;
 		if (!(error & (error - 1))) {
 			pr_err("Single bit error detected. Probably bad RAM.\n");
-#ifdef CONFIG_X86
-			pr_err("Run memtest86+ or a similar memory test tool.\n");
-#else
 			pr_err("Run a memory test tool.\n");
-#endif
 		}
 	}
 }

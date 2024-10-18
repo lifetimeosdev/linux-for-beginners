@@ -25,11 +25,7 @@ static __always_inline void *task_stack_page(const struct task_struct *task)
 
 static __always_inline unsigned long *end_of_stack(const struct task_struct *task)
 {
-#ifdef CONFIG_STACK_GROWSUP
-	return (unsigned long *)((unsigned long)task->stack + THREAD_SIZE) - 1;
-#else
 	return task->stack;
-#endif
 }
 
 #elif !defined(__HAVE_THREAD_FUNCTIONS)
@@ -53,11 +49,7 @@ static inline void setup_thread_stack(struct task_struct *p, struct task_struct 
  */
 static inline unsigned long *end_of_stack(struct task_struct *p)
 {
-#ifdef CONFIG_STACK_GROWSUP
-	return (unsigned long *)((unsigned long)task_thread_info(p) + THREAD_SIZE) - 1;
-#else
 	return (unsigned long *)(task_thread_info(p) + 1);
-#endif
 }
 
 #endif
@@ -97,18 +89,10 @@ static inline unsigned long stack_not_used(struct task_struct *p)
 	unsigned long *n = end_of_stack(p);
 
 	do { 	/* Skip over canary */
-# ifdef CONFIG_STACK_GROWSUP
-		n--;
-# else
 		n++;
-# endif
 	} while (!*n);
 
-# ifdef CONFIG_STACK_GROWSUP
-	return (unsigned long)end_of_stack(p) - (unsigned long)n;
-# else
 	return (unsigned long)n - (unsigned long)end_of_stack(p);
-# endif
 }
 #endif
 extern void set_task_stack_end_magic(struct task_struct *tsk);

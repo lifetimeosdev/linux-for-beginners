@@ -27,10 +27,6 @@
 #include <linux/tpm.h>
 #include <linux/tpm_eventlog.h>
 
-#ifdef CONFIG_X86
-#include <asm/intel-family.h>
-#endif
-
 #define TPM_MINOR		224	/* officially assigned */
 #define TPM_BUFSIZE		4096
 #define TPM_NUM_DEVICES		65536

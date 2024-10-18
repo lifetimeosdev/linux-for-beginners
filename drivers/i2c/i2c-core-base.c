@@ -2203,13 +2203,6 @@ static int i2c_default_probe(struct i2c_adapter *adap, unsigned short addr)
 	int err;
 	union i2c_smbus_data dummy;
 
-#ifdef CONFIG_X86
-	if (addr == 0x73 && (adap->class & I2C_CLASS_HWMON)
-	 && i2c_check_functionality(adap, I2C_FUNC_SMBUS_READ_BYTE_DATA))
-		err = i2c_smbus_xfer(adap, addr, 0, I2C_SMBUS_READ, 0,
-				     I2C_SMBUS_BYTE_DATA, &dummy);
-	else
-#endif
 	if (!((addr & ~0x07) == 0x30 || (addr & ~0x0f) == 0x50)
 	 && i2c_check_functionality(adap, I2C_FUNC_SMBUS_QUICK))
 		err = i2c_smbus_xfer(adap, addr, 0, I2C_SMBUS_WRITE, 0,

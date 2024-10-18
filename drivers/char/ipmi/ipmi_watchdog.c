@@ -37,21 +37,6 @@
 #include <linux/atomic.h>
 #include <linux/sched/signal.h>
 
-#ifdef CONFIG_X86
-/*
- * This is ugly, but I've determined that x86 is the only architecture
- * that can reasonably support the IPMI NMI watchdog timeout at this
- * time.  If another architecture adds this capability somehow, it
- * will have to be a somewhat different mechanism and I have no idea
- * how it will work.  So in the unlikely event that another
- * architecture supports this, we can figure out a good generic
- * mechanism for it at that time.
- */
-#include <asm/kdebug.h>
-#include <asm/nmi.h>
-#define HAVE_DIE_NMI
-#endif
-
 /*
  * The IPMI command/response information for the watchdog timer.
  */

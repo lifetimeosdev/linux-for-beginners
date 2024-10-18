@@ -35,10 +35,6 @@
 #include <uapi/linux/magic.h>
 #include <linux/mount.h>
 
-#ifdef CONFIG_IA64
-# include <linux/efi.h>
-#endif
-
 #define DEVMEM_MINOR	1
 #define DEVPORT_MINOR	4
 

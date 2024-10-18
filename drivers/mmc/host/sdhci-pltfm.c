@@ -20,9 +20,6 @@
 #include <linux/module.h>
 #include <linux/property.h>
 #include <linux/of.h>
-#ifdef CONFIG_PPC
-#include <asm/machdep.h>
-#endif
 #include "sdhci-pltfm.h"
 
 unsigned int sdhci_pltfm_clk_get_max_clock(struct sdhci_host *host)
@@ -47,11 +44,7 @@ static bool sdhci_wp_inverted(struct device *dev)
 		return true;
 
 	/* Old device trees don't have the wp-inverted property. */
-#ifdef CONFIG_PPC
-	return machine_is(mpc837x_rdb) || machine_is(mpc837x_mds);
-#else
 	return false;
-#endif /* CONFIG_PPC */
 }
 
 #ifdef CONFIG_OF

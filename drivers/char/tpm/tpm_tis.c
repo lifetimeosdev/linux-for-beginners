@@ -59,10 +59,6 @@ module_param(itpm, bool, 0444);
 MODULE_PARM_DESC(itpm, "Force iTPM workarounds (found on some Lenovo laptops)");
 
 static bool force;
-#ifdef CONFIG_X86
-module_param(force, bool, 0444);
-MODULE_PARM_DESC(force, "Force device probe rather than using ACPI entry");
-#endif
 
 static int tpm_tis_disable_irq(const struct dmi_system_id *d)
 {

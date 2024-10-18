@@ -172,13 +172,6 @@ EXPORT_SYMBOL_GPL(devm_platform_ioremap_resource_byname);
 int platform_get_irq_optional(struct platform_device *dev, unsigned int num)
 {
 	int ret;
-#ifdef CONFIG_SPARC
-	/* sparc does not have irqs represented as IORESOURCE_IRQ resources */
-	if (!dev || num >= dev->archdata.num_irqs)
-		return -ENXIO;
-	ret = dev->archdata.irqs[num];
-	goto out;
-#else
 	struct resource *r;
 
 	if (IS_ENABLED(CONFIG_OF_IRQ) && dev->dev.of_node) {
@@ -233,7 +226,6 @@ int platform_get_irq_optional(struct platform_device *dev, unsigned int num)
 	}
 
 	ret = -ENXIO;
-#endif
 out:
 	WARN(ret == 0, "0 is an invalid IRQ number\n");
 	return ret;

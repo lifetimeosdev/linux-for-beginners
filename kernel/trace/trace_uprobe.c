@@ -99,17 +99,10 @@ static int uprobe_dispatcher(struct uprobe_consumer *con, struct pt_regs *regs);
 static int uretprobe_dispatcher(struct uprobe_consumer *con,
 				unsigned long func, struct pt_regs *regs);
 
-#ifdef CONFIG_STACK_GROWSUP
-static unsigned long adjust_stack_addr(unsigned long addr, unsigned int n)
-{
-	return addr - (n * sizeof(long));
-}
-#else
 static unsigned long adjust_stack_addr(unsigned long addr, unsigned int n)
 {
 	return addr + (n * sizeof(long));
 }
-#endif
 
 static unsigned long get_user_stack_nth(struct pt_regs *regs, unsigned int n)
 {

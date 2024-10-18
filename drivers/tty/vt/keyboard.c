@@ -1269,11 +1269,6 @@ static const unsigned short x86_keycodes[256] =
 	308,310,313,314,315,317,318,319,320,357,322,323,324,325,276,330,
 	332,340,365,342,343,344,345,346,356,270,341,368,369,370,371,372 };
 
-#ifdef CONFIG_SPARC
-static int sparc_l1_a_state;
-extern void sun_do_break(void);
-#endif
-
 static int emulate_raw(struct vc_data *vc, unsigned int keycode,
 		       unsigned char up_flag)
 {
@@ -1376,11 +1371,6 @@ static void kbd_keycode(unsigned int keycode, int down, int hw_raw)
 
 	kbd = kbd_table + vc->vc_num;
 
-#ifdef CONFIG_SPARC
-	if (keycode == KEY_STOP)
-		sparc_l1_a_state = down;
-#endif
-
 	rep = (down == 2);
 
 	raw_mode = (kbd->kbdmode == VC_RAW);
@@ -1389,13 +1379,6 @@ static void kbd_keycode(unsigned int keycode, int down, int hw_raw)
 			if (keycode < BTN_MISC && printk_ratelimit())
 				pr_warn("can't emulate rawmode for keycode %d\n",
 					keycode);
-
-#ifdef CONFIG_SPARC
-	if (keycode == KEY_A && sparc_l1_a_state) {
-		sparc_l1_a_state = false;
-		sun_do_break();
-	}
-#endif
 
 	if (kbd->kbdmode == VC_MEDIUMRAW) {
 		/*

@@ -158,11 +158,7 @@ static inline int tpm_tis_write32(struct tpm_tis_data *data, u32 addr,
 
 static inline bool is_bsw(void)
 {
-#ifdef CONFIG_X86
-	return ((boot_cpu_data.x86_model == INTEL_FAM6_ATOM_AIRMONT) ? 1 : 0);
-#else
 	return false;
-#endif
 }
 
 void tpm_tis_remove(struct tpm_chip *chip);

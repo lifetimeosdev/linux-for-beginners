@@ -1420,47 +1420,10 @@ bad_args:
 	return ERR_PTR(-EINVAL);
 }
 
-#ifdef CONFIG_PPC
-#include <asm/mpc85xx.h>
-
-static const u32 a4510_svrs[] __initconst = {
-	(SVR_P2040 << 8) | 0x10,	/* P2040 1.0 */
-	(SVR_P2040 << 8) | 0x11,	/* P2040 1.1 */
-	(SVR_P2041 << 8) | 0x10,	/* P2041 1.0 */
-	(SVR_P2041 << 8) | 0x11,	/* P2041 1.1 */
-	(SVR_P3041 << 8) | 0x10,	/* P3041 1.0 */
-	(SVR_P3041 << 8) | 0x11,	/* P3041 1.1 */
-	(SVR_P4040 << 8) | 0x20,	/* P4040 2.0 */
-	(SVR_P4080 << 8) | 0x20,	/* P4080 2.0 */
-	(SVR_P5010 << 8) | 0x10,	/* P5010 1.0 */
-	(SVR_P5010 << 8) | 0x20,	/* P5010 2.0 */
-	(SVR_P5020 << 8) | 0x10,	/* P5020 1.0 */
-	(SVR_P5021 << 8) | 0x10,	/* P5021 1.0 */
-	(SVR_P5040 << 8) | 0x10,	/* P5040 1.0 */
-};
-
-#define SVR_SECURITY	0x80000	/* The Security (E) bit */
-
-static bool __init has_erratum_a4510(void)
-{
-	u32 svr = mfspr(SPRN_SVR);
-	int i;
-
-	svr &= ~SVR_SECURITY;
-
-	for (i = 0; i < ARRAY_SIZE(a4510_svrs); i++) {
-		if (svr == a4510_svrs[i])
-			return true;
-	}
-
-	return false;
-}
-#else
 static bool __init has_erratum_a4510(void)
 {
 	return false;
 }
-#endif
 
 static void __init _clockgen_init(struct device_node *np, bool legacy)
 {
