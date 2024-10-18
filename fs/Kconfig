@@ -21,8 +21,8 @@ config FS_IOMAP
 	bool
 
 source "fs/ext2/Kconfig"
-source "fs/ext4/Kconfig"
-source "fs/jbd2/Kconfig"
+# source "fs/ext4/Kconfig"
+# source "fs/jbd2/Kconfig"
 
 config FS_MBCACHE
 # Meta block cache for Extended Attributes (ext2/ext3/ext4)
@@ -142,8 +142,8 @@ endif # BLOCK
 if BLOCK
 menu "DOS/FAT/EXFAT/NT Filesystems"
 
-source "fs/fat/Kconfig"
-source "fs/exfat/Kconfig"
+# source "fs/fat/Kconfig"
+# source "fs/exfat/Kconfig"
 # source "fs/ntfs/Kconfig"
 
 endmenu

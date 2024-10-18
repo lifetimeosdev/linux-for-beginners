@@ -1976,9 +1976,9 @@ endmenu
 
 menu "CPU Power Management"
 
-source "drivers/cpuidle/Kconfig"
+# source "drivers/cpuidle/Kconfig"
 
-source "drivers/cpufreq/Kconfig"
+# source "drivers/cpufreq/Kconfig"
 
 endmenu
 

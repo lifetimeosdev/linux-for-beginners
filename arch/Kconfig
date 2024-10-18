@@ -1065,7 +1065,7 @@ config ARCH_SPLIT_ARG64
 	   If a 32-bit architecture requires 64-bit arguments to be split into
 	   pairs of 32-bit arguments, select this option.
 
-source "kernel/gcov/Kconfig"
+# source "kernel/gcov/Kconfig"
 
 source "scripts/gcc-plugins/Kconfig"
 

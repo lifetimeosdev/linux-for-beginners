@@ -49,7 +49,7 @@ obj-$(CONFIG_VIRTIO)		+= virtio/
 # obj-$(CONFIG_REGULATOR)		+= regulator/
 
 # reset controllers early, since gpu drivers might rely on them to initialize
-obj-$(CONFIG_RESET_CONTROLLER)	+= reset/
+# obj-$(CONFIG_RESET_CONTROLLER)	+= reset/
 
 # tty/ comes before char/ so that the VT console is the boot-time
 # default.
@@ -83,7 +83,7 @@ obj-$(CONFIG_DMA_SHARED_BUFFER) += dma-buf/
 # obj-$(CONFIG_TARGET_CORE)	+= target/
 # obj-$(CONFIG_MTD)		+= mtd/
 # obj-$(CONFIG_SPI)		+= spi/
-obj-$(CONFIG_SPMI)		+= spmi/
+# obj-$(CONFIG_SPMI)		+= spmi/
 # obj-$(CONFIG_HSI)		+= hsi/
 # obj-$(CONFIG_SLIMBUS)		+= slimbus/
 obj-y				+= net/
@@ -110,10 +110,10 @@ obj-y				+= net/
 obj-$(CONFIG_SERIO)		+= input/serio/
 # obj-$(CONFIG_GAMEPORT)		+= input/gameport/
 obj-$(CONFIG_INPUT)		+= input/
-obj-$(CONFIG_RTC_LIB)		+= rtc/
+# obj-$(CONFIG_RTC_LIB)		+= rtc/
 # obj-y				+= i2c/
-obj-$(CONFIG_PPS)		+= pps/
-obj-y				+= ptp/
+# obj-$(CONFIG_PPS)		+= pps/
+# obj-y				+= ptp/
 # obj-$(CONFIG_W1)		+= w1/
 # obj-y				+= power/
 # obj-$(CONFIG_HWMON)		+= hwmon/
@@ -126,8 +126,8 @@ obj-y				+= ptp/
 # obj-$(CONFIG_EDAC)		+= edac/
 # obj-$(CONFIG_EISA)		+= eisa/
 # obj-$(CONFIG_PM_OPP)		+= opp/
-obj-$(CONFIG_CPU_FREQ)		+= cpufreq/
-obj-$(CONFIG_CPU_IDLE)		+= cpuidle/
+# obj-$(CONFIG_CPU_FREQ)		+= cpufreq/
+# obj-$(CONFIG_CPU_IDLE)		+= cpuidle/
 obj-y				+= mmc/
 # obj-$(CONFIG_MEMSTICK)		+= memstick/
 # obj-$(CONFIG_NEW_LEDS)		+= leds/
@@ -139,7 +139,7 @@ ifndef CONFIG_ARCH_USES_GETTIMEOFFSET
 obj-y				+= clocksource/
 endif
 # obj-$(CONFIG_DCA)		+= dca/
-obj-$(CONFIG_HID)		+= hid/
+# bj-$(CONFIG_HID)		+= hid/
 # obj-$(CONFIG_PPC_PS3)		+= ps3/
 obj-$(CONFIG_OF)		+= of/
 # obj-$(CONFIG_SSB)		+= ssb/

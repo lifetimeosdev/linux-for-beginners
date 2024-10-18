@@ -600,7 +600,7 @@ config UCS2_STRING
 #
 source "lib/vdso/Kconfig"
 
-source "lib/fonts/Kconfig"
+# source "lib/fonts/Kconfig"
 
 config SG_SPLIT
 	def_bool n

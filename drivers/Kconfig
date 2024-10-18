@@ -66,13 +66,13 @@ source "drivers/char/Kconfig"
 
 # source "drivers/spi/Kconfig"
 
-source "drivers/spmi/Kconfig"
+# source "drivers/spmi/Kconfig"
 
 # source "drivers/hsi/Kconfig"
 
-source "drivers/pps/Kconfig"
+# source "drivers/pps/Kconfig"
 
-source "drivers/ptp/Kconfig"
+# source "drivers/ptp/Kconfig"
 
 # source "drivers/pinctrl/Kconfig"
 
@@ -102,7 +102,7 @@ source "drivers/video/Kconfig"
 
 # source "sound/Kconfig"
 
-source "drivers/hid/Kconfig"
+# source "drivers/hid/Kconfig"
 
 #source "drivers/usb/Kconfig"
 
@@ -118,7 +118,7 @@ source "drivers/mmc/Kconfig"
 
 # source "drivers/edac/Kconfig"
 
-source "drivers/rtc/Kconfig"
+# source "drivers/rtc/Kconfig"
 
 source "drivers/dma/Kconfig"
 
@@ -188,7 +188,7 @@ source "drivers/irqchip/Kconfig"
 
 # source "drivers/ipack/Kconfig"
 
-source "drivers/reset/Kconfig"
+# source "drivers/reset/Kconfig"
 
 source "drivers/phy/Kconfig"
 
