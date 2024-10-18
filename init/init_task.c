@@ -176,9 +176,6 @@ struct task_struct init_task
 	.numa_group	= NULL,
 	.numa_faults	= NULL,
 #endif
-#ifdef CONFIG_KASAN
-	.kasan_depth	= 1,
-#endif
 #ifdef CONFIG_KCSAN
 	.kcsan_ctx = {
 		.disable_count		= 0,

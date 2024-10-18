@@ -62,17 +62,8 @@ _head:
 	/*
 	 * DO NOT MODIFY. Image header expected by Linux boot-loaders.
 	 */
-#ifdef CONFIG_EFI
-	/*
-	 * This add instruction has no meaningful effect except that
-	 * its opcode forms the magic "MZ" signature required by UEFI.
-	 */
-	add	x13, x18, #0x16
-	b	primary_entry
-#else
 	b	primary_entry			// branch to kernel start, magic
 	.long	0				// reserved
-#endif
 	.quad	0				// Image load offset from start of RAM, little-endian
 	le64sym	_kernel_size_le			// Effective size of kernel image, little-endian
 	le64sym	_kernel_flags_le		// Informative flags, little-endian
@@ -80,14 +71,7 @@ _head:
 	.quad	0				// reserved
 	.quad	0				// reserved
 	.ascii	ARM64_IMAGE_MAGIC		// Magic number
-#ifdef CONFIG_EFI
-	.long	pe_header - _head		// Offset to the PE header.
-
-pe_header:
-	__EFI_PE_HEADER
-#else
 	.long	0				// reserved
-#endif
 
 	__INIT
 
@@ -449,20 +433,6 @@ SYM_FUNC_START_LOCAL(__primary_switched)
 	bl	__pi_memset
 	dsb	ishst				// Make zero page visible to PTW
 
-#ifdef CONFIG_KASAN
-	bl	kasan_early_init
-#endif
-#ifdef CONFIG_RANDOMIZE_BASE
-	tst	x23, ~(MIN_KIMG_ALIGN - 1)	// already running randomized?
-	b.ne	0f
-	mov	x0, x21				// pass FDT address in x0
-	bl	kaslr_early_init		// parse FDT for KASLR options
-	cbz	x0, 0f				// KASLR disabled? just proceed
-	orr	x23, x23, x0			// record KASLR offset
-	ldp	x29, x30, [sp], #16		// we must enable KASLR, return
-	ret					// to __primary_switch()
-0:
-#endif
 	add	sp, sp, #16
 	mov	x29, #0
 	mov	x30, #0
@@ -503,17 +473,7 @@ SYM_FUNC_START(el2_setup)
 1:	mov_q	x0, (SCTLR_EL2_RES1 | ENDIAN_SET_EL2)
 	msr	sctlr_el2, x0
 
-#ifdef CONFIG_ARM64_VHE
-	/*
-	 * Check for VHE being present. For the rest of the EL2 setup,
-	 * x2 being non-zero indicates that we do have VHE, and that the
-	 * kernel is intended to run at EL2.
-	 */
-	mrs	x2, id_aa64mmfr1_el1
-	ubfx	x2, x2, #ID_AA64MMFR1_VHE_SHIFT, #4
-#else
 	mov	x2, xzr
-#endif
 
 	/* Hyp configuration. */
 	mov_q	x0, HCR_HOST_NVHE_FLAGS
@@ -959,10 +919,6 @@ SYM_FUNC_END(__relocate_kernel)
 #endif
 
 SYM_FUNC_START_LOCAL(__primary_switch)
-#ifdef CONFIG_RANDOMIZE_BASE
-	mov	x19, x0				// preserve new SCTLR_EL1 value
-	mrs	x20, sctlr_el1			// preserve old SCTLR_EL1 value
-#endif
 
 	adrp	x1, init_pg_dir
 	bl	__enable_mmu
@@ -971,33 +927,6 @@ SYM_FUNC_START_LOCAL(__primary_switch)
 	mov	x24, #0				// no RELR displacement yet
 #endif
 	bl	__relocate_kernel
-#ifdef CONFIG_RANDOMIZE_BASE
-	ldr	x8, =__primary_switched
-	adrp	x0, __PHYS_OFFSET
-	blr	x8
-
-	/*
-	 * If we return here, we have a KASLR displacement in x23 which we need
-	 * to take into account by discarding the current kernel mapping and
-	 * creating a new one.
-	 */
-	pre_disable_mmu_workaround
-	msr	sctlr_el1, x20			// disable the MMU
-	isb
-	bl	__create_page_tables		// recreate kernel mapping
-
-	tlbi	vmalle1				// Remove any stale TLB entries
-	dsb	nsh
-	isb
-
-	msr	sctlr_el1, x19			// re-enable the MMU
-	isb
-	ic	iallu				// flush instructions fetched
-	dsb	nsh				// via old mapping
-	isb
-
-	bl	__relocate_kernel
-#endif
 #endif
 	ldr	x8, =__primary_switched
 	adrp	x0, __PHYS_OFFSET

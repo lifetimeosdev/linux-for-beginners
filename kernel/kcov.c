@@ -176,9 +176,6 @@ static notrace bool check_kcov_mode(enum kcov_mode needed_mode, struct task_stru
 
 static notrace unsigned long canonicalize_ip(unsigned long ip)
 {
-#ifdef CONFIG_RANDOMIZE_BASE
-	ip -= kaslr_offset();
-#endif
 	return ip;
 }
 

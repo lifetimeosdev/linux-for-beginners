@@ -23,22 +23,8 @@ ENTRY(_text)
 jiffies = jiffies_64;
 
 
-#ifdef CONFIG_KVM
-#define HYPERVISOR_EXTABLE					\
-	. = ALIGN(SZ_8);					\
-	__start___kvm_ex_table = .;				\
-	*(__kvm_ex_table)					\
-	__stop___kvm_ex_table = .;
-
-#define HYPERVISOR_PERCPU_SECTION				\
-	. = ALIGN(PAGE_SIZE);					\
-	HYP_SECTION_NAME(.data..percpu) : {			\
-		*(HYP_SECTION_NAME(.data..percpu))		\
-	}
-#else /* CONFIG_KVM */
 #define HYPERVISOR_EXTABLE
 #define HYPERVISOR_PERCPU_SECTION
-#endif
 
 #define HYPERVISOR_TEXT					\
 	/*						\
@@ -94,12 +80,7 @@ jiffies = jiffies_64;
  */
 PECOFF_FILE_ALIGNMENT = 0x200;
 
-#ifdef CONFIG_EFI
-#define PECOFF_EDATA_PADDING	\
-	.pecoff_edata_padding : { BYTE(0); . = ALIGN(PECOFF_FILE_ALIGNMENT); }
-#else
 #define PECOFF_EDATA_PADDING
-#endif
 
 SECTIONS
 {

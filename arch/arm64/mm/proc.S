@@ -28,11 +28,7 @@
 #define TCR_TG_FLAGS	TCR_TG0_4K | TCR_TG1_4K
 #endif
 
-#ifdef CONFIG_RANDOMIZE_BASE
-#define TCR_KASLR_FLAGS	TCR_NFD1
-#else
 #define TCR_KASLR_FLAGS	0
-#endif
 
 #define TCR_SMP_FLAGS	TCR_SHARED
 

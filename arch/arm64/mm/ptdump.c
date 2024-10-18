@@ -29,18 +29,11 @@
 enum address_markers_idx {
 	PAGE_OFFSET_NR = 0,
 	PAGE_END_NR,
-#ifdef CONFIG_KASAN
-	KASAN_START_NR,
-#endif
 };
 
 static struct addr_marker address_markers[] = {
 	{ PAGE_OFFSET,			"Linear Mapping start" },
 	{ 0 /* PAGE_END */,		"Linear Mapping end" },
-#ifdef CONFIG_KASAN
-	{ 0 /* KASAN_SHADOW_START */,	"Kasan shadow start" },
-	{ KASAN_SHADOW_END,		"Kasan shadow end" },
-#endif
 	{ BPF_JIT_REGION_START,		"BPF start" },
 	{ BPF_JIT_REGION_END,		"BPF end" },
 	{ MODULES_VADDR,		"Modules start" },
@@ -383,9 +376,6 @@ void ptdump_check_wx(void)
 static int ptdump_init(void)
 {
 	address_markers[PAGE_END_NR].start_address = PAGE_END;
-#ifdef CONFIG_KASAN
-	address_markers[KASAN_START_NR].start_address = KASAN_SHADOW_START;
-#endif
 	ptdump_initialize();
 	ptdump_debugfs_register(&kernel_ptdump_info, "kernel_page_tables");
 	return 0;
