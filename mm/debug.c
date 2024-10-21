@@ -236,9 +236,6 @@ void dump_mm(const struct mm_struct *mm)
 #ifdef CONFIG_MMU_NOTIFIER
 		"notifier_subscriptions %px\n"
 #endif
-#ifdef CONFIG_NUMA_BALANCING
-		"numa_next_scan %lu numa_scan_offset %lu numa_scan_seq %d\n"
-#endif
 		"tlb_flush_pending %d\n"
 		"def_flags: %#lx(%pGv)\n",
 
@@ -267,9 +264,6 @@ void dump_mm(const struct mm_struct *mm)
 		mm->exe_file,
 #ifdef CONFIG_MMU_NOTIFIER
 		mm->notifier_subscriptions,
-#endif
-#ifdef CONFIG_NUMA_BALANCING
-		mm->numa_next_scan, mm->numa_scan_offset, mm->numa_scan_seq,
 #endif
 		atomic_read(&mm->tlb_flush_pending),
 		mm->def_flags, &mm->def_flags

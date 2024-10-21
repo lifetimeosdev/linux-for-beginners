@@ -129,13 +129,6 @@ void noinstr arch_cpu_idle(void)
 	raw_local_irq_enable();
 }
 
-#ifdef CONFIG_HOTPLUG_CPU
-void arch_cpu_idle_dead(void)
-{
-       cpu_die();
-}
-#endif
-
 /*
  * Called by kexec, immediately prior to machine_kexec().
  *

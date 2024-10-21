@@ -83,16 +83,10 @@ static struct irq_desc *ipi_desc[NR_IPI] __read_mostly;
 
 static void ipi_setup(int cpu);
 
-#ifdef CONFIG_HOTPLUG_CPU
-static void ipi_teardown(int cpu);
-static int op_cpu_kill(unsigned int cpu);
-#else
 static inline int op_cpu_kill(unsigned int cpu)
 {
 	return -ENOSYS;
 }
-#endif
-
 
 /*
  * Boot a secondary CPU, and assign it the specified idle task.
@@ -271,133 +265,8 @@ asmlinkage notrace void secondary_start_kernel(void)
 	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
 }
 
-#ifdef CONFIG_HOTPLUG_CPU
-static int op_cpu_disable(unsigned int cpu)
-{
-	const struct cpu_operations *ops = get_cpu_ops(cpu);
-
-	/*
-	 * If we don't have a cpu_die method, abort before we reach the point
-	 * of no return. CPU0 may not have an cpu_ops, so test for it.
-	 */
-	if (!ops || !ops->cpu_die)
-		return -EOPNOTSUPP;
-
-	/*
-	 * We may need to abort a hot unplug for some other mechanism-specific
-	 * reason.
-	 */
-	if (ops->cpu_disable)
-		return ops->cpu_disable(cpu);
-
-	return 0;
-}
-
-/*
- * __cpu_disable runs on the processor to be shutdown.
- */
-int __cpu_disable(void)
-{
-	unsigned int cpu = smp_processor_id();
-	int ret;
-
-	ret = op_cpu_disable(cpu);
-	if (ret)
-		return ret;
-
-	remove_cpu_topology(cpu);
-	numa_remove_cpu(cpu);
-
-	/*
-	 * Take this CPU offline.  Once we clear this, we can't return,
-	 * and we must not schedule until we're ready to give up the cpu.
-	 */
-	set_cpu_online(cpu, false);
-	ipi_teardown(cpu);
-
-	/*
-	 * OK - migrate IRQs away from this CPU
-	 */
-	irq_migrate_all_off_this_cpu();
-
-	return 0;
-}
-
-static int op_cpu_kill(unsigned int cpu)
-{
-	const struct cpu_operations *ops = get_cpu_ops(cpu);
-
-	/*
-	 * If we have no means of synchronising with the dying CPU, then assume
-	 * that it is really dead. We can only wait for an arbitrary length of
-	 * time and hope that it's dead, so let's skip the wait and just hope.
-	 */
-	if (!ops->cpu_kill)
-		return 0;
-
-	return ops->cpu_kill(cpu);
-}
-
-/*
- * called on the thread which is asking for a CPU to be shutdown -
- * waits until shutdown has completed, or it is timed out.
- */
-void __cpu_die(unsigned int cpu)
-{
-	int err;
-
-	if (!cpu_wait_death(cpu, 5)) {
-		pr_crit("CPU%u: cpu didn't die\n", cpu);
-		return;
-	}
-	pr_notice("CPU%u: shutdown\n", cpu);
-
-	/*
-	 * Now that the dying CPU is beyond the point of no return w.r.t.
-	 * in-kernel synchronisation, try to get the firwmare to help us to
-	 * verify that it has really left the kernel before we consider
-	 * clobbering anything it might still be using.
-	 */
-	err = op_cpu_kill(cpu);
-	if (err)
-		pr_warn("CPU%d may not have shut down cleanly: %d\n", cpu, err);
-}
-
-/*
- * Called from the idle thread for the CPU which has been shutdown.
- *
- */
-void cpu_die(void)
-{
-	unsigned int cpu = smp_processor_id();
-	const struct cpu_operations *ops = get_cpu_ops(cpu);
-
-	idle_task_exit();
-
-	local_daif_mask();
-
-	/* Tell __cpu_die() that this CPU is now safe to dispose of */
-	(void)cpu_report_death();
-
-	/*
-	 * Actually shutdown the CPU. This must never fail. The specific hotplug
-	 * mechanism must perform all required cache maintenance to ensure that
-	 * no dirty lines are lost in the process of shutting down the CPU.
-	 */
-	ops->cpu_die(cpu);
-
-	BUG();
-}
-#endif
-
 static void __cpu_try_die(int cpu)
 {
-#ifdef CONFIG_HOTPLUG_CPU
-	const struct cpu_operations *ops = get_cpu_ops(cpu);
-
-	if (ops && ops->cpu_die)
-		ops->cpu_die(cpu);
-#endif
 }
 
 /*
@@ -965,19 +834,6 @@ static void ipi_setup(int cpu)
 		enable_percpu_irq(ipi_irq_base + i, 0);
 }
 
-#ifdef CONFIG_HOTPLUG_CPU
-static void ipi_teardown(int cpu)
-{
-	int i;
-
-	if (WARN_ON_ONCE(!ipi_irq_base))
-		return;
-
-	for (i = 0; i < nr_ipi; i++)
-		disable_percpu_irq(ipi_irq_base + i);
-}
-#endif
-
 void __init set_smp_ipi_range(int ipi_base, int n)
 {
 	int i;
@@ -1113,13 +969,6 @@ int setup_profiling_timer(unsigned int multiplier)
 
 static bool have_cpu_die(void)
 {
-#ifdef CONFIG_HOTPLUG_CPU
-	int any_cpu = raw_smp_processor_id();
-	const struct cpu_operations *ops = get_cpu_ops(any_cpu);
-
-	if (ops && ops->cpu_die)
-		return true;
-#endif
 	return false;
 }
 

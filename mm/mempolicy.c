@@ -640,34 +640,11 @@ unlock:
 	return ret;
 }
 
-#ifdef CONFIG_NUMA_BALANCING
-/*
- * This is used to mark a range of virtual addresses to be inaccessible.
- * These are later cleared by a NUMA hinting fault. Depending on these
- * faults, pages may be migrated for better NUMA placement.
- *
- * This is assuming that NUMA faults are handled using PROT_NONE. If
- * an architecture makes a different choice, it will need further
- * changes to the core.
- */
-unsigned long change_prot_numa(struct vm_area_struct *vma,
-			unsigned long addr, unsigned long end)
-{
-	int nr_updated;
-
-	nr_updated = change_protection(vma, addr, end, PAGE_NONE, MM_CP_PROT_NUMA);
-	if (nr_updated)
-		count_vm_numa_events(NUMA_PTE_UPDATES, nr_updated);
-
-	return nr_updated;
-}
-#else
 static unsigned long change_prot_numa(struct vm_area_struct *vma,
 			unsigned long addr, unsigned long end)
 {
 	return 0;
 }
-#endif /* CONFIG_NUMA_BALANCING */
 
 static int queue_pages_test_walk(unsigned long start, unsigned long end,
 				struct mm_walk *walk)
@@ -2622,52 +2599,9 @@ void mpol_free_shared_policy(struct shared_policy *p)
 	write_unlock(&p->lock);
 }
 
-#ifdef CONFIG_NUMA_BALANCING
-static int __initdata numabalancing_override;
-
-static void __init check_numabalancing_enable(void)
-{
-	bool numabalancing_default = false;
-
-	if (IS_ENABLED(CONFIG_NUMA_BALANCING_DEFAULT_ENABLED))
-		numabalancing_default = true;
-
-	/* Parsed by setup_numabalancing. override == 1 enables, -1 disables */
-	if (numabalancing_override)
-		set_numabalancing_state(numabalancing_override == 1);
-
-	if (num_online_nodes() > 1 && !numabalancing_override) {
-		pr_info("%s automatic NUMA balancing. Configure with numa_balancing= or the kernel.numa_balancing sysctl\n",
-			numabalancing_default ? "Enabling" : "Disabling");
-		set_numabalancing_state(numabalancing_default);
-	}
-}
-
-static int __init setup_numabalancing(char *str)
-{
-	int ret = 0;
-	if (!str)
-		goto out;
-
-	if (!strcmp(str, "enable")) {
-		numabalancing_override = 1;
-		ret = 1;
-	} else if (!strcmp(str, "disable")) {
-		numabalancing_override = -1;
-		ret = 1;
-	}
-out:
-	if (!ret)
-		pr_warn("Unable to parse numa_balancing=\n");
-
-	return ret;
-}
-__setup("numa_balancing=", setup_numabalancing);
-#else
 static inline void __init check_numabalancing_enable(void)
 {
 }
-#endif /* CONFIG_NUMA_BALANCING */
 
 /* assumes fs == KERNEL_DS */
 void __init numa_policy_init(void)

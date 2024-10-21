@@ -164,11 +164,6 @@ struct task_struct init_task
 	.vtime.starttime = 0,
 	.vtime.state	= VTIME_SYS,
 #endif
-#ifdef CONFIG_NUMA_BALANCING
-	.numa_preferred_nid = NUMA_NO_NODE,
-	.numa_group	= NULL,
-	.numa_faults	= NULL,
-#endif
 #ifdef CONFIG_KCSAN
 	.kcsan_ctx = {
 		.disable_count		= 0,

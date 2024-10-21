@@ -2412,9 +2412,9 @@ static struct iommu_group *arm_smmu_device_group(struct device *dev)
 	 * aliases, since the necessary ID-to-device lookup becomes rather
 	 * impractical given a potential sparse 32-bit stream ID space.
 	 */
-	if (dev_is_pci(dev))
-		group = pci_device_group(dev);
-	else
+	// if (dev_is_pci(dev))
+	// 	group = pci_device_group(dev);
+	// else
 		group = generic_device_group(dev);
 
 	return group;

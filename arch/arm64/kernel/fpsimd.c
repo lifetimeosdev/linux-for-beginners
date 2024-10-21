@@ -861,22 +861,7 @@ static void __init fpsimd_pm_init(void)
 static inline void fpsimd_pm_init(void) { }
 #endif /* CONFIG_CPU_PM */
 
-#ifdef CONFIG_HOTPLUG_CPU
-static int fpsimd_cpu_dead(unsigned int cpu)
-{
-	per_cpu(fpsimd_last_state.st, cpu) = NULL;
-	return 0;
-}
-
-static inline void fpsimd_hotplug_init(void)
-{
-	cpuhp_setup_state_nocalls(CPUHP_ARM64_FPSIMD_DEAD, "arm64/fpsimd:dead",
-				  NULL, fpsimd_cpu_dead);
-}
-
-#else
 static inline void fpsimd_hotplug_init(void) { }
-#endif
 
 /*
  * FP/SIMD support code initialisation.

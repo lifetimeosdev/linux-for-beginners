@@ -109,13 +109,8 @@ static inline void vm_events_fold_cpu(int cpu)
 
 #endif /* CONFIG_VM_EVENT_COUNTERS */
 
-#ifdef CONFIG_NUMA_BALANCING
-#define count_vm_numa_event(x)     count_vm_event(x)
-#define count_vm_numa_events(x, y) count_vm_events(x, y)
-#else
 #define count_vm_numa_event(x) do {} while (0)
 #define count_vm_numa_events(x, y) do { (void)(y); } while (0)
-#endif /* CONFIG_NUMA_BALANCING */
 
 #ifdef CONFIG_DEBUG_TLBFLUSH
 #define count_vm_tlb_event(x)	   count_vm_event(x)

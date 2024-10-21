@@ -764,85 +764,8 @@ out:
 }
 EXPORT_SYMBOL(padata_set_cpumask);
 
-#ifdef CONFIG_HOTPLUG_CPU
-
-static int __padata_add_cpu(struct padata_instance *pinst, int cpu)
-{
-	int err = 0;
-
-	if (cpumask_test_cpu(cpu, cpu_online_mask)) {
-		err = padata_replace(pinst);
-
-		if (padata_validate_cpumask(pinst, pinst->cpumask.pcpu) &&
-		    padata_validate_cpumask(pinst, pinst->cpumask.cbcpu))
-			__padata_start(pinst);
-	}
-
-	return err;
-}
-
-static int __padata_remove_cpu(struct padata_instance *pinst, int cpu)
-{
-	int err = 0;
-
-	if (!cpumask_test_cpu(cpu, cpu_online_mask)) {
-		if (!padata_validate_cpumask(pinst, pinst->cpumask.pcpu) ||
-		    !padata_validate_cpumask(pinst, pinst->cpumask.cbcpu))
-			__padata_stop(pinst);
-
-		err = padata_replace(pinst);
-	}
-
-	return err;
-}
-
-static inline int pinst_has_cpu(struct padata_instance *pinst, int cpu)
-{
-	return cpumask_test_cpu(cpu, pinst->cpumask.pcpu) ||
-		cpumask_test_cpu(cpu, pinst->cpumask.cbcpu);
-}
-
-static int padata_cpu_online(unsigned int cpu, struct hlist_node *node)
-{
-	struct padata_instance *pinst;
-	int ret;
-
-	pinst = hlist_entry_safe(node, struct padata_instance, cpu_online_node);
-	if (!pinst_has_cpu(pinst, cpu))
-		return 0;
-
-	mutex_lock(&pinst->lock);
-	ret = __padata_add_cpu(pinst, cpu);
-	mutex_unlock(&pinst->lock);
-	return ret;
-}
-
-static int padata_cpu_dead(unsigned int cpu, struct hlist_node *node)
-{
-	struct padata_instance *pinst;
-	int ret;
-
-	pinst = hlist_entry_safe(node, struct padata_instance, cpu_dead_node);
-	if (!pinst_has_cpu(pinst, cpu))
-		return 0;
-
-	mutex_lock(&pinst->lock);
-	ret = __padata_remove_cpu(pinst, cpu);
-	mutex_unlock(&pinst->lock);
-	return ret;
-}
-
-static enum cpuhp_state hp_online;
-#endif
-
 static void __padata_free(struct padata_instance *pinst)
 {
-#ifdef CONFIG_HOTPLUG_CPU
-	cpuhp_state_remove_instance_nocalls(CPUHP_PADATA_DEAD,
-					    &pinst->cpu_dead_node);
-	cpuhp_state_remove_instance_nocalls(hp_online, &pinst->cpu_online_node);
-#endif
-
 	WARN_ON(!list_empty(&pinst->pslist));
 
 	free_cpumask_var(pinst->cpumask.pcpu);
@@ -1024,13 +947,6 @@ struct padata_instance *padata_alloc(const char *name)
 	kobject_init(&pinst->kobj, &padata_attr_type);
 	mutex_init(&pinst->lock);
 
-#ifdef CONFIG_HOTPLUG_CPU
-	cpuhp_state_add_instance_nocalls_cpuslocked(hp_online,
-						    &pinst->cpu_online_node);
-	cpuhp_state_add_instance_nocalls_cpuslocked(CPUHP_PADATA_DEAD,
-						    &pinst->cpu_dead_node);
-#endif
-
 	put_online_cpus();
 
 	return pinst;
@@ -1126,20 +1042,6 @@ EXPORT_SYMBOL(padata_free_shell);
 void __init padata_init(void)
 {
 	unsigned int i, possible_cpus;
-#ifdef CONFIG_HOTPLUG_CPU
-	int ret;
-
-	ret = cpuhp_setup_state_multi(CPUHP_AP_ONLINE_DYN, "padata:online",
-				      padata_cpu_online, NULL);
-	if (ret < 0)
-		goto err;
-	hp_online = ret;
-
-	ret = cpuhp_setup_state_multi(CPUHP_PADATA_DEAD, "padata:dead",
-				      NULL, padata_cpu_dead);
-	if (ret < 0)
-		goto remove_online_state;
-#endif
 
 	possible_cpus = num_possible_cpus();
 	padata_works = kmalloc_array(possible_cpus, sizeof(struct padata_work),
@@ -1153,11 +1055,5 @@ void __init padata_init(void)
 	return;
 
 remove_dead_state:
-#ifdef CONFIG_HOTPLUG_CPU
-	cpuhp_remove_multi_state(CPUHP_PADATA_DEAD);
-remove_online_state:
-	cpuhp_remove_multi_state(hp_online);
-err:
-#endif
 	pr_warn("padata: initialization failed\n");
 }

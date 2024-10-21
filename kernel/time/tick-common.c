@@ -400,49 +400,6 @@ int tick_broadcast_oneshot_control(enum tick_broadcast_state state)
 }
 EXPORT_SYMBOL_GPL(tick_broadcast_oneshot_control);
 
-#ifdef CONFIG_HOTPLUG_CPU
-/*
- * Transfer the do_timer job away from a dying cpu.
- *
- * Called with interrupts disabled. Not locking required. If
- * tick_do_timer_cpu is owned by this cpu, nothing can change it.
- */
-void tick_handover_do_timer(void)
-{
-	if (tick_do_timer_cpu == smp_processor_id()) {
-		int cpu = cpumask_first(cpu_online_mask);
-
-		tick_do_timer_cpu = (cpu < nr_cpu_ids) ? cpu :
-			TICK_DO_TIMER_NONE;
-	}
-}
-
-/*
- * Shutdown an event device on a given cpu:
- *
- * This is called on a life CPU, when a CPU is dead. So we cannot
- * access the hardware device itself.
- * We just set the mode and remove it from the lists.
- */
-void tick_shutdown(unsigned int cpu)
-{
-	struct tick_device *td = &per_cpu(tick_cpu_device, cpu);
-	struct clock_event_device *dev = td->evtdev;
-
-	td->mode = TICKDEV_MODE_PERIODIC;
-	if (dev) {
-		/*
-		 * Prevent that the clock events layer tries to call
-		 * the set mode function!
-		 */
-		clockevent_set_state(dev, CLOCK_EVT_STATE_DETACHED);
-		clockevents_exchange_device(dev, NULL);
-		dev->event_handler = clockevents_handle_noop;
-		td->evtdev = NULL;
-	}
-}
-#endif
-
 /**
  * tick_suspend_local - Suspend the local tick device
  *

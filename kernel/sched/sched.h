@@ -903,11 +903,6 @@ struct rq {
 	 * remote CPUs use both these fields when doing load calculation.
 	 */
 	unsigned int		nr_running;
-#ifdef CONFIG_NUMA_BALANCING
-	unsigned int		nr_numa_running;
-	unsigned int		nr_preferred_running;
-	unsigned int		numa_migrate_on;
-#endif
 #ifdef CONFIG_NO_HZ_COMMON
 #ifdef CONFIG_SMP
 	unsigned long		last_blocked_load_update_tick;
@@ -1048,10 +1043,6 @@ struct rq {
 	unsigned int		ttwu_local;
 #endif
 
-#ifdef CONFIG_CPU_IDLE
-	/* Must be inspected within a rcu lock section */
-	struct cpuidle_state	*idle_state;
-#endif
 };
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
@@ -1349,25 +1340,10 @@ static inline int sched_numa_find_closest(const struct cpumask *cpus, int cpu)
 	return nr_cpu_ids;
 }
 
-#ifdef CONFIG_NUMA_BALANCING
-/* The regions in numa_faults array from task_struct */
-enum numa_faults_stats {
-	NUMA_MEM = 0,
-	NUMA_CPU,
-	NUMA_MEMBUF,
-	NUMA_CPUBUF
-};
-extern void sched_setnuma(struct task_struct *p, int node);
-extern int migrate_task_to(struct task_struct *p, int cpu);
-extern int migrate_swap(struct task_struct *p, struct task_struct *t,
-			int cpu, int scpu);
-extern void init_numa_balancing(unsigned long clone_flags, struct task_struct *p);
-#else
 static inline void
 init_numa_balancing(unsigned long clone_flags, struct task_struct *p)
 {
 }
-#endif /* CONFIG_NUMA_BALANCING */
 
 #ifdef CONFIG_SMP
 
@@ -1888,20 +1864,6 @@ extern void set_cpus_allowed_common(struct task_struct *p, const struct cpumask 
 
 #endif
 
-#ifdef CONFIG_CPU_IDLE
-static inline void idle_set_state(struct rq *rq,
-				  struct cpuidle_state *idle_state)
-{
-	rq->idle_state = idle_state;
-}
-
-static inline struct cpuidle_state *idle_get_state(struct rq *rq)
-{
-	SCHED_WARN_ON(!rcu_read_lock_held());
-
-	return rq->idle_state;
-}
-#else
 static inline void idle_set_state(struct rq *rq,
 				  struct cpuidle_state *idle_state)
 {
@@ -1911,7 +1873,6 @@ static inline struct cpuidle_state *idle_get_state(struct rq *rq)
 {
 	return NULL;
 }
-#endif
 
 extern void schedule_idle(void);
 
@@ -2258,13 +2219,6 @@ extern void print_dl_stats(struct seq_file *m, int cpu);
 extern void print_cfs_rq(struct seq_file *m, int cpu, struct cfs_rq *cfs_rq);
 extern void print_rt_rq(struct seq_file *m, int cpu, struct rt_rq *rt_rq);
 extern void print_dl_rq(struct seq_file *m, int cpu, struct dl_rq *dl_rq);
-#ifdef CONFIG_NUMA_BALANCING
-extern void
-show_numa_stats(struct task_struct *p, struct seq_file *m);
-extern void
-print_numa_stats(struct seq_file *m, int node, unsigned long tsf,
-	unsigned long tpf, unsigned long gsf, unsigned long gpf);
-#endif /* CONFIG_NUMA_BALANCING */
 #endif /* CONFIG_SCHED_DEBUG */
 
 extern void init_cfs_rq(struct cfs_rq *cfs_rq);

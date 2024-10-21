@@ -10,11 +10,6 @@
 #include <linux/module.h>
 #include <linux/debugobjects.h>
 
-#ifdef CONFIG_HOTPLUG_CPU
-static LIST_HEAD(percpu_counters);
-static DEFINE_SPINLOCK(percpu_counters_lock);
-#endif
-
 #ifdef CONFIG_DEBUG_OBJECTS_PERCPU_COUNTER
 
 static const struct debug_obj_descr percpu_counter_debug_descr;
@@ -152,12 +147,6 @@ int __percpu_counter_init(struct percpu_counter *fbc, s64 amount, gfp_t gfp,
 
 	debug_percpu_counter_activate(fbc);
 
-#ifdef CONFIG_HOTPLUG_CPU
-	INIT_LIST_HEAD(&fbc->list);
-	spin_lock_irqsave(&percpu_counters_lock, flags);
-	list_add(&fbc->list, &percpu_counters);
-	spin_unlock_irqrestore(&percpu_counters_lock, flags);
-#endif
 	return 0;
 }
 EXPORT_SYMBOL(__percpu_counter_init);
@@ -171,11 +160,6 @@ void percpu_counter_destroy(struct percpu_counter *fbc)
 
 	debug_percpu_counter_deactivate(fbc);
 
-#ifdef CONFIG_HOTPLUG_CPU
-	spin_lock_irqsave(&percpu_counters_lock, flags);
-	list_del(&fbc->list);
-	spin_unlock_irqrestore(&percpu_counters_lock, flags);
-#endif
 	free_percpu(fbc->counters);
 	fbc->counters = NULL;
 }
@@ -194,23 +178,6 @@ static int compute_batch_value(unsigned int cpu)
 
 static int percpu_counter_cpu_dead(unsigned int cpu)
 {
-#ifdef CONFIG_HOTPLUG_CPU
-	struct percpu_counter *fbc;
-
-	compute_batch_value(cpu);
-
-	spin_lock_irq(&percpu_counters_lock);
-	list_for_each_entry(fbc, &percpu_counters, list) {
-		s32 *pcount;
-
-		raw_spin_lock(&fbc->lock);
-		pcount = per_cpu_ptr(fbc->counters, cpu);
-		fbc->count += *pcount;
-		*pcount = 0;
-		raw_spin_unlock(&fbc->lock);
-	}
-	spin_unlock_irq(&percpu_counters_lock);
-#endif
 	return 0;
 }
 

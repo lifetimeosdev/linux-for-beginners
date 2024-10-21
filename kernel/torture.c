@@ -58,220 +58,12 @@ static int verbose;
 static int fullstop = FULLSTOP_RMMOD;
 static DEFINE_MUTEX(fullstop_mutex);
 
-#ifdef CONFIG_HOTPLUG_CPU
-
-/*
- * Variables for online-offline handling.  Only present if CPU hotplug
- * is enabled, otherwise does nothing.
- */
-
-static struct task_struct *onoff_task;
-static long onoff_holdoff;
-static long onoff_interval;
-static torture_ofl_func *onoff_f;
-static long n_offline_attempts;
-static long n_offline_successes;
-static unsigned long sum_offline;
-static int min_offline = -1;
-static int max_offline;
-static long n_online_attempts;
-static long n_online_successes;
-static unsigned long sum_online;
-static int min_online = -1;
-static int max_online;
-
-/*
- * Attempt to take a CPU offline.  Return false if the CPU is already
- * offline or if it is not subject to CPU-hotplug operations.  The
- * caller can detect other failures by looking at the statistics.
- */
-bool torture_offline(int cpu, long *n_offl_attempts, long *n_offl_successes,
-		     unsigned long *sum_offl, int *min_offl, int *max_offl)
-{
-	unsigned long delta;
-	int ret;
-	char *s;
-	unsigned long starttime;
-
-	if (!cpu_online(cpu) || !cpu_is_hotpluggable(cpu))
-		return false;
-	if (num_online_cpus() <= 1)
-		return false;  /* Can't offline the last CPU. */
-
-	if (verbose > 1)
-		pr_alert("%s" TORTURE_FLAG
-			 "torture_onoff task: offlining %d\n",
-			 torture_type, cpu);
-	starttime = jiffies;
-	(*n_offl_attempts)++;
-	ret = remove_cpu(cpu);
-	if (ret) {
-		s = "";
-		if (!rcu_inkernel_boot_has_ended() && ret == -EBUSY) {
-			// PCI probe frequently disables hotplug during boot.
-			(*n_offl_attempts)--;
-			s = " (-EBUSY forgiven during boot)";
-		}
-		if (verbose)
-			pr_alert("%s" TORTURE_FLAG
-				 "torture_onoff task: offline %d failed%s: errno %d\n",
-				 torture_type, cpu, s, ret);
-	} else {
-		if (verbose > 1)
-			pr_alert("%s" TORTURE_FLAG
-				 "torture_onoff task: offlined %d\n",
-				 torture_type, cpu);
-		if (onoff_f)
-			onoff_f();
-		(*n_offl_successes)++;
-		delta = jiffies - starttime;
-		*sum_offl += delta;
-		if (*min_offl < 0) {
-			*min_offl = delta;
-			*max_offl = delta;
-		}
-		if (*min_offl > delta)
-			*min_offl = delta;
-		if (*max_offl < delta)
-			*max_offl = delta;
-	}
-
-	return true;
-}
-EXPORT_SYMBOL_GPL(torture_offline);
-
-/*
- * Attempt to bring a CPU online.  Return false if the CPU is already
- * online or if it is not subject to CPU-hotplug operations.  The
- * caller can detect other failures by looking at the statistics.
- */
-bool torture_online(int cpu, long *n_onl_attempts, long *n_onl_successes,
-		    unsigned long *sum_onl, int *min_onl, int *max_onl)
-{
-	unsigned long delta;
-	int ret;
-	char *s;
-	unsigned long starttime;
-
-	if (cpu_online(cpu) || !cpu_is_hotpluggable(cpu))
-		return false;
-
-	if (verbose > 1)
-		pr_alert("%s" TORTURE_FLAG
-			 "torture_onoff task: onlining %d\n",
-			 torture_type, cpu);
-	starttime = jiffies;
-	(*n_onl_attempts)++;
-	ret = add_cpu(cpu);
-	if (ret) {
-		s = "";
-		if (!rcu_inkernel_boot_has_ended() && ret == -EBUSY) {
-			// PCI probe frequently disables hotplug during boot.
-			(*n_onl_attempts)--;
-			s = " (-EBUSY forgiven during boot)";
-		}
-		if (verbose)
-			pr_alert("%s" TORTURE_FLAG
-				 "torture_onoff task: online %d failed%s: errno %d\n",
-				 torture_type, cpu, s, ret);
-	} else {
-		if (verbose > 1)
-			pr_alert("%s" TORTURE_FLAG
-				 "torture_onoff task: onlined %d\n",
-				 torture_type, cpu);
-		(*n_onl_successes)++;
-		delta = jiffies - starttime;
-		*sum_onl += delta;
-		if (*min_onl < 0) {
-			*min_onl = delta;
-			*max_onl = delta;
-		}
-		if (*min_onl > delta)
-			*min_onl = delta;
-		if (*max_onl < delta)
-			*max_onl = delta;
-	}
-
-	return true;
-}
-EXPORT_SYMBOL_GPL(torture_online);
-
-/*
- * Execute random CPU-hotplug operations at the interval specified
- * by the onoff_interval.
- */
-static int
-torture_onoff(void *arg)
-{
-	int cpu;
-	int maxcpu = -1;
-	DEFINE_TORTURE_RANDOM(rand);
-	int ret;
-
-	VERBOSE_TOROUT_STRING("torture_onoff task started");
-	for_each_online_cpu(cpu)
-		maxcpu = cpu;
-	WARN_ON(maxcpu < 0);
-	if (!IS_MODULE(CONFIG_TORTURE_TEST)) {
-		for_each_possible_cpu(cpu) {
-			if (cpu_online(cpu))
-				continue;
-			ret = add_cpu(cpu);
-			if (ret && verbose) {
-				pr_alert("%s" TORTURE_FLAG
-					 "%s: Initial online %d: errno %d\n",
-					 __func__, torture_type, cpu, ret);
-			}
-		}
-	}
-
-	if (maxcpu == 0) {
-		VERBOSE_TOROUT_STRING("Only one CPU, so CPU-hotplug testing is disabled");
-		goto stop;
-	}
-
-	if (onoff_holdoff > 0) {
-		VERBOSE_TOROUT_STRING("torture_onoff begin holdoff");
-		schedule_timeout_interruptible(onoff_holdoff);
-		VERBOSE_TOROUT_STRING("torture_onoff end holdoff");
-	}
-	while (!torture_must_stop()) {
-		if (disable_onoff_at_boot && !rcu_inkernel_boot_has_ended()) {
-			schedule_timeout_interruptible(HZ / 10);
-			continue;
-		}
-		cpu = (torture_random(&rand) >> 4) % (maxcpu + 1);
-		if (!torture_offline(cpu,
-				     &n_offline_attempts, &n_offline_successes,
-				     &sum_offline, &min_offline, &max_offline))
-			torture_online(cpu,
-				       &n_online_attempts, &n_online_successes,
-				       &sum_online, &min_online, &max_online);
-		schedule_timeout_interruptible(onoff_interval);
-	}
-
-stop:
-	torture_kthread_stopping("torture_onoff");
-	return 0;
-}
-
-#endif /* #ifdef CONFIG_HOTPLUG_CPU */
-
 /*
  * Initiate online-offline handling.
  */
 int torture_onoff_init(long ooholdoff, long oointerval, torture_ofl_func *f)
 {
-#ifdef CONFIG_HOTPLUG_CPU
-	onoff_holdoff = ooholdoff;
-	onoff_interval = oointerval;
-	onoff_f = f;
-	if (onoff_interval <= 0)
-		return 0;
-	return torture_create_kthread(torture_onoff, NULL, onoff_task);
-#else /* #ifdef CONFIG_HOTPLUG_CPU */
 	return 0;
-#endif /* #else #ifdef CONFIG_HOTPLUG_CPU */
 }
 EXPORT_SYMBOL_GPL(torture_onoff_init);
 
@@ -280,13 +72,6 @@ EXPORT_SYMBOL_GPL(torture_onoff_init);
  */
 static void torture_onoff_cleanup(void)
 {
-#ifdef CONFIG_HOTPLUG_CPU
-	if (onoff_task == NULL)
-		return;
-	VERBOSE_TOROUT_STRING("Stopping torture_onoff task");
-	kthread_stop(onoff_task);
-	onoff_task = NULL;
-#endif /* #ifdef CONFIG_HOTPLUG_CPU */
 }
 
 /*
@@ -294,14 +79,6 @@ static void torture_onoff_cleanup(void)
  */
 void torture_onoff_stats(void)
 {
-#ifdef CONFIG_HOTPLUG_CPU
-	pr_cont("onoff: %ld/%ld:%ld/%ld %d,%d:%d,%d %lu:%lu (HZ=%d) ",
-		n_online_successes, n_online_attempts,
-		n_offline_successes, n_offline_attempts,
-		min_online, max_online,
-		min_offline, max_offline,
-		sum_online, sum_offline, HZ);
-#endif /* #ifdef CONFIG_HOTPLUG_CPU */
 }
 EXPORT_SYMBOL_GPL(torture_onoff_stats);
 
@@ -310,12 +87,7 @@ EXPORT_SYMBOL_GPL(torture_onoff_stats);
  */
 bool torture_onoff_failures(void)
 {
-#ifdef CONFIG_HOTPLUG_CPU
-	return n_online_successes != n_online_attempts ||
-	       n_offline_successes != n_offline_attempts;
-#else /* #ifdef CONFIG_HOTPLUG_CPU */
 	return false;
-#endif /* #else #ifdef CONFIG_HOTPLUG_CPU */
 }
 EXPORT_SYMBOL_GPL(torture_onoff_failures);
 

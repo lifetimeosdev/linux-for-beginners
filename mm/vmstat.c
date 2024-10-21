@@ -1000,13 +1000,6 @@ const char * const vmstat_text[] = {
 	"drop_slab",
 	"oom_kill",
 
-#ifdef CONFIG_NUMA_BALANCING
-	"numa_pte_updates",
-	"numa_huge_pte_updates",
-	"numa_hint_faults",
-	"numa_hint_faults_local",
-	"numa_pages_migrated",
-#endif
 #ifdef CONFIG_MIGRATION
 	"pgmigrate_success",
 	"pgmigrate_fail",

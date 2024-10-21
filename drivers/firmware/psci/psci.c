@@ -285,27 +285,6 @@ static int __init psci_features(u32 psci_func_id)
 			      psci_func_id, 0, 0);
 }
 
-#ifdef CONFIG_CPU_IDLE
-static int psci_suspend_finisher(unsigned long state)
-{
-	u32 power_state = state;
-
-	return psci_ops.cpu_suspend(power_state, __pa_symbol(cpu_resume));
-}
-
-int psci_cpu_suspend_enter(u32 state)
-{
-	int ret;
-
-	if (!psci_power_state_loses_context(state))
-		ret = psci_ops.cpu_suspend(state, 0);
-	else
-		ret = cpu_suspend(state, psci_suspend_finisher);
-
-	return ret;
-}
-#endif
-
 static int psci_system_suspend(unsigned long unused)
 {
 	return invoke_psci_fn(PSCI_FN_NATIVE(1_0, SYSTEM_SUSPEND),

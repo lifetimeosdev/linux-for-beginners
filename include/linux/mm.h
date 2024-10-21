@@ -1301,71 +1301,6 @@ static inline int page_to_nid(const struct page *page)
 }
 #endif
 
-#ifdef CONFIG_NUMA_BALANCING
-static inline int cpu_pid_to_cpupid(int cpu, int pid)
-{
-	return ((cpu & LAST__CPU_MASK) << LAST__PID_SHIFT) | (pid & LAST__PID_MASK);
-}
-
-static inline int cpupid_to_pid(int cpupid)
-{
-	return cpupid & LAST__PID_MASK;
-}
-
-static inline int cpupid_to_cpu(int cpupid)
-{
-	return (cpupid >> LAST__PID_SHIFT) & LAST__CPU_MASK;
-}
-
-static inline int cpupid_to_nid(int cpupid)
-{
-	return cpu_to_node(cpupid_to_cpu(cpupid));
-}
-
-static inline bool cpupid_pid_unset(int cpupid)
-{
-	return cpupid_to_pid(cpupid) == (-1 & LAST__PID_MASK);
-}
-
-static inline bool cpupid_cpu_unset(int cpupid)
-{
-	return cpupid_to_cpu(cpupid) == (-1 & LAST__CPU_MASK);
-}
-
-static inline bool __cpupid_match_pid(pid_t task_pid, int cpupid)
-{
-	return (task_pid & LAST__PID_MASK) == cpupid_to_pid(cpupid);
-}
-
-#define cpupid_match_pid(task, cpupid) __cpupid_match_pid(task->pid, cpupid)
-#ifdef LAST_CPUPID_NOT_IN_PAGE_FLAGS
-static inline int page_cpupid_xchg_last(struct page *page, int cpupid)
-{
-	return xchg(&page->_last_cpupid, cpupid & LAST_CPUPID_MASK);
-}
-
-static inline int page_cpupid_last(struct page *page)
-{
-	return page->_last_cpupid;
-}
-static inline void page_cpupid_reset_last(struct page *page)
-{
-	page->_last_cpupid = -1 & LAST_CPUPID_MASK;
-}
-#else
-static inline int page_cpupid_last(struct page *page)
-{
-	return (page->flags >> LAST_CPUPID_PGSHIFT) & LAST_CPUPID_MASK;
-}
-
-extern int page_cpupid_xchg_last(struct page *page, int cpupid);
-
-static inline void page_cpupid_reset_last(struct page *page)
-{
-	page->flags |= LAST_CPUPID_MASK << LAST_CPUPID_PGSHIFT;
-}
-#endif /* LAST_CPUPID_NOT_IN_PAGE_FLAGS */
-#else /* !CONFIG_NUMA_BALANCING */
 static inline int page_cpupid_xchg_last(struct page *page, int cpupid)
 {
 	return page_to_nid(page); /* XXX */
@@ -1409,7 +1344,6 @@ static inline bool cpupid_match_pid(struct task_struct *task, int cpupid)
 {
 	return false;
 }
-#endif /* CONFIG_NUMA_BALANCING */
 
 #ifdef CONFIG_KASAN_SW_TAGS
 
@@ -2735,11 +2669,6 @@ static inline void vma_set_page_prot(struct vm_area_struct *vma)
 {
 	vma->vm_page_prot = vm_get_page_prot(vma->vm_flags);
 }
-#endif
-
-#ifdef CONFIG_NUMA_BALANCING
-unsigned long change_prot_numa(struct vm_area_struct *vma,
-			unsigned long start, unsigned long end);
 #endif
 
 struct vm_area_struct *find_extend_vma(struct mm_struct *, unsigned long addr);

@@ -43,16 +43,6 @@ struct cpu_operations {
 	int		(*cpu_prepare)(unsigned int);
 	int		(*cpu_boot)(unsigned int);
 	void		(*cpu_postboot)(void);
-#ifdef CONFIG_HOTPLUG_CPU
-	bool		(*cpu_can_disable)(unsigned int cpu);
-	int		(*cpu_disable)(unsigned int cpu);
-	void		(*cpu_die)(unsigned int cpu);
-	int		(*cpu_kill)(unsigned int cpu);
-#endif
-#ifdef CONFIG_CPU_IDLE
-	int		(*cpu_init_idle)(unsigned int);
-	int		(*cpu_suspend)(unsigned long);
-#endif
 };
 
 int __init init_cpu_ops(int cpu);

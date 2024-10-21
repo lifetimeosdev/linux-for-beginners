@@ -65,17 +65,7 @@
 #define NODES_WIDTH		0
 #endif
 
-#ifdef CONFIG_NUMA_BALANCING
-#define LAST__PID_SHIFT 8
-#define LAST__PID_MASK  ((1 << LAST__PID_SHIFT)-1)
-
-#define LAST__CPU_SHIFT NR_CPUS_BITS
-#define LAST__CPU_MASK  ((1 << LAST__CPU_SHIFT)-1)
-
-#define LAST_CPUPID_SHIFT (LAST__PID_SHIFT+LAST__CPU_SHIFT)
-#else
 #define LAST_CPUPID_SHIFT 0
-#endif
 
 #ifdef CONFIG_KASAN_SW_TAGS
 #define KASAN_TAG_WIDTH 8

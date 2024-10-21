@@ -370,12 +370,6 @@ void __init __no_sanitize_address setup_arch(char **cmdline_p)
 
 static inline bool cpu_can_disable(unsigned int cpu)
 {
-#ifdef CONFIG_HOTPLUG_CPU
-	const struct cpu_operations *ops = get_cpu_ops(cpu);
-
-	if (ops && ops->cpu_can_disable)
-		return ops->cpu_can_disable(cpu);
-#endif
 	return false;
 }
 

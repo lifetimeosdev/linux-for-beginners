@@ -4216,56 +4216,6 @@ void rcu_report_dead(unsigned int cpu)
 	rdp->cpu_started = false;
 }
 
-#ifdef CONFIG_HOTPLUG_CPU
-/*
- * The outgoing CPU has just passed through the dying-idle state, and we
- * are being invoked from the CPU that was IPIed to continue the offline
- * operation.  Migrate the outgoing CPU's callbacks to the current CPU.
- */
-void rcutree_migrate_callbacks(int cpu)
-{
-	unsigned long flags;
-	struct rcu_data *my_rdp;
-	struct rcu_node *my_rnp;
-	struct rcu_data *rdp = per_cpu_ptr(&rcu_data, cpu);
-	bool needwake;
-
-	if (rcu_segcblist_is_offloaded(&rdp->cblist) ||
-	    rcu_segcblist_empty(&rdp->cblist))
-		return;  /* No callbacks to migrate. */
-
-	local_irq_save(flags);
-	my_rdp = this_cpu_ptr(&rcu_data);
-	my_rnp = my_rdp->mynode;
-	rcu_nocb_lock(my_rdp); /* irqs already disabled. */
-	WARN_ON_ONCE(!rcu_nocb_flush_bypass(my_rdp, NULL, jiffies));
-	raw_spin_lock_rcu_node(my_rnp); /* irqs already disabled. */
-	/* Leverage recent GPs and set GP for new callbacks. */
-	needwake = rcu_advance_cbs(my_rnp, rdp) ||
-		   rcu_advance_cbs(my_rnp, my_rdp);
-	rcu_segcblist_merge(&my_rdp->cblist, &rdp->cblist);
-	needwake = needwake || rcu_advance_cbs(my_rnp, my_rdp);
-	rcu_segcblist_disable(&rdp->cblist);
-	WARN_ON_ONCE(rcu_segcblist_empty(&my_rdp->cblist) !=
-		     !rcu_segcblist_n_cbs(&my_rdp->cblist));
-	if (rcu_segcblist_is_offloaded(&my_rdp->cblist)) {
-		raw_spin_unlock_rcu_node(my_rnp); /* irqs remain disabled. */
-		__call_rcu_nocb_wake(my_rdp, true, flags);
-	} else {
-		rcu_nocb_unlock(my_rdp); /* irqs remain disabled. */
-		raw_spin_unlock_irqrestore_rcu_node(my_rnp, flags);
-	}
-	if (needwake)
-		rcu_gp_kthread_wake();
-	lockdep_assert_irqs_enabled();
-	WARN_ONCE(rcu_segcblist_n_cbs(&rdp->cblist) != 0 ||
-		  !rcu_segcblist_empty(&rdp->cblist),
-		  "rcu_cleanup_dead_cpu: Callbacks on offline CPU %d: qlen=%lu, 1stCB=%p\n",
-		  cpu, rcu_segcblist_n_cbs(&rdp->cblist),
-		  rcu_segcblist_first_cb(&rdp->cblist));
-}
-#endif
-
 /*
  * On non-huge systems, use expedited RCU grace periods to make suspend
  * and hibernation run faster.

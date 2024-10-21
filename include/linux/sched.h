@@ -1123,55 +1123,6 @@ struct task_struct {
 	short				il_prev;
 	short				pref_node_fork;
 #endif
-#ifdef CONFIG_NUMA_BALANCING
-	int				numa_scan_seq;
-	unsigned int			numa_scan_period;
-	unsigned int			numa_scan_period_max;
-	int				numa_preferred_nid;
-	unsigned long			numa_migrate_retry;
-	/* Migration stamp: */
-	u64				node_stamp;
-	u64				last_task_numa_placement;
-	u64				last_sum_exec_runtime;
-	struct callback_head		numa_work;
-
-	/*
-	 * This pointer is only modified for current in syscall and
-	 * pagefault context (and for tasks being destroyed), so it can be read
-	 * from any of the following contexts:
-	 *  - RCU read-side critical section
-	 *  - current->numa_group from everywhere
-	 *  - task's runqueue locked, task not running
-	 */
-	struct numa_group __rcu		*numa_group;
-
-	/*
-	 * numa_faults is an array split into four regions:
-	 * faults_memory, faults_cpu, faults_memory_buffer, faults_cpu_buffer
-	 * in this precise order.
-	 *
-	 * faults_memory: Exponential decaying average of faults on a per-node
-	 * basis. Scheduling placement decisions are made based on these
-	 * counts. The values remain static for the duration of a PTE scan.
-	 * faults_cpu: Track the nodes the process was running on when a NUMA
-	 * hinting fault was incurred.
-	 * faults_memory_buffer and faults_cpu_buffer: Record faults per node
-	 * during the current scan window. When the scan completes, the counts
-	 * in faults_memory and faults_cpu decay and these values are copied.
-	 */
-	unsigned long			*numa_faults;
-	unsigned long			total_numa_faults;
-
-	/*
-	 * numa_faults_locality tracks if faults recorded during the last
-	 * scan window were remote/local or failed to migrate. The task scan
-	 * period is adapted based on the locality of the faults with different
-	 * weights depending on whether they were shared or private faults
-	 */
-	unsigned long			numa_faults_locality[3];
-
-	unsigned long			numa_pages_migrated;
-#endif /* CONFIG_NUMA_BALANCING */
 
 #ifdef CONFIG_RSEQ
 	struct rseq __user *rseq;
