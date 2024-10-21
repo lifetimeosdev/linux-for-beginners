@@ -157,27 +157,3 @@ setversion_out:
 		return -ENOTTY;
 	}
 }
-
-#ifdef CONFIG_COMPAT
-long ext2_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
-{
-	/* These are just misnamed, they actually get/put from/to user an int */
-	switch (cmd) {
-	case EXT2_IOC32_GETFLAGS:
-		cmd = EXT2_IOC_GETFLAGS;
-		break;
-	case EXT2_IOC32_SETFLAGS:
-		cmd = EXT2_IOC_SETFLAGS;
-		break;
-	case EXT2_IOC32_GETVERSION:
-		cmd = EXT2_IOC_GETVERSION;
-		break;
-	case EXT2_IOC32_SETVERSION:
-		cmd = EXT2_IOC_SETVERSION;
-		break;
-	default:
-		return -ENOIOCTLCMD;
-	}
-	return ext2_ioctl(file, cmd, (unsigned long) compat_ptr(arg));
-}
-#endif

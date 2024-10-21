@@ -15,10 +15,6 @@ static int autofs_dir_unlink(struct inode *, struct dentry *);
 static int autofs_dir_rmdir(struct inode *, struct dentry *);
 static int autofs_dir_mkdir(struct inode *, struct dentry *, umode_t);
 static long autofs_root_ioctl(struct file *, unsigned int, unsigned long);
-#ifdef CONFIG_COMPAT
-static long autofs_root_compat_ioctl(struct file *,
-				     unsigned int, unsigned long);
-#endif
 static int autofs_dir_open(struct inode *inode, struct file *file);
 static struct dentry *autofs_lookup(struct inode *,
 				    struct dentry *, unsigned int);
@@ -33,9 +29,6 @@ const struct file_operations autofs_root_operations = {
 	.iterate_shared	= dcache_readdir,
 	.llseek		= dcache_dir_lseek,
 	.unlocked_ioctl	= autofs_root_ioctl,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl	= autofs_root_compat_ioctl,
-#endif
 };
 
 const struct file_operations autofs_dir_operations = {
@@ -760,31 +753,6 @@ static int autofs_dir_mkdir(struct inode *dir,
 }
 
 /* Get/set timeout ioctl() operation */
-#ifdef CONFIG_COMPAT
-static inline int autofs_compat_get_set_timeout(struct autofs_sb_info *sbi,
-						 compat_ulong_t __user *p)
-{
-	unsigned long ntimeout;
-	int rv;
-
-	rv = get_user(ntimeout, p);
-	if (rv)
-		goto error;
-
-	rv = put_user(sbi->exp_timeout/HZ, p);
-	if (rv)
-		goto error;
-
-	if (ntimeout > UINT_MAX/HZ)
-		sbi->exp_timeout = 0;
-	else
-		sbi->exp_timeout = ntimeout * HZ;
-
-	return 0;
-error:
-	return rv;
-}
-#endif
 
 static inline int autofs_get_set_timeout(struct autofs_sb_info *sbi,
 					  unsigned long __user *p)
@@ -886,10 +854,6 @@ static int autofs_root_ioctl_unlocked(struct inode *inode, struct file *filp,
 		return autofs_get_protosubver(sbi, p);
 	case AUTOFS_IOC_SETTIMEOUT:
 		return autofs_get_set_timeout(sbi, p);
-#ifdef CONFIG_COMPAT
-	case AUTOFS_IOC_SETTIMEOUT32:
-		return autofs_compat_get_set_timeout(sbi, p);
-#endif
 
 	case AUTOFS_IOC_ASKUMOUNT:
 		return autofs_ask_umount(filp->f_path.mnt, p);
@@ -914,20 +878,3 @@ static long autofs_root_ioctl(struct file *filp,
 
 	return autofs_root_ioctl_unlocked(inode, filp, cmd, arg);
 }
-
-#ifdef CONFIG_COMPAT
-static long autofs_root_compat_ioctl(struct file *filp,
-				      unsigned int cmd, unsigned long arg)
-{
-	struct inode *inode = file_inode(filp);
-	int ret;
-
-	if (cmd == AUTOFS_IOC_READY || cmd == AUTOFS_IOC_FAIL)
-		ret = autofs_root_ioctl_unlocked(inode, filp, cmd, arg);
-	else
-		ret = autofs_root_ioctl_unlocked(inode, filp, cmd,
-					      (unsigned long) compat_ptr(arg));
-
-	return ret;
-}
-#endif

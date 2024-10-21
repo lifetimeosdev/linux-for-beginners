@@ -416,26 +416,6 @@ static long snapshot_ioctl(struct file *filp, unsigned int cmd,
 	return error;
 }
 
-#ifdef CONFIG_COMPAT
-static long
-snapshot_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
-{
-	BUILD_BUG_ON(sizeof(loff_t) != sizeof(compat_loff_t));
-
-	switch (cmd) {
-	case SNAPSHOT_GET_IMAGE_SIZE:
-	case SNAPSHOT_AVAIL_SWAP_SIZE:
-	case SNAPSHOT_ALLOC_SWAP_PAGE:
-	case SNAPSHOT_CREATE_IMAGE:
-	case SNAPSHOT_SET_SWAP_AREA:
-		return snapshot_ioctl(file, cmd,
-				      (unsigned long) compat_ptr(arg));
-	default:
-		return snapshot_ioctl(file, cmd, arg);
-	}
-}
-#endif /* CONFIG_COMPAT */
-
 static const struct file_operations snapshot_fops = {
 	.open = snapshot_open,
 	.release = snapshot_release,
@@ -443,9 +423,6 @@ static const struct file_operations snapshot_fops = {
 	.write = snapshot_write,
 	.llseek = no_llseek,
 	.unlocked_ioctl = snapshot_ioctl,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl = snapshot_compat_ioctl,
-#endif
 };
 
 static struct miscdevice snapshot_device = {

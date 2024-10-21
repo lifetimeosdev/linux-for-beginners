@@ -323,33 +323,3 @@ SYSCALL_DEFINE3(signalfd, int, ufd, sigset_t __user *, user_mask,
 		return -EFAULT;
 	return do_signalfd4(ufd, &mask, 0);
 }
-
-#ifdef CONFIG_COMPAT
-static long do_compat_signalfd4(int ufd,
-			const compat_sigset_t __user *user_mask,
-			compat_size_t sigsetsize, int flags)
-{
-	sigset_t mask;
-
-	if (sigsetsize != sizeof(compat_sigset_t))
-		return -EINVAL;
-	if (get_compat_sigset(&mask, user_mask))
-		return -EFAULT;
-	return do_signalfd4(ufd, &mask, flags);
-}
-
-COMPAT_SYSCALL_DEFINE4(signalfd4, int, ufd,
-		     const compat_sigset_t __user *, user_mask,
-		     compat_size_t, sigsetsize,
-		     int, flags)
-{
-	return do_compat_signalfd4(ufd, user_mask, sigsetsize, flags);
-}
-
-COMPAT_SYSCALL_DEFINE3(signalfd, int, ufd,
-		     const compat_sigset_t __user *, user_mask,
-		     compat_size_t, sigsetsize)
-{
-	return do_compat_signalfd4(ufd, user_mask, sigsetsize, 0);
-}
-#endif

@@ -37,8 +37,8 @@ obj-$(CONFIG_INET6_IPCOMP) += ipcomp6.o
 obj-$(CONFIG_INET6_XFRM_TUNNEL) += xfrm6_tunnel.o
 obj-$(CONFIG_INET6_TUNNEL) += tunnel6.o
 obj-$(CONFIG_IPV6_MIP6) += mip6.o
-obj-$(CONFIG_IPV6_ILA) += ila/
-obj-$(CONFIG_NETFILTER)	+= netfilter/
+# obj-$(CONFIG_IPV6_ILA) += ila/
+# obj-$(CONFIG_NETFILTER)	+= netfilter/
 
 obj-$(CONFIG_IPV6_VTI) += ip6_vti.o
 obj-$(CONFIG_IPV6_SIT) += sit.o

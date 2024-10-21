@@ -626,113 +626,6 @@ static __poll_t evdev_poll(struct file *file, poll_table *wait)
 	return mask;
 }
 
-#ifdef CONFIG_COMPAT
-
-#define BITS_PER_LONG_COMPAT (sizeof(compat_long_t) * 8)
-#define BITS_TO_LONGS_COMPAT(x) ((((x) - 1) / BITS_PER_LONG_COMPAT) + 1)
-
-#ifdef __BIG_ENDIAN
-static int bits_to_user(unsigned long *bits, unsigned int maxbit,
-			unsigned int maxlen, void __user *p, int compat)
-{
-	int len, i;
-
-	if (compat) {
-		len = BITS_TO_LONGS_COMPAT(maxbit) * sizeof(compat_long_t);
-		if (len > maxlen)
-			len = maxlen;
-
-		for (i = 0; i < len / sizeof(compat_long_t); i++)
-			if (copy_to_user((compat_long_t __user *) p + i,
-					 (compat_long_t *) bits +
-						i + 1 - ((i % 2) << 1),
-					 sizeof(compat_long_t)))
-				return -EFAULT;
-	} else {
-		len = BITS_TO_LONGS(maxbit) * sizeof(long);
-		if (len > maxlen)
-			len = maxlen;
-
-		if (copy_to_user(p, bits, len))
-			return -EFAULT;
-	}
-
-	return len;
-}
-
-static int bits_from_user(unsigned long *bits, unsigned int maxbit,
-			  unsigned int maxlen, const void __user *p, int compat)
-{
-	int len, i;
-
-	if (compat) {
-		if (maxlen % sizeof(compat_long_t))
-			return -EINVAL;
-
-		len = BITS_TO_LONGS_COMPAT(maxbit) * sizeof(compat_long_t);
-		if (len > maxlen)
-			len = maxlen;
-
-		for (i = 0; i < len / sizeof(compat_long_t); i++)
-			if (copy_from_user((compat_long_t *) bits +
-						i + 1 - ((i % 2) << 1),
-					   (compat_long_t __user *) p + i,
-					   sizeof(compat_long_t)))
-				return -EFAULT;
-		if (i % 2)
-			*((compat_long_t *) bits + i - 1) = 0;
-
-	} else {
-		if (maxlen % sizeof(long))
-			return -EINVAL;
-
-		len = BITS_TO_LONGS(maxbit) * sizeof(long);
-		if (len > maxlen)
-			len = maxlen;
-
-		if (copy_from_user(bits, p, len))
-			return -EFAULT;
-	}
-
-	return len;
-}
-
-#else
-
-static int bits_to_user(unsigned long *bits, unsigned int maxbit,
-			unsigned int maxlen, void __user *p, int compat)
-{
-	int len = compat ?
-			BITS_TO_LONGS_COMPAT(maxbit) * sizeof(compat_long_t) :
-			BITS_TO_LONGS(maxbit) * sizeof(long);
-
-	if (len > maxlen)
-		len = maxlen;
-
-	return copy_to_user(p, bits, len) ? -EFAULT : len;
-}
-
-static int bits_from_user(unsigned long *bits, unsigned int maxbit,
-			  unsigned int maxlen, const void __user *p, int compat)
-{
-	size_t chunk_size = compat ? sizeof(compat_long_t) : sizeof(long);
-	int len;
-
-	if (maxlen % chunk_size)
-		return -EINVAL;
-
-	len = compat ? BITS_TO_LONGS_COMPAT(maxbit) : BITS_TO_LONGS(maxbit);
-	len *= chunk_size;
-	if (len > maxlen)
-		len = maxlen;
-
-	return copy_from_user(bits, p, len) ? -EFAULT : len;
-}
-
-#endif /* __BIG_ENDIAN */
-
-#else
-
 static int bits_to_user(unsigned long *bits, unsigned int maxbit,
 			unsigned int maxlen, void __user *p, int compat)
 {
@@ -758,8 +651,6 @@ static int bits_from_user(unsigned long *bits, unsigned int maxbit,
 
 	return copy_from_user(bits, p, len) ? -EFAULT : len;
 }
-
-#endif /* CONFIG_COMPAT */
 
 static int str_to_user(const char *str, unsigned int maxlen, void __user *p)
 {
@@ -1281,14 +1172,6 @@ static long evdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	return evdev_ioctl_handler(file, cmd, (void __user *)arg, 0);
 }
 
-#ifdef CONFIG_COMPAT
-static long evdev_ioctl_compat(struct file *file,
-				unsigned int cmd, unsigned long arg)
-{
-	return evdev_ioctl_handler(file, cmd, compat_ptr(arg), 1);
-}
-#endif
-
 static const struct file_operations evdev_fops = {
 	.owner		= THIS_MODULE,
 	.read		= evdev_read,
@@ -1297,9 +1180,6 @@ static const struct file_operations evdev_fops = {
 	.open		= evdev_open,
 	.release	= evdev_release,
 	.unlocked_ioctl	= evdev_ioctl,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl	= evdev_ioctl_compat,
-#endif
 	.fasync		= evdev_fasync,
 	.llseek		= no_llseek,
 };

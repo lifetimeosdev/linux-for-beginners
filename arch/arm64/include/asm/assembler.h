@@ -156,20 +156,12 @@ lr	.req	x30		// link register
 /*
  * Select code when configured for BE.
  */
-#ifdef CONFIG_CPU_BIG_ENDIAN
-#define CPU_BE(code...) code
-#else
 #define CPU_BE(code...)
-#endif
 
 /*
  * Select code when configured for LE.
  */
-#ifdef CONFIG_CPU_BIG_ENDIAN
-#define CPU_LE(code...)
-#else
 #define CPU_LE(code...) code
-#endif
 
 /*
  * Define a macro that constructs a 64-bit value by concatenating two

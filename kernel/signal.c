@@ -2996,27 +2996,6 @@ int set_user_sigmask(const sigset_t __user *umask, size_t sigsetsize)
 	return 0;
 }
 
-#ifdef CONFIG_COMPAT
-int set_compat_user_sigmask(const compat_sigset_t __user *umask,
-			    size_t sigsetsize)
-{
-	sigset_t kmask;
-
-	if (!umask)
-		return 0;
-	if (sigsetsize != sizeof(compat_sigset_t))
-		return -EINVAL;
-	if (get_compat_sigset(&kmask, umask))
-		return -EFAULT;
-
-	set_restore_sigmask();
-	current->saved_sigmask = current->blocked;
-	set_current_blocked(&kmask);
-
-	return 0;
-}
-#endif
-
 /**
  *  sys_rt_sigprocmask - change the list of currently blocked signals
  *  @how: whether to add, remove, or set signals
@@ -3054,31 +3033,6 @@ SYSCALL_DEFINE4(rt_sigprocmask, int, how, sigset_t __user *, nset,
 	return 0;
 }
 
-#ifdef CONFIG_COMPAT
-COMPAT_SYSCALL_DEFINE4(rt_sigprocmask, int, how, compat_sigset_t __user *, nset,
-		compat_sigset_t __user *, oset, compat_size_t, sigsetsize)
-{
-	sigset_t old_set = current->blocked;
-
-	/* XXX: Don't preclude handling different sized sigset_t's.  */
-	if (sigsetsize != sizeof(sigset_t))
-		return -EINVAL;
-
-	if (nset) {
-		sigset_t new_set;
-		int error;
-		if (get_compat_sigset(&new_set, nset))
-			return -EFAULT;
-		sigdelsetmask(&new_set, sigmask(SIGKILL)|sigmask(SIGSTOP));
-
-		error = sigprocmask(how, &new_set, NULL);
-		if (error)
-			return error;
-	}
-	return oset ? put_compat_sigset(oset, &old_set, sizeof(*oset)) : 0;
-}
-#endif
-
 static void do_sigpending(sigset_t *set)
 {
 	spin_lock_irq(&current->sighand->siglock);
@@ -3110,21 +3064,6 @@ SYSCALL_DEFINE2(rt_sigpending, sigset_t __user *, uset, size_t, sigsetsize)
 
 	return 0;
 }
-
-#ifdef CONFIG_COMPAT
-COMPAT_SYSCALL_DEFINE2(rt_sigpending, compat_sigset_t __user *, uset,
-		compat_size_t, sigsetsize)
-{
-	sigset_t set;
-
-	if (sigsetsize > sizeof(*uset))
-		return -EINVAL;
-
-	do_sigpending(&set);
-
-	return put_compat_sigset(uset, &set, sigsetsize);
-}
-#endif
 
 static const struct {
 	unsigned char limit, layout;
@@ -3245,200 +3184,6 @@ int copy_siginfo_from_user(kernel_siginfo_t *to, const siginfo_t __user *from)
 		return -EFAULT;
 	return post_copy_siginfo_from_user(to, from);
 }
-
-#ifdef CONFIG_COMPAT
-/**
- * copy_siginfo_to_external32 - copy a kernel siginfo into a compat user siginfo
- * @to: compat siginfo destination
- * @from: kernel siginfo source
- *
- * Note: This function does not work properly for the SIGCHLD on x32, but
- * fortunately it doesn't have to.  The only valid callers for this function are
- * copy_siginfo_to_user32, which is overriden for x32 and the coredump code.
- * The latter does not care because SIGCHLD will never cause a coredump.
- */
-void copy_siginfo_to_external32(struct compat_siginfo *to,
-		const struct kernel_siginfo *from)
-{
-	memset(to, 0, sizeof(*to));
-
-	to->si_signo = from->si_signo;
-	to->si_errno = from->si_errno;
-	to->si_code  = from->si_code;
-	switch(siginfo_layout(from->si_signo, from->si_code)) {
-	case SIL_KILL:
-		to->si_pid = from->si_pid;
-		to->si_uid = from->si_uid;
-		break;
-	case SIL_TIMER:
-		to->si_tid     = from->si_tid;
-		to->si_overrun = from->si_overrun;
-		to->si_int     = from->si_int;
-		break;
-	case SIL_POLL:
-		to->si_band = from->si_band;
-		to->si_fd   = from->si_fd;
-		break;
-	case SIL_FAULT:
-		to->si_addr = ptr_to_compat(from->si_addr);
-#ifdef __ARCH_SI_TRAPNO
-		to->si_trapno = from->si_trapno;
-#endif
-		break;
-	case SIL_FAULT_MCEERR:
-		to->si_addr = ptr_to_compat(from->si_addr);
-#ifdef __ARCH_SI_TRAPNO
-		to->si_trapno = from->si_trapno;
-#endif
-		to->si_addr_lsb = from->si_addr_lsb;
-		break;
-	case SIL_FAULT_BNDERR:
-		to->si_addr = ptr_to_compat(from->si_addr);
-#ifdef __ARCH_SI_TRAPNO
-		to->si_trapno = from->si_trapno;
-#endif
-		to->si_lower = ptr_to_compat(from->si_lower);
-		to->si_upper = ptr_to_compat(from->si_upper);
-		break;
-	case SIL_FAULT_PKUERR:
-		to->si_addr = ptr_to_compat(from->si_addr);
-#ifdef __ARCH_SI_TRAPNO
-		to->si_trapno = from->si_trapno;
-#endif
-		to->si_pkey = from->si_pkey;
-		break;
-	case SIL_CHLD:
-		to->si_pid = from->si_pid;
-		to->si_uid = from->si_uid;
-		to->si_status = from->si_status;
-		to->si_utime = from->si_utime;
-		to->si_stime = from->si_stime;
-		break;
-	case SIL_RT:
-		to->si_pid = from->si_pid;
-		to->si_uid = from->si_uid;
-		to->si_int = from->si_int;
-		break;
-	case SIL_SYS:
-		to->si_call_addr = ptr_to_compat(from->si_call_addr);
-		to->si_syscall   = from->si_syscall;
-		to->si_arch      = from->si_arch;
-		break;
-	}
-}
-
-int __copy_siginfo_to_user32(struct compat_siginfo __user *to,
-			   const struct kernel_siginfo *from)
-{
-	struct compat_siginfo new;
-
-	copy_siginfo_to_external32(&new, from);
-	if (copy_to_user(to, &new, sizeof(struct compat_siginfo)))
-		return -EFAULT;
-	return 0;
-}
-
-static int post_copy_siginfo_from_user32(kernel_siginfo_t *to,
-					 const struct compat_siginfo *from)
-{
-	clear_siginfo(to);
-	to->si_signo = from->si_signo;
-	to->si_errno = from->si_errno;
-	to->si_code  = from->si_code;
-	switch(siginfo_layout(from->si_signo, from->si_code)) {
-	case SIL_KILL:
-		to->si_pid = from->si_pid;
-		to->si_uid = from->si_uid;
-		break;
-	case SIL_TIMER:
-		to->si_tid     = from->si_tid;
-		to->si_overrun = from->si_overrun;
-		to->si_int     = from->si_int;
-		break;
-	case SIL_POLL:
-		to->si_band = from->si_band;
-		to->si_fd   = from->si_fd;
-		break;
-	case SIL_FAULT:
-		to->si_addr = compat_ptr(from->si_addr);
-#ifdef __ARCH_SI_TRAPNO
-		to->si_trapno = from->si_trapno;
-#endif
-		break;
-	case SIL_FAULT_MCEERR:
-		to->si_addr = compat_ptr(from->si_addr);
-#ifdef __ARCH_SI_TRAPNO
-		to->si_trapno = from->si_trapno;
-#endif
-		to->si_addr_lsb = from->si_addr_lsb;
-		break;
-	case SIL_FAULT_BNDERR:
-		to->si_addr = compat_ptr(from->si_addr);
-#ifdef __ARCH_SI_TRAPNO
-		to->si_trapno = from->si_trapno;
-#endif
-		to->si_lower = compat_ptr(from->si_lower);
-		to->si_upper = compat_ptr(from->si_upper);
-		break;
-	case SIL_FAULT_PKUERR:
-		to->si_addr = compat_ptr(from->si_addr);
-#ifdef __ARCH_SI_TRAPNO
-		to->si_trapno = from->si_trapno;
-#endif
-		to->si_pkey = from->si_pkey;
-		break;
-	case SIL_CHLD:
-		to->si_pid    = from->si_pid;
-		to->si_uid    = from->si_uid;
-		to->si_status = from->si_status;
-#ifdef CONFIG_X86_X32_ABI
-		if (in_x32_syscall()) {
-			to->si_utime = from->_sifields._sigchld_x32._utime;
-			to->si_stime = from->_sifields._sigchld_x32._stime;
-		} else
-#endif
-		{
-			to->si_utime = from->si_utime;
-			to->si_stime = from->si_stime;
-		}
-		break;
-	case SIL_RT:
-		to->si_pid = from->si_pid;
-		to->si_uid = from->si_uid;
-		to->si_int = from->si_int;
-		break;
-	case SIL_SYS:
-		to->si_call_addr = compat_ptr(from->si_call_addr);
-		to->si_syscall   = from->si_syscall;
-		to->si_arch      = from->si_arch;
-		break;
-	}
-	return 0;
-}
-
-static int __copy_siginfo_from_user32(int signo, struct kernel_siginfo *to,
-				      const struct compat_siginfo __user *ufrom)
-{
-	struct compat_siginfo from;
-
-	if (copy_from_user(&from, ufrom, sizeof(struct compat_siginfo)))
-		return -EFAULT;
-
-	from.si_signo = signo;
-	return post_copy_siginfo_from_user32(to, &from);
-}
-
-int copy_siginfo_from_user32(struct kernel_siginfo *to,
-			     const struct compat_siginfo __user *ufrom)
-{
-	struct compat_siginfo from;
-
-	if (copy_from_user(&from, ufrom, sizeof(struct compat_siginfo)))
-		return -EFAULT;
-
-	return post_copy_siginfo_from_user32(to, &from);
-}
-#endif /* CONFIG_COMPAT */
 
 /**
  *  do_sigtimedwait - wait for queued signals specified in @which
@@ -3569,70 +3314,6 @@ SYSCALL_DEFINE4(rt_sigtimedwait_time32, const sigset_t __user *, uthese,
 }
 #endif
 
-#ifdef CONFIG_COMPAT
-COMPAT_SYSCALL_DEFINE4(rt_sigtimedwait_time64, compat_sigset_t __user *, uthese,
-		struct compat_siginfo __user *, uinfo,
-		struct __kernel_timespec __user *, uts, compat_size_t, sigsetsize)
-{
-	sigset_t s;
-	struct timespec64 t;
-	kernel_siginfo_t info;
-	long ret;
-
-	if (sigsetsize != sizeof(sigset_t))
-		return -EINVAL;
-
-	if (get_compat_sigset(&s, uthese))
-		return -EFAULT;
-
-	if (uts) {
-		if (get_timespec64(&t, uts))
-			return -EFAULT;
-	}
-
-	ret = do_sigtimedwait(&s, &info, uts ? &t : NULL);
-
-	if (ret > 0 && uinfo) {
-		if (copy_siginfo_to_user32(uinfo, &info))
-			ret = -EFAULT;
-	}
-
-	return ret;
-}
-
-#ifdef CONFIG_COMPAT_32BIT_TIME
-COMPAT_SYSCALL_DEFINE4(rt_sigtimedwait_time32, compat_sigset_t __user *, uthese,
-		struct compat_siginfo __user *, uinfo,
-		struct old_timespec32 __user *, uts, compat_size_t, sigsetsize)
-{
-	sigset_t s;
-	struct timespec64 t;
-	kernel_siginfo_t info;
-	long ret;
-
-	if (sigsetsize != sizeof(sigset_t))
-		return -EINVAL;
-
-	if (get_compat_sigset(&s, uthese))
-		return -EFAULT;
-
-	if (uts) {
-		if (get_old_timespec32(&t, uts))
-			return -EFAULT;
-	}
-
-	ret = do_sigtimedwait(&s, &info, uts ? &t : NULL);
-
-	if (ret > 0 && uinfo) {
-		if (copy_siginfo_to_user32(uinfo, &info))
-			ret = -EFAULT;
-	}
-
-	return ret;
-}
-#endif
-#endif
-
 static inline void prepare_kill_siginfo(int sig, struct kernel_siginfo *info)
 {
 	clear_siginfo(info);
@@ -3680,16 +3361,6 @@ static bool access_pidfd_pidns(struct pid *pid)
 
 static int copy_siginfo_from_user_any(kernel_siginfo_t *kinfo, siginfo_t *info)
 {
-#ifdef CONFIG_COMPAT
-	/*
-	 * Avoid hooking up compat syscalls and instead handle necessary
-	 * conversions here. Note, this is a stop-gap measure and should not be
-	 * considered a generic solution.
-	 */
-	if (in_compat_syscall())
-		return copy_siginfo_from_user32(
-			kinfo, (struct compat_siginfo __user *)info);
-#endif
 	return copy_siginfo_from_user(kinfo, info);
 }
 
@@ -3882,20 +3553,6 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, pid, int, sig,
 	return do_rt_sigqueueinfo(pid, sig, &info);
 }
 
-#ifdef CONFIG_COMPAT
-COMPAT_SYSCALL_DEFINE3(rt_sigqueueinfo,
-			compat_pid_t, pid,
-			int, sig,
-			struct compat_siginfo __user *, uinfo)
-{
-	kernel_siginfo_t info;
-	int ret = __copy_siginfo_from_user32(sig, &info, uinfo);
-	if (unlikely(ret))
-		return ret;
-	return do_rt_sigqueueinfo(pid, sig, &info);
-}
-#endif
-
 static int do_rt_tgsigqueueinfo(pid_t tgid, pid_t pid, int sig, kernel_siginfo_t *info)
 {
 	/* This is only valid for single tasks */
@@ -3921,21 +3578,6 @@ SYSCALL_DEFINE4(rt_tgsigqueueinfo, pid_t, tgid, pid_t, pid, int, sig,
 		return ret;
 	return do_rt_tgsigqueueinfo(tgid, pid, sig, &info);
 }
-
-#ifdef CONFIG_COMPAT
-COMPAT_SYSCALL_DEFINE4(rt_tgsigqueueinfo,
-			compat_pid_t, tgid,
-			compat_pid_t, pid,
-			int, sig,
-			struct compat_siginfo __user *, uinfo)
-{
-	kernel_siginfo_t info;
-	int ret = __copy_siginfo_from_user32(sig, &info, uinfo);
-	if (unlikely(ret))
-		return ret;
-	return do_rt_tgsigqueueinfo(tgid, pid, sig, &info);
-}
-#endif
 
 /*
  * For kthreads only, must not be used if cloned with CLONE_SIGHAND
@@ -4089,66 +3731,6 @@ int __save_altstack(stack_t __user *uss, unsigned long sp)
 	return 0;
 }
 
-#ifdef CONFIG_COMPAT
-static int do_compat_sigaltstack(const compat_stack_t __user *uss_ptr,
-				 compat_stack_t __user *uoss_ptr)
-{
-	stack_t uss, uoss;
-	int ret;
-
-	if (uss_ptr) {
-		compat_stack_t uss32;
-		if (copy_from_user(&uss32, uss_ptr, sizeof(compat_stack_t)))
-			return -EFAULT;
-		uss.ss_sp = compat_ptr(uss32.ss_sp);
-		uss.ss_flags = uss32.ss_flags;
-		uss.ss_size = uss32.ss_size;
-	}
-	ret = do_sigaltstack(uss_ptr ? &uss : NULL, &uoss,
-			     compat_user_stack_pointer(),
-			     COMPAT_MINSIGSTKSZ);
-	if (ret >= 0 && uoss_ptr)  {
-		compat_stack_t old;
-		memset(&old, 0, sizeof(old));
-		old.ss_sp = ptr_to_compat(uoss.ss_sp);
-		old.ss_flags = uoss.ss_flags;
-		old.ss_size = uoss.ss_size;
-		if (copy_to_user(uoss_ptr, &old, sizeof(compat_stack_t)))
-			ret = -EFAULT;
-	}
-	return ret;
-}
-
-COMPAT_SYSCALL_DEFINE2(sigaltstack,
-			const compat_stack_t __user *, uss_ptr,
-			compat_stack_t __user *, uoss_ptr)
-{
-	return do_compat_sigaltstack(uss_ptr, uoss_ptr);
-}
-
-int compat_restore_altstack(const compat_stack_t __user *uss)
-{
-	int err = do_compat_sigaltstack(uss, NULL);
-	/* squash all but -EFAULT for now */
-	return err == -EFAULT ? err : 0;
-}
-
-int __compat_save_altstack(compat_stack_t __user *uss, unsigned long sp)
-{
-	int err;
-	struct task_struct *t = current;
-	err = __put_user(ptr_to_compat((void __user *)t->sas_ss_sp),
-			 &uss->ss_sp) |
-		__put_user(t->sas_ss_flags, &uss->ss_flags) |
-		__put_user(t->sas_ss_size, &uss->ss_size);
-	if (err)
-		return err;
-	if (t->sas_ss_flags & SS_AUTODISARM)
-		sas_ss_reset(t);
-	return 0;
-}
-#endif
-
 #ifdef __ARCH_WANT_SYS_SIGPENDING
 
 /**
@@ -4169,17 +3751,6 @@ SYSCALL_DEFINE1(sigpending, old_sigset_t __user *, uset)
 
 	return 0;
 }
-
-#ifdef CONFIG_COMPAT
-COMPAT_SYSCALL_DEFINE1(sigpending, compat_old_sigset_t __user *, set32)
-{
-	sigset_t set;
-
-	do_sigpending(&set);
-
-	return put_user(set.sig[0], set32);
-}
-#endif
 
 #endif
 
@@ -4266,51 +3837,6 @@ SYSCALL_DEFINE4(rt_sigaction, int, sig,
 
 	return 0;
 }
-#ifdef CONFIG_COMPAT
-COMPAT_SYSCALL_DEFINE4(rt_sigaction, int, sig,
-		const struct compat_sigaction __user *, act,
-		struct compat_sigaction __user *, oact,
-		compat_size_t, sigsetsize)
-{
-	struct k_sigaction new_ka, old_ka;
-#ifdef __ARCH_HAS_SA_RESTORER
-	compat_uptr_t restorer;
-#endif
-	int ret;
-
-	/* XXX: Don't preclude handling different sized sigset_t's.  */
-	if (sigsetsize != sizeof(compat_sigset_t))
-		return -EINVAL;
-
-	if (act) {
-		compat_uptr_t handler;
-		ret = get_user(handler, &act->sa_handler);
-		new_ka.sa.sa_handler = compat_ptr(handler);
-#ifdef __ARCH_HAS_SA_RESTORER
-		ret |= get_user(restorer, &act->sa_restorer);
-		new_ka.sa.sa_restorer = compat_ptr(restorer);
-#endif
-		ret |= get_compat_sigset(&new_ka.sa.sa_mask, &act->sa_mask);
-		ret |= get_user(new_ka.sa.sa_flags, &act->sa_flags);
-		if (ret)
-			return -EFAULT;
-	}
-
-	ret = do_sigaction(sig, act ? &new_ka : NULL, oact ? &old_ka : NULL);
-	if (!ret && oact) {
-		ret = put_user(ptr_to_compat(old_ka.sa.sa_handler), 
-			       &oact->sa_handler);
-		ret |= put_compat_sigset(&oact->sa_mask, &old_ka.sa.sa_mask,
-					 sizeof(oact->sa_mask));
-		ret |= put_user(old_ka.sa.sa_flags, &oact->sa_flags);
-#ifdef __ARCH_HAS_SA_RESTORER
-		ret |= put_user(ptr_to_compat(old_ka.sa.sa_restorer),
-				&oact->sa_restorer);
-#endif
-	}
-	return ret;
-}
-#endif
 #endif /* !CONFIG_ODD_RT_SIGACTION */
 
 #ifdef CONFIG_OLD_SIGACTION
@@ -4478,21 +4004,6 @@ SYSCALL_DEFINE2(rt_sigsuspend, sigset_t __user *, unewset, size_t, sigsetsize)
 	return sigsuspend(&newset);
 }
  
-#ifdef CONFIG_COMPAT
-COMPAT_SYSCALL_DEFINE2(rt_sigsuspend, compat_sigset_t __user *, unewset, compat_size_t, sigsetsize)
-{
-	sigset_t newset;
-
-	/* XXX: Don't preclude handling different sized sigset_t's.  */
-	if (sigsetsize != sizeof(sigset_t))
-		return -EINVAL;
-
-	if (get_compat_sigset(&newset, unewset))
-		return -EFAULT;
-	return sigsuspend(&newset);
-}
-#endif
-
 #ifdef CONFIG_OLD_SIGSUSPEND
 SYSCALL_DEFINE1(sigsuspend, old_sigset_t, mask)
 {
@@ -4574,14 +4085,6 @@ static inline void siginfo_buildtime_checks(void)
 		BUILD_BUG_ON(offsetofend(struct siginfo, si_pid) !=
 			     offsetof(struct siginfo, si_uid));
 	}
-#ifdef CONFIG_COMPAT
-	BUILD_BUG_ON(offsetof(struct compat_siginfo, si_pid) !=
-		     offsetof(struct compat_siginfo, si_addr));
-	BUILD_BUG_ON(sizeof_field(struct compat_siginfo, si_pid) !=
-		     sizeof(compat_uptr_t));
-	BUILD_BUG_ON(sizeof_field(struct compat_siginfo, si_pid) !=
-		     sizeof_field(struct siginfo, si_pid));
-#endif
 }
 
 void __init signals_init(void)

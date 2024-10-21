@@ -86,11 +86,7 @@
 #define PSR_AA32_IT_MASK	0x0600fc00	/* If-Then execution state mask */
 #define PSR_AA32_GE_MASK	0x000f0000
 
-#ifdef CONFIG_CPU_BIG_ENDIAN
-#define PSR_AA32_ENDSTATE	PSR_AA32_E_BIT
-#else
 #define PSR_AA32_ENDSTATE	0
-#endif
 
 /* AArch32 CPSR bits, as seen in AArch32 */
 #define COMPAT_PSR_DIT_BIT	0x00200000
@@ -213,12 +209,7 @@ static inline void forget_syscall(struct pt_regs *regs)
 
 #define arch_has_single_step()	(1)
 
-#ifdef CONFIG_COMPAT
-#define compat_thumb_mode(regs) \
-	(((regs)->pstate & PSR_AA32_T_BIT))
-#else
 #define compat_thumb_mode(regs) (0)
-#endif
 
 #define user_mode(regs)	\
 	(((regs)->pstate & PSR_MODE_MASK) == PSR_MODE_EL0t)

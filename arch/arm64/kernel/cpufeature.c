@@ -88,16 +88,6 @@
 /* Kernel representation of AT_HWCAP and AT_HWCAP2 */
 static unsigned long elf_hwcap __read_mostly;
 
-#ifdef CONFIG_COMPAT
-#define COMPAT_ELF_HWCAP_DEFAULT	\
-				(COMPAT_HWCAP_HALF|COMPAT_HWCAP_THUMB|\
-				 COMPAT_HWCAP_FAST_MULT|COMPAT_HWCAP_EDSP|\
-				 COMPAT_HWCAP_TLS|COMPAT_HWCAP_IDIV|\
-				 COMPAT_HWCAP_LPAE)
-unsigned int compat_elf_hwcap __read_mostly = COMPAT_ELF_HWCAP_DEFAULT;
-unsigned int compat_elf_hwcap2 __read_mostly;
-#endif
-
 DECLARE_BITMAP(cpu_hwcaps, ARM64_NCAPS);
 EXPORT_SYMBOL(cpu_hwcaps);
 static struct arm64_cpu_capabilities const __ro_after_init *cpu_hwcaps_ptrs[ARM64_NCAPS];
@@ -1617,48 +1607,6 @@ static void cpu_clear_disr(const struct arm64_cpu_capabilities *__unused)
 }
 #endif /* CONFIG_ARM64_RAS_EXTN */
 
-#ifdef CONFIG_ARM64_PTR_AUTH
-static bool has_address_auth_cpucap(const struct arm64_cpu_capabilities *entry, int scope)
-{
-	int boot_val, sec_val;
-
-	/* We don't expect to be called with SCOPE_SYSTEM */
-	WARN_ON(scope == SCOPE_SYSTEM);
-	/*
-	 * The ptr-auth feature levels are not intercompatible with lower
-	 * levels. Hence we must match ptr-auth feature level of the secondary
-	 * CPUs with that of the boot CPU. The level of boot cpu is fetched
-	 * from the sanitised register whereas direct register read is done for
-	 * the secondary CPUs.
-	 * The sanitised feature state is guaranteed to match that of the
-	 * boot CPU as a mismatched secondary CPU is parked before it gets
-	 * a chance to update the state, with the capability.
-	 */
-	boot_val = cpuid_feature_extract_field(read_sanitised_ftr_reg(entry->sys_reg),
-					       entry->field_pos, entry->sign);
-	if (scope & SCOPE_BOOT_CPU)
-		return boot_val >= entry->min_field_value;
-	/* Now check for the secondary CPUs with SCOPE_LOCAL_CPU scope */
-	sec_val = cpuid_feature_extract_field(__read_sysreg_by_encoding(entry->sys_reg),
-					      entry->field_pos, entry->sign);
-	return sec_val == boot_val;
-}
-
-static bool has_address_auth_metacap(const struct arm64_cpu_capabilities *entry,
-				     int scope)
-{
-	return has_address_auth_cpucap(cpu_hwcaps_ptrs[ARM64_HAS_ADDRESS_AUTH_ARCH], scope) ||
-	       has_address_auth_cpucap(cpu_hwcaps_ptrs[ARM64_HAS_ADDRESS_AUTH_IMP_DEF], scope);
-}
-
-static bool has_generic_auth(const struct arm64_cpu_capabilities *entry,
-			     int __unused)
-{
-	return __system_matches_cap(ARM64_HAS_GENERIC_AUTH_ARCH) ||
-	       __system_matches_cap(ARM64_HAS_GENERIC_AUTH_IMP_DEF);
-}
-#endif /* CONFIG_ARM64_PTR_AUTH */
-
 #ifdef CONFIG_ARM64_E0PD
 static void cpu_enable_e0pd(struct arm64_cpu_capabilities const *cap)
 {
@@ -1682,33 +1630,6 @@ static bool can_use_gic_priorities(const struct arm64_cpu_capabilities *entry,
 	return enable_pseudo_nmi && has_useable_gicv3_cpuif(entry, scope);
 }
 #endif
-
-#ifdef CONFIG_ARM64_BTI
-static void bti_enable(const struct arm64_cpu_capabilities *__unused)
-{
-	/*
-	 * Use of X16/X17 for tail-calls and trampolines that jump to
-	 * function entry points using BR is a requirement for
-	 * marking binaries with GNU_PROPERTY_AARCH64_FEATURE_1_BTI.
-	 * So, be strict and forbid other BRs using other registers to
-	 * jump onto a PACIxSP instruction:
-	 */
-	sysreg_clear_set(sctlr_el1, 0, SCTLR_EL1_BT0 | SCTLR_EL1_BT1);
-	isb();
-}
-#endif /* CONFIG_ARM64_BTI */
-
-#ifdef CONFIG_ARM64_MTE
-static void cpu_enable_mte(struct arm64_cpu_capabilities const *cap)
-{
-	/*
-	 * Clear the tags in the zero page. This needs to be done via the
-	 * linear map which has the Tagged attribute.
-	 */
-	if (!test_and_set_bit(PG_mte_tagged, &ZERO_PAGE(0)->flags))
-		mte_clear_page_tags(lm_alias(empty_zero_page));
-}
-#endif /* CONFIG_ARM64_MTE */
 
 static void elf_hwcap_fixup(void)
 {
@@ -1854,19 +1775,6 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
 		.min_field_value = 2,
 	},
 #endif
-#ifdef CONFIG_ARM64_SVE
-	{
-		.desc = "Scalable Vector Extension",
-		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
-		.capability = ARM64_SVE,
-		.sys_reg = SYS_ID_AA64PFR0_EL1,
-		.sign = FTR_UNSIGNED,
-		.field_pos = ID_AA64PFR0_SVE_SHIFT,
-		.min_field_value = ID_AA64PFR0_SVE,
-		.matches = has_cpuid_feature,
-		.cpu_enable = sve_kernel_enable,
-	},
-#endif /* CONFIG_ARM64_SVE */
 #ifdef CONFIG_ARM64_RAS_EXTN
 	{
 		.desc = "RAS Extension Support",
@@ -2004,58 +1912,6 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
 		.sign = FTR_UNSIGNED,
 		.min_field_value = 1,
 	},
-#ifdef CONFIG_ARM64_PTR_AUTH
-	{
-		.desc = "Address authentication (architected algorithm)",
-		.capability = ARM64_HAS_ADDRESS_AUTH_ARCH,
-		.type = ARM64_CPUCAP_BOOT_CPU_FEATURE,
-		.sys_reg = SYS_ID_AA64ISAR1_EL1,
-		.sign = FTR_UNSIGNED,
-		.field_pos = ID_AA64ISAR1_APA_SHIFT,
-		.min_field_value = ID_AA64ISAR1_APA_ARCHITECTED,
-		.matches = has_address_auth_cpucap,
-	},
-	{
-		.desc = "Address authentication (IMP DEF algorithm)",
-		.capability = ARM64_HAS_ADDRESS_AUTH_IMP_DEF,
-		.type = ARM64_CPUCAP_BOOT_CPU_FEATURE,
-		.sys_reg = SYS_ID_AA64ISAR1_EL1,
-		.sign = FTR_UNSIGNED,
-		.field_pos = ID_AA64ISAR1_API_SHIFT,
-		.min_field_value = ID_AA64ISAR1_API_IMP_DEF,
-		.matches = has_address_auth_cpucap,
-	},
-	{
-		.capability = ARM64_HAS_ADDRESS_AUTH,
-		.type = ARM64_CPUCAP_BOOT_CPU_FEATURE,
-		.matches = has_address_auth_metacap,
-	},
-	{
-		.desc = "Generic authentication (architected algorithm)",
-		.capability = ARM64_HAS_GENERIC_AUTH_ARCH,
-		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
-		.sys_reg = SYS_ID_AA64ISAR1_EL1,
-		.sign = FTR_UNSIGNED,
-		.field_pos = ID_AA64ISAR1_GPA_SHIFT,
-		.min_field_value = ID_AA64ISAR1_GPA_ARCHITECTED,
-		.matches = has_cpuid_feature,
-	},
-	{
-		.desc = "Generic authentication (IMP DEF algorithm)",
-		.capability = ARM64_HAS_GENERIC_AUTH_IMP_DEF,
-		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
-		.sys_reg = SYS_ID_AA64ISAR1_EL1,
-		.sign = FTR_UNSIGNED,
-		.field_pos = ID_AA64ISAR1_GPI_SHIFT,
-		.min_field_value = ID_AA64ISAR1_GPI_IMP_DEF,
-		.matches = has_cpuid_feature,
-	},
-	{
-		.capability = ARM64_HAS_GENERIC_AUTH,
-		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
-		.matches = has_generic_auth,
-	},
-#endif /* CONFIG_ARM64_PTR_AUTH */
 #ifdef CONFIG_ARM64_PSEUDO_NMI
 	{
 		/*
@@ -2096,36 +1952,6 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
 		.min_field_value = 1,
 	},
 #endif
-#ifdef CONFIG_ARM64_BTI
-	{
-		.desc = "Branch Target Identification",
-		.capability = ARM64_BTI,
-#ifdef CONFIG_ARM64_BTI_KERNEL
-		.type = ARM64_CPUCAP_STRICT_BOOT_CPU_FEATURE,
-#else
-		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
-#endif
-		.matches = has_cpuid_feature,
-		.cpu_enable = bti_enable,
-		.sys_reg = SYS_ID_AA64PFR1_EL1,
-		.field_pos = ID_AA64PFR1_BT_SHIFT,
-		.min_field_value = ID_AA64PFR1_BT_BTI,
-		.sign = FTR_UNSIGNED,
-	},
-#endif
-#ifdef CONFIG_ARM64_MTE
-	{
-		.desc = "Memory Tagging Extension",
-		.capability = ARM64_MTE,
-		.type = ARM64_CPUCAP_STRICT_BOOT_CPU_FEATURE,
-		.matches = has_cpuid_feature,
-		.sys_reg = SYS_ID_AA64PFR1_EL1,
-		.field_pos = ID_AA64PFR1_MTE_SHIFT,
-		.min_field_value = ID_AA64PFR1_MTE,
-		.sign = FTR_UNSIGNED,
-		.cpu_enable = cpu_enable_mte,
-	},
-#endif /* CONFIG_ARM64_MTE */
 	{},
 };
 
@@ -2161,32 +1987,6 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
 		.matches = match,						\
 	}
 
-#ifdef CONFIG_ARM64_PTR_AUTH
-static const struct arm64_cpu_capabilities ptr_auth_hwcap_addr_matches[] = {
-	{
-		HWCAP_CPUID_MATCH(SYS_ID_AA64ISAR1_EL1, ID_AA64ISAR1_APA_SHIFT,
-				  FTR_UNSIGNED, ID_AA64ISAR1_APA_ARCHITECTED)
-	},
-	{
-		HWCAP_CPUID_MATCH(SYS_ID_AA64ISAR1_EL1, ID_AA64ISAR1_API_SHIFT,
-				  FTR_UNSIGNED, ID_AA64ISAR1_API_IMP_DEF)
-	},
-	{},
-};
-
-static const struct arm64_cpu_capabilities ptr_auth_hwcap_gen_matches[] = {
-	{
-		HWCAP_CPUID_MATCH(SYS_ID_AA64ISAR1_EL1, ID_AA64ISAR1_GPA_SHIFT,
-				  FTR_UNSIGNED, ID_AA64ISAR1_GPA_ARCHITECTED)
-	},
-	{
-		HWCAP_CPUID_MATCH(SYS_ID_AA64ISAR1_EL1, ID_AA64ISAR1_GPI_SHIFT,
-				  FTR_UNSIGNED, ID_AA64ISAR1_GPI_IMP_DEF)
-	},
-	{},
-};
-#endif
-
 static const struct arm64_cpu_capabilities arm64_elf_hwcaps[] = {
 	HWCAP_CAP(SYS_ID_AA64ISAR0_EL1, ID_AA64ISAR0_AES_SHIFT, FTR_UNSIGNED, 2, CAP_HWCAP, KERNEL_HWCAP_PMULL),
 	HWCAP_CAP(SYS_ID_AA64ISAR0_EL1, ID_AA64ISAR0_AES_SHIFT, FTR_UNSIGNED, 1, CAP_HWCAP, KERNEL_HWCAP_AES),
@@ -2221,71 +2021,14 @@ static const struct arm64_cpu_capabilities arm64_elf_hwcaps[] = {
 	HWCAP_CAP(SYS_ID_AA64ISAR1_EL1, ID_AA64ISAR1_DGH_SHIFT, FTR_UNSIGNED, 1, CAP_HWCAP, KERNEL_HWCAP_DGH),
 	HWCAP_CAP(SYS_ID_AA64ISAR1_EL1, ID_AA64ISAR1_I8MM_SHIFT, FTR_UNSIGNED, 1, CAP_HWCAP, KERNEL_HWCAP_I8MM),
 	HWCAP_CAP(SYS_ID_AA64MMFR2_EL1, ID_AA64MMFR2_AT_SHIFT, FTR_UNSIGNED, 1, CAP_HWCAP, KERNEL_HWCAP_USCAT),
-#ifdef CONFIG_ARM64_SVE
-	HWCAP_CAP(SYS_ID_AA64PFR0_EL1, ID_AA64PFR0_SVE_SHIFT, FTR_UNSIGNED, ID_AA64PFR0_SVE, CAP_HWCAP, KERNEL_HWCAP_SVE),
-	HWCAP_CAP(SYS_ID_AA64ZFR0_EL1, ID_AA64ZFR0_SVEVER_SHIFT, FTR_UNSIGNED, ID_AA64ZFR0_SVEVER_SVE2, CAP_HWCAP, KERNEL_HWCAP_SVE2),
-	HWCAP_CAP(SYS_ID_AA64ZFR0_EL1, ID_AA64ZFR0_AES_SHIFT, FTR_UNSIGNED, ID_AA64ZFR0_AES, CAP_HWCAP, KERNEL_HWCAP_SVEAES),
-	HWCAP_CAP(SYS_ID_AA64ZFR0_EL1, ID_AA64ZFR0_AES_SHIFT, FTR_UNSIGNED, ID_AA64ZFR0_AES_PMULL, CAP_HWCAP, KERNEL_HWCAP_SVEPMULL),
-	HWCAP_CAP(SYS_ID_AA64ZFR0_EL1, ID_AA64ZFR0_BITPERM_SHIFT, FTR_UNSIGNED, ID_AA64ZFR0_BITPERM, CAP_HWCAP, KERNEL_HWCAP_SVEBITPERM),
-	HWCAP_CAP(SYS_ID_AA64ZFR0_EL1, ID_AA64ZFR0_BF16_SHIFT, FTR_UNSIGNED, ID_AA64ZFR0_BF16, CAP_HWCAP, KERNEL_HWCAP_SVEBF16),
-	HWCAP_CAP(SYS_ID_AA64ZFR0_EL1, ID_AA64ZFR0_SHA3_SHIFT, FTR_UNSIGNED, ID_AA64ZFR0_SHA3, CAP_HWCAP, KERNEL_HWCAP_SVESHA3),
-	HWCAP_CAP(SYS_ID_AA64ZFR0_EL1, ID_AA64ZFR0_SM4_SHIFT, FTR_UNSIGNED, ID_AA64ZFR0_SM4, CAP_HWCAP, KERNEL_HWCAP_SVESM4),
-	HWCAP_CAP(SYS_ID_AA64ZFR0_EL1, ID_AA64ZFR0_I8MM_SHIFT, FTR_UNSIGNED, ID_AA64ZFR0_I8MM, CAP_HWCAP, KERNEL_HWCAP_SVEI8MM),
-	HWCAP_CAP(SYS_ID_AA64ZFR0_EL1, ID_AA64ZFR0_F32MM_SHIFT, FTR_UNSIGNED, ID_AA64ZFR0_F32MM, CAP_HWCAP, KERNEL_HWCAP_SVEF32MM),
-	HWCAP_CAP(SYS_ID_AA64ZFR0_EL1, ID_AA64ZFR0_F64MM_SHIFT, FTR_UNSIGNED, ID_AA64ZFR0_F64MM, CAP_HWCAP, KERNEL_HWCAP_SVEF64MM),
-#endif
 	HWCAP_CAP(SYS_ID_AA64PFR1_EL1, ID_AA64PFR1_SSBS_SHIFT, FTR_UNSIGNED, ID_AA64PFR1_SSBS_PSTATE_INSNS, CAP_HWCAP, KERNEL_HWCAP_SSBS),
-#ifdef CONFIG_ARM64_BTI
-	HWCAP_CAP(SYS_ID_AA64PFR1_EL1, ID_AA64PFR1_BT_SHIFT, FTR_UNSIGNED, ID_AA64PFR1_BT_BTI, CAP_HWCAP, KERNEL_HWCAP_BTI),
-#endif
-#ifdef CONFIG_ARM64_PTR_AUTH
-	HWCAP_MULTI_CAP(ptr_auth_hwcap_addr_matches, CAP_HWCAP, KERNEL_HWCAP_PACA),
-	HWCAP_MULTI_CAP(ptr_auth_hwcap_gen_matches, CAP_HWCAP, KERNEL_HWCAP_PACG),
-#endif
-#ifdef CONFIG_ARM64_MTE
-	HWCAP_CAP(SYS_ID_AA64PFR1_EL1, ID_AA64PFR1_MTE_SHIFT, FTR_UNSIGNED, ID_AA64PFR1_MTE, CAP_HWCAP, KERNEL_HWCAP_MTE),
-#endif /* CONFIG_ARM64_MTE */
 	HWCAP_CAP(SYS_ID_AA64MMFR0_EL1, ID_AA64MMFR0_ECV_SHIFT, FTR_UNSIGNED, 1, CAP_HWCAP, KERNEL_HWCAP_ECV),
 	HWCAP_CAP(SYS_ID_AA64MMFR1_EL1, ID_AA64MMFR1_AFP_SHIFT, FTR_UNSIGNED, 1, CAP_HWCAP, KERNEL_HWCAP_AFP),
 	HWCAP_CAP(SYS_ID_AA64ISAR2_EL1, ID_AA64ISAR2_RPRES_SHIFT, FTR_UNSIGNED, 1, CAP_HWCAP, KERNEL_HWCAP_RPRES),
 	{},
 };
 
-#ifdef CONFIG_COMPAT
-static bool compat_has_neon(const struct arm64_cpu_capabilities *cap, int scope)
-{
-	/*
-	 * Check that all of MVFR1_EL1.{SIMDSP, SIMDInt, SIMDLS} are available,
-	 * in line with that of arm32 as in vfp_init(). We make sure that the
-	 * check is future proof, by making sure value is non-zero.
-	 */
-	u32 mvfr1;
-
-	WARN_ON(scope == SCOPE_LOCAL_CPU && preemptible());
-	if (scope == SCOPE_SYSTEM)
-		mvfr1 = read_sanitised_ftr_reg(SYS_MVFR1_EL1);
-	else
-		mvfr1 = read_sysreg_s(SYS_MVFR1_EL1);
-
-	return cpuid_feature_extract_unsigned_field(mvfr1, MVFR1_SIMDSP_SHIFT) &&
-		cpuid_feature_extract_unsigned_field(mvfr1, MVFR1_SIMDINT_SHIFT) &&
-		cpuid_feature_extract_unsigned_field(mvfr1, MVFR1_SIMDLS_SHIFT);
-}
-#endif
-
 static const struct arm64_cpu_capabilities compat_elf_hwcaps[] = {
-#ifdef CONFIG_COMPAT
-	HWCAP_CAP_MATCH(compat_has_neon, CAP_COMPAT_HWCAP, COMPAT_HWCAP_NEON),
-	HWCAP_CAP(SYS_MVFR1_EL1, MVFR1_SIMDFMAC_SHIFT, FTR_UNSIGNED, 1, CAP_COMPAT_HWCAP, COMPAT_HWCAP_VFPv4),
-	/* Arm v8 mandates MVFR0.FPDP == {0, 2}. So, piggy back on this for the presence of VFP support */
-	HWCAP_CAP(SYS_MVFR0_EL1, MVFR0_FPDP_SHIFT, FTR_UNSIGNED, 2, CAP_COMPAT_HWCAP, COMPAT_HWCAP_VFP),
-	HWCAP_CAP(SYS_MVFR0_EL1, MVFR0_FPDP_SHIFT, FTR_UNSIGNED, 2, CAP_COMPAT_HWCAP, COMPAT_HWCAP_VFPv3),
-	HWCAP_CAP(SYS_ID_ISAR5_EL1, ID_ISAR5_AES_SHIFT, FTR_UNSIGNED, 2, CAP_COMPAT_HWCAP2, COMPAT_HWCAP2_PMULL),
-	HWCAP_CAP(SYS_ID_ISAR5_EL1, ID_ISAR5_AES_SHIFT, FTR_UNSIGNED, 1, CAP_COMPAT_HWCAP2, COMPAT_HWCAP2_AES),
-	HWCAP_CAP(SYS_ID_ISAR5_EL1, ID_ISAR5_SHA1_SHIFT, FTR_UNSIGNED, 1, CAP_COMPAT_HWCAP2, COMPAT_HWCAP2_SHA1),
-	HWCAP_CAP(SYS_ID_ISAR5_EL1, ID_ISAR5_SHA2_SHIFT, FTR_UNSIGNED, 1, CAP_COMPAT_HWCAP2, COMPAT_HWCAP2_SHA2),
-	HWCAP_CAP(SYS_ID_ISAR5_EL1, ID_ISAR5_CRC32_SHIFT, FTR_UNSIGNED, 1, CAP_COMPAT_HWCAP2, COMPAT_HWCAP2_CRC32),
-#endif
 	{},
 };
 
@@ -2295,14 +2038,6 @@ static void __init cap_set_elf_hwcap(const struct arm64_cpu_capabilities *cap)
 	case CAP_HWCAP:
 		cpu_set_feature(cap->hwcap);
 		break;
-#ifdef CONFIG_COMPAT
-	case CAP_COMPAT_HWCAP:
-		compat_elf_hwcap |= (u32)cap->hwcap;
-		break;
-	case CAP_COMPAT_HWCAP2:
-		compat_elf_hwcap2 |= (u32)cap->hwcap;
-		break;
-#endif
 	default:
 		WARN_ON(1);
 		break;
@@ -2318,14 +2053,6 @@ static bool cpus_have_elf_hwcap(const struct arm64_cpu_capabilities *cap)
 	case CAP_HWCAP:
 		rc = cpu_have_feature(cap->hwcap);
 		break;
-#ifdef CONFIG_COMPAT
-	case CAP_COMPAT_HWCAP:
-		rc = (compat_elf_hwcap & (u32)cap->hwcap) != 0;
-		break;
-	case CAP_COMPAT_HWCAP2:
-		rc = (compat_elf_hwcap2 & (u32)cap->hwcap) != 0;
-		break;
-#endif
 	default:
 		WARN_ON(1);
 		rc = false;

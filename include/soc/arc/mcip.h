@@ -18,11 +18,7 @@
 #define ARC_REG_MCIP_READBACK	0x602
 
 struct mcip_cmd {
-#ifdef CONFIG_CPU_BIG_ENDIAN
-	unsigned int pad:8, param:16, cmd:8;
-#else
 	unsigned int cmd:8, param:16, pad:8;
-#endif
 
 #define CMD_INTRPT_GENERATE_IRQ		0x01
 #define CMD_INTRPT_GENERATE_ACK		0x02
@@ -59,27 +55,15 @@ struct mcip_cmd {
 };
 
 struct mcip_bcr {
-#ifdef CONFIG_CPU_BIG_ENDIAN
-		unsigned int pad4:6, pw_dom:1, pad3:1,
-			     idu:1, pad2:1, num_cores:6,
-			     pad:1,  gfrc:1, dbg:1, pw:1,
-			     msg:1, sem:1, ipi:1, slv:1,
-			     ver:8;
-#else
 		unsigned int ver:8,
 			     slv:1, ipi:1, sem:1, msg:1,
 			     pw:1, dbg:1, gfrc:1, pad:1,
 			     num_cores:6, pad2:1, idu:1,
 			     pad3:1, pw_dom:1, pad4:6;
-#endif
 };
 
 struct mcip_idu_bcr {
-#ifdef CONFIG_CPU_BIG_ENDIAN
-	unsigned int pad:21, cirqnum:3, ver:8;
-#else
 	unsigned int ver:8, cirqnum:3, pad:21;
-#endif
 };
 
 

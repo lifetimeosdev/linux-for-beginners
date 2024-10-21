@@ -674,18 +674,6 @@ struct video_device;
 extern const char *v4l2_field_names[];
 extern const char *v4l2_type_names[];
 
-#ifdef CONFIG_COMPAT
-/**
- * v4l2_compat_ioctl32 -32 Bits compatibility layer for 64 bits processors
- *
- * @file: Pointer to struct &file.
- * @cmd: Ioctl name.
- * @arg: Ioctl argument.
- */
-long int v4l2_compat_ioctl32(struct file *file, unsigned int cmd,
-			     unsigned long arg);
-#endif
-
 /**
  * typedef v4l2_kioctl - Typedef used to pass an ioctl handler.
  *

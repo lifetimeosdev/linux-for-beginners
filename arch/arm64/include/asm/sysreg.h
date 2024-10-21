@@ -583,11 +583,7 @@
 			 (BIT(18)) | (BIT(22)) | (BIT(23)) | (BIT(28)) | \
 			 (BIT(29)))
 
-#ifdef CONFIG_CPU_BIG_ENDIAN
-#define ENDIAN_SET_EL2		SCTLR_ELx_EE
-#else
 #define ENDIAN_SET_EL2		0
-#endif
 
 /* SCTLR_EL1 specific flags. */
 #define SCTLR_EL1_ATA0		(BIT(42))
@@ -616,11 +612,7 @@
 #define SCTLR_EL1_RES1	((BIT(11)) | (BIT(20)) | (BIT(22)) | (BIT(28)) | \
 			 (BIT(29)))
 
-#ifdef CONFIG_CPU_BIG_ENDIAN
-#define ENDIAN_SET_EL1		(SCTLR_EL1_E0E | SCTLR_ELx_EE)
-#else
 #define ENDIAN_SET_EL1		0
-#endif
 
 #define SCTLR_EL1_SET	(SCTLR_ELx_M    | SCTLR_ELx_C    | SCTLR_ELx_SA   |\
 			 SCTLR_EL1_SA0  | SCTLR_EL1_SED  | SCTLR_ELx_I    |\

@@ -49,26 +49,8 @@
 #define DEFAULT_MAP_WINDOW_64	(UL(1) << VA_BITS_MIN)
 #define TASK_SIZE_64		(UL(1) << vabits_actual)
 
-#ifdef CONFIG_COMPAT
-#if defined(CONFIG_ARM64_64K_PAGES) && defined(CONFIG_KUSER_HELPERS)
-/*
- * With CONFIG_ARM64_64K_PAGES enabled, the last page is occupied
- * by the compat vectors page.
- */
-#define TASK_SIZE_32		UL(0x100000000)
-#else
-#define TASK_SIZE_32		(UL(0x100000000) - PAGE_SIZE)
-#endif /* CONFIG_ARM64_64K_PAGES */
-#define TASK_SIZE		(test_thread_flag(TIF_32BIT) ? \
-				TASK_SIZE_32 : TASK_SIZE_64)
-#define TASK_SIZE_OF(tsk)	(test_tsk_thread_flag(tsk, TIF_32BIT) ? \
-				TASK_SIZE_32 : TASK_SIZE_64)
-#define DEFAULT_MAP_WINDOW	(test_thread_flag(TIF_32BIT) ? \
-				TASK_SIZE_32 : DEFAULT_MAP_WINDOW_64)
-#else
 #define TASK_SIZE		TASK_SIZE_64
 #define DEFAULT_MAP_WINDOW	DEFAULT_MAP_WINDOW_64
-#endif /* CONFIG_COMPAT */
 
 #ifdef CONFIG_ARM64_FORCE_52BIT
 #define STACK_TOP_MAX		TASK_SIZE_64
@@ -78,13 +60,7 @@
 #define TASK_UNMAPPED_BASE	(PAGE_ALIGN(DEFAULT_MAP_WINDOW / 4))
 #endif /* CONFIG_ARM64_FORCE_52BIT */
 
-#ifdef CONFIG_COMPAT
-#define AARCH32_VECTORS_BASE	0xffff0000
-#define STACK_TOP		(test_thread_flag(TIF_32BIT) ? \
-				AARCH32_VECTORS_BASE : STACK_TOP_MAX)
-#else
 #define STACK_TOP		STACK_TOP_MAX
-#endif /* CONFIG_COMPAT */
 
 #ifndef CONFIG_ARM64_FORCE_52BIT
 #define arch_get_mmap_end(addr) ((addr > DEFAULT_MAP_WINDOW) ? TASK_SIZE :\
@@ -152,10 +128,6 @@ struct thread_struct {
 	struct ptrauth_keys_user	keys_user;
 	struct ptrauth_keys_kernel	keys_kernel;
 #endif
-#ifdef CONFIG_ARM64_MTE
-	u64			sctlr_tcf0;
-	u64			gcr_user_incl;
-#endif
 };
 
 static inline void arch_thread_struct_whitelist(unsigned long *offset,
@@ -171,19 +143,7 @@ static inline void arch_thread_struct_whitelist(unsigned long *offset,
 	*size = sizeof_field(struct thread_struct, uw);
 }
 
-#ifdef CONFIG_COMPAT
-#define task_user_tls(t)						\
-({									\
-	unsigned long *__tls;						\
-	if (is_compat_thread(task_thread_info(t)))			\
-		__tls = &(t)->thread.uw.tp2_value;			\
-	else								\
-		__tls = &(t)->thread.uw.tp_value;			\
-	__tls;								\
- })
-#else
 #define task_user_tls(t)	(&(t)->thread.uw.tp_value)
-#endif
 
 /* Sync TPIDR_EL0 back to thread_struct for current */
 void tls_preserve_current_state(void);
@@ -211,24 +171,6 @@ static inline void start_thread(struct pt_regs *regs, unsigned long pc,
 	spectre_v4_enable_task_mitigation(current);
 	regs->sp = sp;
 }
-
-#ifdef CONFIG_COMPAT
-static inline void compat_start_thread(struct pt_regs *regs, unsigned long pc,
-				       unsigned long sp)
-{
-	start_thread_common(regs, pc);
-	regs->pstate = PSR_AA32_MODE_USR;
-	if (pc & 1)
-		regs->pstate |= PSR_AA32_T_BIT;
-
-#ifdef __AARCH64EB__
-	regs->pstate |= PSR_AA32_E_BIT;
-#endif
-
-	spectre_v4_enable_task_mitigation(current);
-	regs->compat_sp = sp;
-}
-#endif
 
 static __always_inline bool is_ttbr0_addr(unsigned long addr)
 {

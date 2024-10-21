@@ -252,39 +252,4 @@ static inline int sem_check_semmni(struct ipc_namespace *ns) {
 		? -ERANGE : 0;
 }
 
-#ifdef CONFIG_COMPAT
-#include <linux/compat.h>
-struct compat_ipc_perm {
-	key_t key;
-	__compat_uid_t uid;
-	__compat_gid_t gid;
-	__compat_uid_t cuid;
-	__compat_gid_t cgid;
-	compat_mode_t mode;
-	unsigned short seq;
-};
-
-void to_compat_ipc_perm(struct compat_ipc_perm *, struct ipc64_perm *);
-void to_compat_ipc64_perm(struct compat_ipc64_perm *, struct ipc64_perm *);
-int get_compat_ipc_perm(struct ipc64_perm *, struct compat_ipc_perm __user *);
-int get_compat_ipc64_perm(struct ipc64_perm *,
-			  struct compat_ipc64_perm __user *);
-
-static inline int compat_ipc_parse_version(int *cmd)
-{
-	int version = *cmd & IPC_64;
-	*cmd &= ~IPC_64;
-	return version;
-}
-
-long compat_ksys_old_semctl(int semid, int semnum, int cmd, int arg);
-long compat_ksys_old_msgctl(int msqid, int cmd, void __user *uptr);
-long compat_ksys_msgrcv(int msqid, compat_uptr_t msgp, compat_ssize_t msgsz,
-			compat_long_t msgtyp, int msgflg);
-long compat_ksys_msgsnd(int msqid, compat_uptr_t msgp,
-		       compat_ssize_t msgsz, int msgflg);
-long compat_ksys_old_shmctl(int shmid, int cmd, void __user *uptr);
-
-#endif
-
 #endif

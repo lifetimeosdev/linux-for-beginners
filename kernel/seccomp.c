@@ -596,15 +596,6 @@ seccomp_prepare_user_filter(const char __user *user_filter)
 	struct sock_fprog fprog;
 	struct seccomp_filter *filter = ERR_PTR(-EFAULT);
 
-#ifdef CONFIG_COMPAT
-	if (in_compat_syscall()) {
-		struct compat_sock_fprog fprog32;
-		if (copy_from_user(&fprog32, user_filter, sizeof(fprog32)))
-			goto out;
-		fprog.len = fprog32.len;
-		fprog.filter = compat_ptr(fprog32.filter);
-	} else /* falls through to the if below. */
-#endif
 	if (copy_from_user(&fprog, user_filter, sizeof(fprog)))
 		goto out;
 	filter = seccomp_prepare_filter(&fprog);
@@ -786,10 +777,6 @@ static const int mode1_syscalls[] = {
 static void __secure_computing_strict(int this_syscall)
 {
 	const int *allowed_syscalls = mode1_syscalls;
-#ifdef CONFIG_COMPAT
-	if (in_compat_syscall())
-		allowed_syscalls = get_compat_mode1_syscalls();
-#endif
 	do {
 		if (*allowed_syscalls == this_syscall)
 			return;

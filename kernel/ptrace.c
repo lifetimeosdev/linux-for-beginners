@@ -777,17 +777,6 @@ static int ptrace_peek_siginfo(struct task_struct *child,
 		if (!found) /* beyond the end of the list */
 			break;
 
-#ifdef CONFIG_COMPAT
-		if (unlikely(in_compat_syscall())) {
-			compat_siginfo_t __user *uinfo = compat_ptr(data);
-
-			if (copy_siginfo_to_user32(uinfo, &info)) {
-				ret = -EFAULT;
-				break;
-			}
-
-		} else
-#endif
 		{
 			siginfo_t __user *uinfo = (siginfo_t __user *) data;
 

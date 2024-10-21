@@ -982,44 +982,6 @@ int inet_ioctl(struct socket *sock, unsigned int cmd, unsigned long arg)
 }
 EXPORT_SYMBOL(inet_ioctl);
 
-#ifdef CONFIG_COMPAT
-static int inet_compat_routing_ioctl(struct sock *sk, unsigned int cmd,
-		struct compat_rtentry __user *ur)
-{
-	compat_uptr_t rtdev;
-	struct rtentry rt;
-
-	if (copy_from_user(&rt.rt_dst, &ur->rt_dst,
-			3 * sizeof(struct sockaddr)) ||
-	    get_user(rt.rt_flags, &ur->rt_flags) ||
-	    get_user(rt.rt_metric, &ur->rt_metric) ||
-	    get_user(rt.rt_mtu, &ur->rt_mtu) ||
-	    get_user(rt.rt_window, &ur->rt_window) ||
-	    get_user(rt.rt_irtt, &ur->rt_irtt) ||
-	    get_user(rtdev, &ur->rt_dev))
-		return -EFAULT;
-
-	rt.rt_dev = compat_ptr(rtdev);
-	return ip_rt_ioctl(sock_net(sk), cmd, &rt);
-}
-
-static int inet_compat_ioctl(struct socket *sock, unsigned int cmd, unsigned long arg)
-{
-	void __user *argp = compat_ptr(arg);
-	struct sock *sk = sock->sk;
-
-	switch (cmd) {
-	case SIOCADDRT:
-	case SIOCDELRT:
-		return inet_compat_routing_ioctl(sk, cmd, argp);
-	default:
-		if (!sk->sk_prot->compat_ioctl)
-			return -ENOIOCTLCMD;
-		return sk->sk_prot->compat_ioctl(sk, cmd, arg);
-	}
-}
-#endif /* CONFIG_COMPAT */
-
 const struct proto_ops inet_stream_ops = {
 	.family		   = PF_INET,
 	.owner		   = THIS_MODULE,
@@ -1047,9 +1009,6 @@ const struct proto_ops inet_stream_ops = {
 	.sendmsg_locked    = tcp_sendmsg_locked,
 	.sendpage_locked   = tcp_sendpage_locked,
 	.peek_len	   = tcp_peek_len,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl	   = inet_compat_ioctl,
-#endif
 	.set_rcvlowat	   = tcp_set_rcvlowat,
 };
 EXPORT_SYMBOL(inet_stream_ops);
@@ -1075,9 +1034,6 @@ const struct proto_ops inet_dgram_ops = {
 	.mmap		   = sock_no_mmap,
 	.sendpage	   = inet_sendpage,
 	.set_peek_off	   = sk_set_peek_off,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl	   = inet_compat_ioctl,
-#endif
 };
 EXPORT_SYMBOL(inet_dgram_ops);
 
@@ -1105,9 +1061,6 @@ static const struct proto_ops inet_sockraw_ops = {
 	.recvmsg	   = inet_recvmsg,
 	.mmap		   = sock_no_mmap,
 	.sendpage	   = inet_sendpage,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl	   = inet_compat_ioctl,
-#endif
 };
 
 static const struct net_proto_family inet_family_ops = {

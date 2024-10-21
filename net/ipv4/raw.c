@@ -913,23 +913,6 @@ static int raw_ioctl(struct sock *sk, int cmd, unsigned long arg)
 	}
 }
 
-#ifdef CONFIG_COMPAT
-static int compat_raw_ioctl(struct sock *sk, unsigned int cmd, unsigned long arg)
-{
-	switch (cmd) {
-	case SIOCOUTQ:
-	case SIOCINQ:
-		return -ENOIOCTLCMD;
-	default:
-#ifdef CONFIG_IP_MROUTE
-		return ipmr_compat_ioctl(sk, cmd, compat_ptr(arg));
-#else
-		return -ENOIOCTLCMD;
-#endif
-	}
-}
-#endif
-
 int raw_abort(struct sock *sk, int err)
 {
 	lock_sock(sk);
@@ -966,9 +949,6 @@ struct proto raw_prot = {
 	.useroffset	   = offsetof(struct raw_sock, filter),
 	.usersize	   = sizeof_field(struct raw_sock, filter),
 	.h.raw_hash	   = &raw_v4_hashinfo,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl	   = compat_raw_ioctl,
-#endif
 	.diag_destroy	   = raw_abort,
 };
 

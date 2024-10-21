@@ -2087,9 +2087,6 @@ const struct file_operations def_blk_fops = {
 	.mmap		= generic_file_mmap,
 	.fsync		= blkdev_fsync,
 	.unlocked_ioctl	= block_ioctl,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl	= compat_blkdev_ioctl,
-#endif
 	.splice_read	= generic_file_splice_read,
 	.splice_write	= iter_file_splice_write,
 	.fallocate	= blkdev_fallocate,

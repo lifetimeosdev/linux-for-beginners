@@ -801,23 +801,12 @@ static int mmc_blk_ioctl(struct block_device *bdev, fmode_t mode,
 	}
 }
 
-#ifdef CONFIG_COMPAT
-static int mmc_blk_compat_ioctl(struct block_device *bdev, fmode_t mode,
-	unsigned int cmd, unsigned long arg)
-{
-	return mmc_blk_ioctl(bdev, mode, cmd, (unsigned long) compat_ptr(arg));
-}
-#endif
-
 static const struct block_device_operations mmc_bdops = {
 	.open			= mmc_blk_open,
 	.release		= mmc_blk_release,
 	.getgeo			= mmc_blk_getgeo,
 	.owner			= THIS_MODULE,
 	.ioctl			= mmc_blk_ioctl,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl		= mmc_blk_compat_ioctl,
-#endif
 };
 
 static int mmc_blk_part_switch_pre(struct mmc_card *card,
@@ -2531,14 +2520,6 @@ static long mmc_rpmb_ioctl(struct file *filp, unsigned int cmd,
 	return ret;
 }
 
-#ifdef CONFIG_COMPAT
-static long mmc_rpmb_ioctl_compat(struct file *filp, unsigned int cmd,
-			      unsigned long arg)
-{
-	return mmc_rpmb_ioctl(filp, cmd, (unsigned long)compat_ptr(arg));
-}
-#endif
-
 static int mmc_rpmb_chrdev_open(struct inode *inode, struct file *filp)
 {
 	struct mmc_rpmb_data *rpmb = container_of(inode->i_cdev,
@@ -2568,9 +2549,6 @@ static const struct file_operations mmc_rpmb_fileops = {
 	.owner = THIS_MODULE,
 	.llseek = no_llseek,
 	.unlocked_ioctl = mmc_rpmb_ioctl,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl = mmc_rpmb_ioctl_compat,
-#endif
 };
 
 static void mmc_blk_rpmb_device_release(struct device *dev)

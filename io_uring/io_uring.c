@@ -3243,33 +3243,6 @@ static void __user *io_rw_buffer_select(struct io_kiocb *req, size_t *len,
 	return u64_to_user_ptr(kbuf->addr);
 }
 
-#ifdef CONFIG_COMPAT
-static ssize_t io_compat_import(struct io_kiocb *req, struct iovec *iov,
-				bool needs_lock)
-{
-	struct compat_iovec __user *uiov;
-	compat_ssize_t clen;
-	void __user *buf;
-	ssize_t len;
-
-	uiov = u64_to_user_ptr(req->rw.addr);
-	if (!access_ok(uiov, sizeof(*uiov)))
-		return -EFAULT;
-	if (__get_user(clen, &uiov->iov_len))
-		return -EFAULT;
-	if (clen < 0)
-		return -EINVAL;
-
-	len = clen;
-	buf = io_rw_buffer_select(req, &len, needs_lock);
-	if (IS_ERR(buf))
-		return PTR_ERR(buf);
-	iov[0].iov_base = buf;
-	iov[0].iov_len = (compat_size_t) len;
-	return 0;
-}
-#endif
-
 static ssize_t __io_iov_buffer_select(struct io_kiocb *req, struct iovec *iov,
 				      bool needs_lock)
 {
@@ -3304,11 +3277,6 @@ static ssize_t io_iov_buffer_select(struct io_kiocb *req, struct iovec *iov,
 	}
 	if (req->rw.len != 1)
 		return -EINVAL;
-
-#ifdef CONFIG_COMPAT
-	if (req->ctx->compat)
-		return io_compat_import(req, iov, needs_lock);
-#endif
 
 	return __io_iov_buffer_select(req, iov, needs_lock);
 }
@@ -4788,10 +4756,6 @@ static int io_sendmsg_prep(struct io_kiocb *req, const struct io_uring_sqe *sqe)
 	if (sr->msg_flags & MSG_DONTWAIT)
 		req->flags |= REQ_F_NOWAIT;
 
-#ifdef CONFIG_COMPAT
-	if (req->ctx->compat)
-		sr->msg_flags |= MSG_CMSG_COMPAT;
-#endif
 	sr->done_io = 0;
 	return 0;
 }
@@ -4936,57 +4900,10 @@ static int __io_recvmsg_copy_hdr(struct io_kiocb *req,
 	return ret;
 }
 
-#ifdef CONFIG_COMPAT
-static int __io_compat_recvmsg_copy_hdr(struct io_kiocb *req,
-					struct io_async_msghdr *iomsg)
-{
-	struct io_sr_msg *sr = &req->sr_msg;
-	struct compat_iovec __user *uiov;
-	compat_uptr_t ptr;
-	compat_size_t len;
-	int ret;
-
-	ret = __get_compat_msghdr(&iomsg->msg, sr->umsg_compat, &iomsg->uaddr,
-				  &ptr, &len);
-	if (ret)
-		return ret;
-
-	uiov = compat_ptr(ptr);
-	if (req->flags & REQ_F_BUFFER_SELECT) {
-		compat_ssize_t clen;
-
-		if (len > 1)
-			return -EINVAL;
-		if (!access_ok(uiov, sizeof(*uiov)))
-			return -EFAULT;
-		if (__get_user(clen, &uiov->iov_len))
-			return -EFAULT;
-		if (clen < 0)
-			return -EINVAL;
-		sr->len = clen;
-		iomsg->free_iov = NULL;
-	} else {
-		iomsg->free_iov = iomsg->fast_iov;
-		ret = __import_iovec(READ, (struct iovec __user *)uiov, len,
-				   UIO_FASTIOV, &iomsg->free_iov,
-				   &iomsg->msg.msg_iter, true);
-		if (ret < 0)
-			return ret;
-	}
-
-	return 0;
-}
-#endif
-
 static int io_recvmsg_copy_hdr(struct io_kiocb *req,
 			       struct io_async_msghdr *iomsg)
 {
 	iomsg->msg.msg_name = &iomsg->addr;
-
-#ifdef CONFIG_COMPAT
-	if (req->ctx->compat)
-		return __io_compat_recvmsg_copy_hdr(req, iomsg);
-#endif
 
 	return __io_recvmsg_copy_hdr(req, iomsg);
 }
@@ -5039,10 +4956,6 @@ static int io_recvmsg_prep(struct io_kiocb *req, const struct io_uring_sqe *sqe)
 	if (sr->msg_flags & MSG_DONTWAIT)
 		req->flags |= REQ_F_NOWAIT;
 
-#ifdef CONFIG_COMPAT
-	if (req->ctx->compat)
-		sr->msg_flags |= MSG_CMSG_COMPAT;
-#endif
 	sr->done_io = 0;
 	return 0;
 }
@@ -7712,12 +7625,6 @@ static int io_cqring_wait(struct io_ring_ctx *ctx, int min_events,
 	}
 
 	if (sig) {
-#ifdef CONFIG_COMPAT
-		if (in_compat_syscall())
-			ret = set_compat_user_sigmask((const compat_sigset_t __user *)sig,
-						      sigsz);
-		else
-#endif
 			ret = set_user_sigmask(sig, sigsz);
 
 		if (ret)
@@ -8956,20 +8863,6 @@ static int io_copy_iov(struct io_ring_ctx *ctx, struct iovec *dst,
 {
 	struct iovec __user *src;
 
-#ifdef CONFIG_COMPAT
-	if (ctx->compat) {
-		struct compat_iovec __user *ciovs;
-		struct compat_iovec ciov;
-
-		ciovs = (struct compat_iovec __user *) arg;
-		if (copy_from_user(&ciov, &ciovs[index], sizeof(ciov)))
-			return -EFAULT;
-
-		dst->iov_base = u64_to_user_ptr((u64)ciov.iov_base);
-		dst->iov_len = ciov.iov_len;
-		return 0;
-	}
-#endif
 	src = (struct iovec __user *) arg;
 	if (copy_from_user(dst, &src[index], sizeof(*dst)))
 		return -EFAULT;
@@ -10758,17 +10651,7 @@ static int io_register_iowq_aff(struct io_ring_ctx *ctx, void __user *arg,
 	if (len > cpumask_size())
 		len = cpumask_size();
 
-#ifdef CONFIG_COMPAT
-	if (in_compat_syscall()) {
-		ret = compat_get_bitmap(cpumask_bits(new_mask),
-					(const compat_ulong_t __user *)arg,
-					len * 8 /* CHAR_BIT */);
-	} else {
-		ret = copy_from_user(new_mask, arg, len);
-	}
-#else
 	ret = copy_from_user(new_mask, arg, len);
-#endif
 
 	if (ret) {
 		free_cpumask_var(new_mask);

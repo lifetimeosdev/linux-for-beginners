@@ -19,15 +19,6 @@ long sys_ni_syscall(void);
 
 static long do_ni_syscall(struct pt_regs *regs, int scno)
 {
-#ifdef CONFIG_COMPAT
-	long ret;
-	if (is_compat_task()) {
-		ret = compat_arm_syscall(regs, scno);
-		if (ret != -ENOSYS)
-			return ret;
-	}
-#endif
-
 	return sys_ni_syscall();
 }
 
@@ -193,11 +184,3 @@ void do_el0_svc(struct pt_regs *regs)
 	sve_user_discard();
 	el0_svc_common(regs, regs->regs[8], __NR_syscalls, sys_call_table);
 }
-
-#ifdef CONFIG_COMPAT
-void do_el0_svc_compat(struct pt_regs *regs)
-{
-	el0_svc_common(regs, regs->regs[7], __NR_compat_syscalls,
-		       compat_sys_call_table);
-}
-#endif

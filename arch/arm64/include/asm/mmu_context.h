@@ -182,28 +182,10 @@ init_new_context(struct task_struct *tsk, struct mm_struct *mm)
 	return 0;
 }
 
-#ifdef CONFIG_ARM64_SW_TTBR0_PAN
-static inline void update_saved_ttbr0(struct task_struct *tsk,
-				      struct mm_struct *mm)
-{
-	u64 ttbr;
-
-	if (!system_uses_ttbr0_pan())
-		return;
-
-	if (mm == &init_mm)
-		ttbr = phys_to_ttbr(__pa_symbol(reserved_pg_dir));
-	else
-		ttbr = phys_to_ttbr(virt_to_phys(mm->pgd)) | ASID(mm) << 48;
-
-	WRITE_ONCE(task_thread_info(tsk)->ttbr0, ttbr);
-}
-#else
 static inline void update_saved_ttbr0(struct task_struct *tsk,
 				      struct mm_struct *mm)
 {
 }
-#endif
 
 static inline void
 enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)

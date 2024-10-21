@@ -360,15 +360,6 @@ void __init __no_sanitize_address setup_arch(char **cmdline_p)
 	/* Init percpu seeds for random tags after cpus are set up. */
 	kasan_init_tags();
 
-#ifdef CONFIG_ARM64_SW_TTBR0_PAN
-	/*
-	 * Make sure init_thread_info.ttbr0 always generates translation
-	 * faults in case uaccess_enable() is inadvertently called by the init
-	 * thread.
-	 */
-	init_task.thread_info.ttbr0 = phys_to_ttbr(__pa_symbol(reserved_pg_dir));
-#endif
-
 	if (boot_args[1] || boot_args[2] || boot_args[3]) {
 		pr_err("WARNING: x1-x3 nonzero in violation of boot protocol:\n"
 			"\tx1: %016llx\n\tx2: %016llx\n\tx3: %016llx\n"

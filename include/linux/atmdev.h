@@ -21,14 +21,6 @@
 extern struct proc_dir_entry *atm_proc_root;
 #endif
 
-#ifdef CONFIG_COMPAT
-#include <linux/compat.h>
-struct compat_atm_iobuf {
-	int length;
-	compat_uptr_t buffer;
-};
-#endif
-
 struct k_atm_aal_stats {
 #define __HANDLE_ITEM(i) atomic_t i
 	__AAL_STAT_ITEMS
@@ -181,10 +173,6 @@ struct atmdev_ops { /* only send is required */
 	int (*open)(struct atm_vcc *vcc);
 	void (*close)(struct atm_vcc *vcc);
 	int (*ioctl)(struct atm_dev *dev,unsigned int cmd,void __user *arg);
-#ifdef CONFIG_COMPAT
-	int (*compat_ioctl)(struct atm_dev *dev,unsigned int cmd,
-			    void __user *arg);
-#endif
 	int (*send)(struct atm_vcc *vcc,struct sk_buff *skb);
 	int (*send_oam)(struct atm_vcc *vcc,void *cell,int flags);
 	void (*phy_put)(struct atm_dev *dev,unsigned char value,

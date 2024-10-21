@@ -1351,39 +1351,6 @@ out:
 	return ret;
 }
 
-#ifdef CONFIG_COMPAT
-COMPAT_SYSCALL_DEFINE2(io_setup, unsigned, nr_events, u32 __user *, ctx32p)
-{
-	struct kioctx *ioctx = NULL;
-	unsigned long ctx;
-	long ret;
-
-	ret = get_user(ctx, ctx32p);
-	if (unlikely(ret))
-		goto out;
-
-	ret = -EINVAL;
-	if (unlikely(ctx || nr_events == 0)) {
-		pr_debug("EINVAL: ctx %lu nr_events %u\n",
-		         ctx, nr_events);
-		goto out;
-	}
-
-	ioctx = ioctx_alloc(nr_events);
-	ret = PTR_ERR(ioctx);
-	if (!IS_ERR(ioctx)) {
-		/* truncating is ok because it's a user address */
-		ret = put_user((u32)ioctx->user_id, ctx32p);
-		if (ret)
-			kill_ioctx(current->mm, ioctx, NULL);
-		percpu_ref_put(&ioctx->users);
-	}
-
-out:
-	return ret;
-}
-#endif
-
 /* sys_io_destroy:
  *	Destroy the aio_context specified.  May cancel any outstanding 
  *	AIOs and block on completion.  Will fail with -ENOSYS if not
@@ -2077,49 +2044,6 @@ SYSCALL_DEFINE3(io_submit, aio_context_t, ctx_id, long, nr,
 	return i ? i : ret;
 }
 
-#ifdef CONFIG_COMPAT
-COMPAT_SYSCALL_DEFINE3(io_submit, compat_aio_context_t, ctx_id,
-		       int, nr, compat_uptr_t __user *, iocbpp)
-{
-	struct kioctx *ctx;
-	long ret = 0;
-	int i = 0;
-	struct blk_plug plug;
-
-	if (unlikely(nr < 0))
-		return -EINVAL;
-
-	ctx = lookup_ioctx(ctx_id);
-	if (unlikely(!ctx)) {
-		pr_debug("EINVAL: invalid context id\n");
-		return -EINVAL;
-	}
-
-	if (nr > ctx->nr_events)
-		nr = ctx->nr_events;
-
-	if (nr > AIO_PLUG_THRESHOLD)
-		blk_start_plug(&plug);
-	for (i = 0; i < nr; i++) {
-		compat_uptr_t user_iocb;
-
-		if (unlikely(get_user(user_iocb, iocbpp + i))) {
-			ret = -EFAULT;
-			break;
-		}
-
-		ret = io_submit_one(ctx, compat_ptr(user_iocb), true);
-		if (ret)
-			break;
-	}
-	if (nr > AIO_PLUG_THRESHOLD)
-		blk_finish_plug(&plug);
-
-	percpu_ref_put(&ctx->users);
-	return i ? i : ret;
-}
-#endif
-
 /* sys_io_cancel:
  *	Attempts to cancel an iocb previously passed to io_submit.  If
  *	the operation is successfully cancelled, the resulting event is
@@ -2322,82 +2246,4 @@ SYSCALL_DEFINE5(io_getevents_time32, __u32, ctx_id,
 	return ret;
 }
 
-#endif
-
-#ifdef CONFIG_COMPAT
-
-struct __compat_aio_sigset {
-	compat_uptr_t		sigmask;
-	compat_size_t		sigsetsize;
-};
-
-#if defined(CONFIG_COMPAT_32BIT_TIME)
-
-COMPAT_SYSCALL_DEFINE6(io_pgetevents,
-		compat_aio_context_t, ctx_id,
-		compat_long_t, min_nr,
-		compat_long_t, nr,
-		struct io_event __user *, events,
-		struct old_timespec32 __user *, timeout,
-		const struct __compat_aio_sigset __user *, usig)
-{
-	struct __compat_aio_sigset ksig = { 0, };
-	struct timespec64 t;
-	bool interrupted;
-	int ret;
-
-	if (timeout && get_old_timespec32(&t, timeout))
-		return -EFAULT;
-
-	if (usig && copy_from_user(&ksig, usig, sizeof(ksig)))
-		return -EFAULT;
-
-	ret = set_compat_user_sigmask(compat_ptr(ksig.sigmask), ksig.sigsetsize);
-	if (ret)
-		return ret;
-
-	ret = do_io_getevents(ctx_id, min_nr, nr, events, timeout ? &t : NULL);
-
-	interrupted = signal_pending(current);
-	restore_saved_sigmask_unless(interrupted);
-	if (interrupted && !ret)
-		ret = -ERESTARTNOHAND;
-
-	return ret;
-}
-
-#endif
-
-COMPAT_SYSCALL_DEFINE6(io_pgetevents_time64,
-		compat_aio_context_t, ctx_id,
-		compat_long_t, min_nr,
-		compat_long_t, nr,
-		struct io_event __user *, events,
-		struct __kernel_timespec __user *, timeout,
-		const struct __compat_aio_sigset __user *, usig)
-{
-	struct __compat_aio_sigset ksig = { 0, };
-	struct timespec64 t;
-	bool interrupted;
-	int ret;
-
-	if (timeout && get_timespec64(&t, timeout))
-		return -EFAULT;
-
-	if (usig && copy_from_user(&ksig, usig, sizeof(ksig)))
-		return -EFAULT;
-
-	ret = set_compat_user_sigmask(compat_ptr(ksig.sigmask), ksig.sigsetsize);
-	if (ret)
-		return ret;
-
-	ret = do_io_getevents(ctx_id, min_nr, nr, events, timeout ? &t : NULL);
-
-	interrupted = signal_pending(current);
-	restore_saved_sigmask_unless(interrupted);
-	if (interrupted && !ret)
-		ret = -ERESTARTNOHAND;
-
-	return ret;
-}
 #endif

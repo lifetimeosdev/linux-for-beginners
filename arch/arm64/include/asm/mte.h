@@ -30,23 +30,6 @@ void mte_invalidate_tags_area(int type);
 void *mte_allocate_tag_storage(void);
 void mte_free_tag_storage(char *storage);
 
-#ifdef CONFIG_ARM64_MTE
-
-/* track which pages have valid allocation tags */
-#define PG_mte_tagged	PG_arch_2
-
-void mte_sync_tags(pte_t *ptep, pte_t pte);
-void mte_copy_page_tags(void *kto, const void *kfrom);
-void flush_mte_state(void);
-void mte_thread_switch(struct task_struct *next);
-void mte_suspend_exit(void);
-long set_mte_ctrl(struct task_struct *task, unsigned long arg);
-long get_mte_ctrl(struct task_struct *task);
-int mte_ptrace_copy_tags(struct task_struct *child, long request,
-			 unsigned long addr, unsigned long data);
-
-#else
-
 /* unused if !CONFIG_ARM64_MTE, silence the compiler */
 #define PG_mte_tagged	0
 
@@ -83,4 +66,3 @@ static inline int mte_ptrace_copy_tags(struct task_struct *child,
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif /* __ASM_MTE_H  */

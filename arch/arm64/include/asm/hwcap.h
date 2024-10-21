@@ -116,18 +116,8 @@
 #define ELF_HWCAP		cpu_get_elf_hwcap()
 #define ELF_HWCAP2		cpu_get_elf_hwcap2()
 
-#ifdef CONFIG_COMPAT
-#define COMPAT_ELF_HWCAP	(compat_elf_hwcap)
-#define COMPAT_ELF_HWCAP2	(compat_elf_hwcap2)
-extern unsigned int compat_elf_hwcap, compat_elf_hwcap2;
-#endif
-
 enum {
 	CAP_HWCAP = 1,
-#ifdef CONFIG_COMPAT
-	CAP_COMPAT_HWCAP,
-	CAP_COMPAT_HWCAP2,
-#endif
 };
 
 #endif

@@ -21,17 +21,6 @@
 #include <linux/stddef.h>
 #include <linux/types.h>
 
-#ifdef CONFIG_COMPAT
-/* Masks for extracting the FPSR and FPCR from the FPSCR */
-#define VFP_FPSCR_STAT_MASK	0xf800009f
-#define VFP_FPSCR_CTRL_MASK	0x07f79f00
-/*
- * The VFP state has 32x64-bit registers and a single 32-bit
- * control/status register.
- */
-#define VFP_STATE_SIZE		((32 * 8) + 4)
-#endif
-
 struct task_struct;
 
 extern void fpsimd_save_state(struct user_fpsimd_state *state);
@@ -104,43 +93,6 @@ static inline bool sve_vq_available(unsigned int vq)
 	return test_bit(__vq_to_bit(vq), sve_vq_map);
 }
 
-#ifdef CONFIG_ARM64_SVE
-
-extern size_t sve_state_size(struct task_struct const *task);
-
-extern void sve_alloc(struct task_struct *task);
-extern void fpsimd_release_task(struct task_struct *task);
-extern void fpsimd_sync_to_sve(struct task_struct *task);
-extern void sve_sync_to_fpsimd(struct task_struct *task);
-extern void sve_sync_from_fpsimd_zeropad(struct task_struct *task);
-
-extern int sve_set_vector_length(struct task_struct *task,
-				 unsigned long vl, unsigned long flags);
-
-extern int sve_set_current_vl(unsigned long arg);
-extern int sve_get_current_vl(void);
-
-static inline void sve_user_disable(void)
-{
-	sysreg_clear_set(cpacr_el1, CPACR_EL1_ZEN_EL0EN, 0);
-}
-
-static inline void sve_user_enable(void)
-{
-	sysreg_clear_set(cpacr_el1, 0, CPACR_EL1_ZEN_EL0EN);
-}
-
-/*
- * Probing and setup functions.
- * Calls to these functions must be serialised with one another.
- */
-extern void __init sve_init_vq_map(void);
-extern void sve_update_vq_map(void);
-extern int sve_verify_vq_map(void);
-extern void __init sve_setup(void);
-
-#else /* ! CONFIG_ARM64_SVE */
-
 static inline void sve_alloc(struct task_struct *task) { }
 static inline void fpsimd_release_task(struct task_struct *task) { }
 static inline void sve_sync_to_fpsimd(struct task_struct *task) { }
@@ -169,7 +121,5 @@ static inline void sve_setup(void) { }
 /* For use by EFI runtime services calls only */
 extern void __efi_fpsimd_begin(void);
 extern void __efi_fpsimd_end(void);
-
-#endif
 
 #endif

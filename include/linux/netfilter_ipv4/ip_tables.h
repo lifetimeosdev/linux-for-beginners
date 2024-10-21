@@ -72,25 +72,4 @@ extern unsigned int ipt_do_table(struct sk_buff *skb,
 				 const struct nf_hook_state *state,
 				 struct xt_table *table);
 
-#ifdef CONFIG_COMPAT
-#include <net/compat.h>
-
-struct compat_ipt_entry {
-	struct ipt_ip ip;
-	compat_uint_t nfcache;
-	__u16 target_offset;
-	__u16 next_offset;
-	compat_uint_t comefrom;
-	struct compat_xt_counters counters;
-	unsigned char elems[];
-};
-
-/* Helper functions */
-static inline struct xt_entry_target *
-compat_ipt_get_target(struct compat_ipt_entry *e)
-{
-	return (void *)e + e->target_offset;
-}
-
-#endif /* CONFIG_COMPAT */
 #endif /* _IPTABLES_H */

@@ -187,67 +187,13 @@ extern int arch_setup_additional_pages(struct linux_binprm *bprm,
 				       int uses_interp);
 
 /* 1GB of VA */
-#ifdef CONFIG_COMPAT
-#define STACK_RND_MASK			(test_thread_flag(TIF_32BIT) ? \
-						0x7ff >> (PAGE_SHIFT - 12) : \
-						0x3ffff >> (PAGE_SHIFT - 12))
-#else
 #define STACK_RND_MASK			(0x3ffff >> (PAGE_SHIFT - 12))
-#endif
 
 #ifdef __AARCH64EB__
 #define COMPAT_ELF_PLATFORM		("v8b")
 #else
 #define COMPAT_ELF_PLATFORM		("v8l")
 #endif
-
-#ifdef CONFIG_COMPAT
-
-/* PIE load location for compat arm. Must match ARM ELF_ET_DYN_BASE. */
-#define COMPAT_ELF_ET_DYN_BASE		0x000400000UL
-
-/* AArch32 registers. */
-#define COMPAT_ELF_NGREG		18
-typedef unsigned int			compat_elf_greg_t;
-typedef compat_elf_greg_t		compat_elf_gregset_t[COMPAT_ELF_NGREG];
-
-/* AArch32 EABI. */
-#define EF_ARM_EABI_MASK		0xff000000
-#define compat_elf_check_arch(x)	(system_supports_32bit_el0() && \
-					 ((x)->e_machine == EM_ARM) && \
-					 ((x)->e_flags & EF_ARM_EABI_MASK))
-
-#define compat_start_thread		compat_start_thread
-/*
- * Unlike the native SET_PERSONALITY macro, the compat version maintains
- * READ_IMPLIES_EXEC across an execve() since this is the behaviour on
- * arch/arm/.
- */
-#define COMPAT_SET_PERSONALITY(ex)					\
-({									\
-	set_thread_flag(TIF_32BIT);					\
- })
-#ifdef CONFIG_COMPAT_VDSO
-#define COMPAT_ARCH_DLINFO						\
-do {									\
-	/*								\
-	 * Note that we use Elf64_Off instead of elf_addr_t because	\
-	 * elf_addr_t in compat is defined as Elf32_Addr and casting	\
-	 * current->mm->context.vdso to it triggers a cast warning of	\
-	 * cast from pointer to integer of different size.		\
-	 */								\
-	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
-			(Elf64_Off)current->mm->context.vdso);		\
-} while (0)
-#else
-#define COMPAT_ARCH_DLINFO
-#endif
-extern int aarch32_setup_additional_pages(struct linux_binprm *bprm,
-					  int uses_interp);
-#define compat_arch_setup_additional_pages \
-					aarch32_setup_additional_pages
-
-#endif /* CONFIG_COMPAT */
 
 struct arch_elf_state {
 	int flags;

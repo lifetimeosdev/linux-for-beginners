@@ -404,20 +404,12 @@ SYM_FUNC_START_LOCAL(__primary_switched)
 	adr_l	x5, init_task
 	msr	sp_el0, x5			// Save thread_info
 
-#ifdef CONFIG_ARM64_PTR_AUTH
-	__ptrauth_keys_init_cpu	x5, x6, x7, x8
-#endif
-
 	adr_l	x8, vectors			// load VBAR_EL1 with virtual
 	msr	vbar_el1, x8			// vector table address
 	isb
 
 	stp	xzr, x30, [sp, #-16]!
 	mov	x29, sp
-
-#ifdef CONFIG_SHADOW_CALL_STACK
-	adr_l	scs_sp, init_shadow_call_stack	// Set shadow call stack
-#endif
 
 	str_l	x21, __fdt_pointer, x5		// Save FDT pointer
 
@@ -523,10 +515,6 @@ set_hcr:
 	mrs	x1, mpidr_el1
 	msr	vpidr_el2, x0
 	msr	vmpidr_el2, x1
-
-#ifdef CONFIG_COMPAT
-	msr	hstr_el2, xzr			// Disable CP15 traps to EL2
-#endif
 
 	/* EL2 debug */
 	mrs	x1, id_aa64dfr0_el1
@@ -710,10 +698,6 @@ SYM_FUNC_START_LOCAL(__secondary_switched)
 	scs_load_current
 	mov	x29, #0
 	mov	x30, #0
-
-#ifdef CONFIG_ARM64_PTR_AUTH
-	ptrauth_keys_init_cpu x2, x3, x4, x5
-#endif
 
 	b	secondary_start_kernel
 SYM_FUNC_END(__secondary_switched)

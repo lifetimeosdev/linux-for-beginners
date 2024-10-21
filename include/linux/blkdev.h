@@ -1892,12 +1892,7 @@ struct block_device_operations {
 	const struct pr_ops *pr_ops;
 };
 
-#ifdef CONFIG_COMPAT
-extern int blkdev_compat_ptr_ioctl(struct block_device *, fmode_t,
-				      unsigned int, unsigned long);
-#else
 #define blkdev_compat_ptr_ioctl NULL
-#endif
 
 extern int __blkdev_driver_ioctl(struct block_device *, fmode_t, unsigned int,
 				 unsigned long);

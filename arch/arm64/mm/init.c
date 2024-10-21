@@ -576,10 +576,6 @@ void __init mem_init(void)
 	 * Check boundaries twice: Some fundamental inconsistencies can be
 	 * detected at build time already.
 	 */
-#ifdef CONFIG_COMPAT
-	BUILD_BUG_ON(TASK_SIZE_32 > DEFAULT_MAP_WINDOW_64);
-#endif
-
 	if (PAGE_SIZE >= 16384 && get_num_physpages() <= 128) {
 		extern int sysctl_overcommit_memory;
 		/*

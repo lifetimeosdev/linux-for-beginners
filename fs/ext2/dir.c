@@ -696,8 +696,5 @@ const struct file_operations ext2_dir_operations = {
 	.read		= generic_read_dir,
 	.iterate_shared	= ext2_readdir,
 	.unlocked_ioctl = ext2_ioctl,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl	= ext2_compat_ioctl,
-#endif
 	.fsync		= ext2_fsync,
 };

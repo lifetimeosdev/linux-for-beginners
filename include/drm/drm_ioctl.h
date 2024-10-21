@@ -170,12 +170,8 @@ struct drm_ioctl_desc {
 int drm_ioctl_permit(u32 flags, struct drm_file *file_priv);
 long drm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
 long drm_ioctl_kernel(struct file *, drm_ioctl_t, void *, u32);
-#ifdef CONFIG_COMPAT
-long drm_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
-#else
 /* Let drm_compat_ioctl be assigned to .compat_ioctl unconditionally */
 #define drm_compat_ioctl NULL
-#endif
 bool drm_ioctl_flags(unsigned int nr, unsigned int *flags);
 
 int drm_noop(struct drm_device *dev, void *data,

@@ -47,12 +47,6 @@ struct xt_af {
 	struct mutex mutex;
 	struct list_head match;
 	struct list_head target;
-#ifdef CONFIG_COMPAT
-	struct mutex compat_mutex;
-	struct compat_delta *compat_tab;
-	unsigned int number; /* number of slots in compat_tab[] */
-	unsigned int cur; /* number of used slots in compat_tab[] */
-#endif
 };
 
 static struct xt_af *xt;
@@ -641,211 +635,6 @@ static bool error_tg_ok(unsigned int usersize, unsigned int kernsize,
 	return usersize == kernsize && strnlen(msg, msglen) < msglen;
 }
 
-#ifdef CONFIG_COMPAT
-int xt_compat_add_offset(u_int8_t af, unsigned int offset, int delta)
-{
-	struct xt_af *xp = &xt[af];
-
-	WARN_ON(!mutex_is_locked(&xt[af].compat_mutex));
-
-	if (WARN_ON(!xp->compat_tab))
-		return -ENOMEM;
-
-	if (xp->cur >= xp->number)
-		return -EINVAL;
-
-	if (xp->cur)
-		delta += xp->compat_tab[xp->cur - 1].delta;
-	xp->compat_tab[xp->cur].offset = offset;
-	xp->compat_tab[xp->cur].delta = delta;
-	xp->cur++;
-	return 0;
-}
-EXPORT_SYMBOL_GPL(xt_compat_add_offset);
-
-void xt_compat_flush_offsets(u_int8_t af)
-{
-	WARN_ON(!mutex_is_locked(&xt[af].compat_mutex));
-
-	if (xt[af].compat_tab) {
-		vfree(xt[af].compat_tab);
-		xt[af].compat_tab = NULL;
-		xt[af].number = 0;
-		xt[af].cur = 0;
-	}
-}
-EXPORT_SYMBOL_GPL(xt_compat_flush_offsets);
-
-int xt_compat_calc_jump(u_int8_t af, unsigned int offset)
-{
-	struct compat_delta *tmp = xt[af].compat_tab;
-	int mid, left = 0, right = xt[af].cur - 1;
-
-	while (left <= right) {
-		mid = (left + right) >> 1;
-		if (offset > tmp[mid].offset)
-			left = mid + 1;
-		else if (offset < tmp[mid].offset)
-			right = mid - 1;
-		else
-			return mid ? tmp[mid - 1].delta : 0;
-	}
-	return left ? tmp[left - 1].delta : 0;
-}
-EXPORT_SYMBOL_GPL(xt_compat_calc_jump);
-
-int xt_compat_init_offsets(u8 af, unsigned int number)
-{
-	size_t mem;
-
-	WARN_ON(!mutex_is_locked(&xt[af].compat_mutex));
-
-	if (!number || number > (INT_MAX / sizeof(struct compat_delta)))
-		return -EINVAL;
-
-	if (WARN_ON(xt[af].compat_tab))
-		return -EINVAL;
-
-	mem = sizeof(struct compat_delta) * number;
-	if (mem > XT_MAX_TABLE_SIZE)
-		return -ENOMEM;
-
-	xt[af].compat_tab = vmalloc(mem);
-	if (!xt[af].compat_tab)
-		return -ENOMEM;
-
-	xt[af].number = number;
-	xt[af].cur = 0;
-
-	return 0;
-}
-EXPORT_SYMBOL(xt_compat_init_offsets);
-
-int xt_compat_match_offset(const struct xt_match *match)
-{
-	u_int16_t csize = match->compatsize ? : match->matchsize;
-	return XT_ALIGN(match->matchsize) - COMPAT_XT_ALIGN(csize);
-}
-EXPORT_SYMBOL_GPL(xt_compat_match_offset);
-
-void xt_compat_match_from_user(struct xt_entry_match *m, void **dstptr,
-			       unsigned int *size)
-{
-	const struct xt_match *match = m->u.kernel.match;
-	struct compat_xt_entry_match *cm = (struct compat_xt_entry_match *)m;
-	int off = xt_compat_match_offset(match);
-	u_int16_t msize = cm->u.user.match_size;
-	char name[sizeof(m->u.user.name)];
-
-	m = *dstptr;
-	memcpy(m, cm, sizeof(*cm));
-	if (match->compat_from_user)
-		match->compat_from_user(m->data, cm->data);
-	else
-		memcpy(m->data, cm->data, msize - sizeof(*cm));
-
-	msize += off;
-	m->u.user.match_size = msize;
-	strlcpy(name, match->name, sizeof(name));
-	module_put(match->me);
-	strncpy(m->u.user.name, name, sizeof(m->u.user.name));
-
-	*size += off;
-	*dstptr += msize;
-}
-EXPORT_SYMBOL_GPL(xt_compat_match_from_user);
-
-#define COMPAT_XT_DATA_TO_USER(U, K, TYPE, C_SIZE)			\
-	xt_data_to_user(U->data, K->data,				\
-			K->u.kernel.TYPE->usersize,			\
-			C_SIZE,						\
-			COMPAT_XT_ALIGN(C_SIZE))
-
-int xt_compat_match_to_user(const struct xt_entry_match *m,
-			    void __user **dstptr, unsigned int *size)
-{
-	const struct xt_match *match = m->u.kernel.match;
-	struct compat_xt_entry_match __user *cm = *dstptr;
-	int off = xt_compat_match_offset(match);
-	u_int16_t msize = m->u.user.match_size - off;
-
-	if (XT_OBJ_TO_USER(cm, m, match, msize))
-		return -EFAULT;
-
-	if (match->compat_to_user) {
-		if (match->compat_to_user((void __user *)cm->data, m->data))
-			return -EFAULT;
-	} else {
-		if (COMPAT_XT_DATA_TO_USER(cm, m, match, msize - sizeof(*cm)))
-			return -EFAULT;
-	}
-
-	*size -= off;
-	*dstptr += msize;
-	return 0;
-}
-EXPORT_SYMBOL_GPL(xt_compat_match_to_user);
-
-/* non-compat version may have padding after verdict */
-struct compat_xt_standard_target {
-	struct compat_xt_entry_target t;
-	compat_uint_t verdict;
-};
-
-struct compat_xt_error_target {
-	struct compat_xt_entry_target t;
-	char errorname[XT_FUNCTION_MAXNAMELEN];
-};
-
-int xt_compat_check_entry_offsets(const void *base, const char *elems,
-				  unsigned int target_offset,
-				  unsigned int next_offset)
-{
-	long size_of_base_struct = elems - (const char *)base;
-	const struct compat_xt_entry_target *t;
-	const char *e = base;
-
-	if (target_offset < size_of_base_struct)
-		return -EINVAL;
-
-	if (target_offset + sizeof(*t) > next_offset)
-		return -EINVAL;
-
-	t = (void *)(e + target_offset);
-	if (t->u.target_size < sizeof(*t))
-		return -EINVAL;
-
-	if (target_offset + t->u.target_size > next_offset)
-		return -EINVAL;
-
-	if (strcmp(t->u.user.name, XT_STANDARD_TARGET) == 0) {
-		const struct compat_xt_standard_target *st = (const void *)t;
-
-		if (COMPAT_XT_ALIGN(target_offset + sizeof(*st)) != next_offset)
-			return -EINVAL;
-
-		if (!verdict_ok(st->verdict))
-			return -EINVAL;
-	} else if (strcmp(t->u.user.name, XT_ERROR_TARGET) == 0) {
-		const struct compat_xt_error_target *et = (const void *)t;
-
-		if (!error_tg_ok(t->u.target_size, sizeof(*et),
-				 et->errorname, sizeof(et->errorname)))
-			return -EINVAL;
-	}
-
-	/* compat_xt_entry match has less strict alignment requirements,
-	 * otherwise they are identical.  In case of padding differences
-	 * we need to add compat version of xt_check_entry_match.
-	 */
-	BUILD_BUG_ON(sizeof(struct compat_xt_entry_match) != sizeof(struct xt_entry_match));
-
-	return xt_check_entry_match(elems, base + target_offset,
-				    __alignof__(struct compat_xt_entry_match));
-}
-EXPORT_SYMBOL(xt_compat_check_entry_offsets);
-#endif /* CONFIG_COMPAT */
-
 /**
  * xt_check_entry_offsets - validate arp/ip/ip6t_entry
  *
@@ -1053,23 +842,6 @@ void *xt_copy_counters(sockptr_t arg, unsigned int len,
 	void *mem;
 	u64 size;
 
-#ifdef CONFIG_COMPAT
-	if (in_compat_syscall()) {
-		/* structures only differ in size due to alignment */
-		struct compat_xt_counters_info compat_tmp;
-
-		if (len <= sizeof(compat_tmp))
-			return ERR_PTR(-EINVAL);
-
-		len -= sizeof(compat_tmp);
-		if (copy_from_sockptr(&compat_tmp, arg, sizeof(compat_tmp)) != 0)
-			return ERR_PTR(-EFAULT);
-
-		memcpy(info->name, compat_tmp.name, sizeof(info->name) - 1);
-		info->num_counters = compat_tmp.num_counters;
-		offset = sizeof(compat_tmp);
-	} else
-#endif
 	{
 		if (len <= sizeof(*info))
 			return ERR_PTR(-EINVAL);
@@ -1099,67 +871,6 @@ void *xt_copy_counters(sockptr_t arg, unsigned int len,
 	return ERR_PTR(-EFAULT);
 }
 EXPORT_SYMBOL_GPL(xt_copy_counters);
-
-#ifdef CONFIG_COMPAT
-int xt_compat_target_offset(const struct xt_target *target)
-{
-	u_int16_t csize = target->compatsize ? : target->targetsize;
-	return XT_ALIGN(target->targetsize) - COMPAT_XT_ALIGN(csize);
-}
-EXPORT_SYMBOL_GPL(xt_compat_target_offset);
-
-void xt_compat_target_from_user(struct xt_entry_target *t, void **dstptr,
-				unsigned int *size)
-{
-	const struct xt_target *target = t->u.kernel.target;
-	struct compat_xt_entry_target *ct = (struct compat_xt_entry_target *)t;
-	int off = xt_compat_target_offset(target);
-	u_int16_t tsize = ct->u.user.target_size;
-	char name[sizeof(t->u.user.name)];
-
-	t = *dstptr;
-	memcpy(t, ct, sizeof(*ct));
-	if (target->compat_from_user)
-		target->compat_from_user(t->data, ct->data);
-	else
-		memcpy(t->data, ct->data, tsize - sizeof(*ct));
-
-	tsize += off;
-	t->u.user.target_size = tsize;
-	strlcpy(name, target->name, sizeof(name));
-	module_put(target->me);
-	strncpy(t->u.user.name, name, sizeof(t->u.user.name));
-
-	*size += off;
-	*dstptr += tsize;
-}
-EXPORT_SYMBOL_GPL(xt_compat_target_from_user);
-
-int xt_compat_target_to_user(const struct xt_entry_target *t,
-			     void __user **dstptr, unsigned int *size)
-{
-	const struct xt_target *target = t->u.kernel.target;
-	struct compat_xt_entry_target __user *ct = *dstptr;
-	int off = xt_compat_target_offset(target);
-	u_int16_t tsize = t->u.user.target_size - off;
-
-	if (XT_OBJ_TO_USER(ct, t, target, tsize))
-		return -EFAULT;
-
-	if (target->compat_to_user) {
-		if (target->compat_to_user((void __user *)ct->data, t->data))
-			return -EFAULT;
-	} else {
-		if (COMPAT_XT_DATA_TO_USER(ct, t, target, tsize - sizeof(*ct)))
-			return -EFAULT;
-	}
-
-	*size -= off;
-	*dstptr += tsize;
-	return 0;
-}
-EXPORT_SYMBOL_GPL(xt_compat_target_to_user);
-#endif
 
 struct xt_table_info *xt_alloc_table_info(unsigned int size)
 {
@@ -1266,20 +977,6 @@ void xt_table_unlock(struct xt_table *table)
 	mutex_unlock(&xt[table->af].mutex);
 }
 EXPORT_SYMBOL_GPL(xt_table_unlock);
-
-#ifdef CONFIG_COMPAT
-void xt_compat_lock(u_int8_t af)
-{
-	mutex_lock(&xt[af].compat_mutex);
-}
-EXPORT_SYMBOL_GPL(xt_compat_lock);
-
-void xt_compat_unlock(u_int8_t af)
-{
-	mutex_unlock(&xt[af].compat_mutex);
-}
-EXPORT_SYMBOL_GPL(xt_compat_unlock);
-#endif
 
 DEFINE_PER_CPU(seqcount_t, xt_recseq);
 EXPORT_PER_CPU_SYMBOL_GPL(xt_recseq);
@@ -1893,10 +1590,6 @@ static int __init xt_init(void)
 
 	for (i = 0; i < NFPROTO_NUMPROTO; i++) {
 		mutex_init(&xt[i].mutex);
-#ifdef CONFIG_COMPAT
-		mutex_init(&xt[i].compat_mutex);
-		xt[i].compat_tab = NULL;
-#endif
 		INIT_LIST_HEAD(&xt[i].target);
 		INIT_LIST_HEAD(&xt[i].match);
 	}

@@ -289,11 +289,6 @@ extern long keyctl_dh_compute(struct keyctl_dh_params __user *, char __user *,
 			      size_t, struct keyctl_kdf_params __user *);
 extern long __keyctl_dh_compute(struct keyctl_dh_params __user *, char __user *,
 				size_t, struct keyctl_kdf_params *);
-#ifdef CONFIG_COMPAT
-extern long compat_keyctl_dh_compute(struct keyctl_dh_params __user *params,
-				char __user *buffer, size_t buflen,
-				struct compat_keyctl_kdf_params __user *kdf);
-#endif
 #define KEYCTL_KDF_MAX_OUTPUT_LEN	1024	/* max length of KDF output */
 #define KEYCTL_KDF_MAX_OI_LEN		64	/* max length of otherinfo */
 #else
@@ -303,16 +298,6 @@ static inline long keyctl_dh_compute(struct keyctl_dh_params __user *params,
 {
 	return -EOPNOTSUPP;
 }
-
-#ifdef CONFIG_COMPAT
-static inline long compat_keyctl_dh_compute(
-				struct keyctl_dh_params __user *params,
-				char __user *buffer, size_t buflen,
-				struct keyctl_kdf_params __user *kdf)
-{
-	return -EOPNOTSUPP;
-}
-#endif
 #endif
 
 #ifdef CONFIG_ASYMMETRIC_KEY_TYPE

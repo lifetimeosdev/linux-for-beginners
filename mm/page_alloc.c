@@ -5472,9 +5472,6 @@ void show_free_areas(unsigned int filter, nodemask_t *nodemask)
 #endif
 			" writeback_tmp:%lukB"
 			" kernel_stack:%lukB"
-#ifdef CONFIG_SHADOW_CALL_STACK
-			" shadow_call_stack:%lukB"
-#endif
 			" all_unreclaimable? %s"
 			"\n",
 			pgdat->node_id,
@@ -5497,9 +5494,6 @@ void show_free_areas(unsigned int filter, nodemask_t *nodemask)
 #endif
 			K(node_page_state(pgdat, NR_WRITEBACK_TEMP)),
 			node_page_state(pgdat, NR_KERNEL_STACK_KB),
-#ifdef CONFIG_SHADOW_CALL_STACK
-			node_page_state(pgdat, NR_KERNEL_SCS_KB),
-#endif
 			pgdat->kswapd_failures >= MAX_RECLAIM_RETRIES ?
 				"yes" : "no");
 	}

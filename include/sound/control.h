@@ -132,13 +132,8 @@ int snd_ctl_create(struct snd_card *card);
 
 int snd_ctl_register_ioctl(snd_kctl_ioctl_func_t fcn);
 int snd_ctl_unregister_ioctl(snd_kctl_ioctl_func_t fcn);
-#ifdef CONFIG_COMPAT
-int snd_ctl_register_ioctl_compat(snd_kctl_ioctl_func_t fcn);
-int snd_ctl_unregister_ioctl_compat(snd_kctl_ioctl_func_t fcn);
-#else
 #define snd_ctl_register_ioctl_compat(fcn)
 #define snd_ctl_unregister_ioctl_compat(fcn)
-#endif
 
 int snd_ctl_get_preferred_subdevice(struct snd_card *card, int type);
 

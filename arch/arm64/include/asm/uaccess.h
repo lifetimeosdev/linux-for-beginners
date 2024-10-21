@@ -105,64 +105,6 @@ static inline unsigned long __range_ok(const void __user *addr, unsigned long si
 /*
  * User access enabling/disabling.
  */
-#ifdef CONFIG_ARM64_SW_TTBR0_PAN
-static inline void __uaccess_ttbr0_disable(void)
-{
-	unsigned long flags, ttbr;
-
-	local_irq_save(flags);
-	ttbr = read_sysreg(ttbr1_el1);
-	ttbr &= ~TTBR_ASID_MASK;
-	/* reserved_pg_dir placed before swapper_pg_dir */
-	write_sysreg(ttbr - PAGE_SIZE, ttbr0_el1);
-	isb();
-	/* Set reserved ASID */
-	write_sysreg(ttbr, ttbr1_el1);
-	isb();
-	local_irq_restore(flags);
-}
-
-static inline void __uaccess_ttbr0_enable(void)
-{
-	unsigned long flags, ttbr0, ttbr1;
-
-	/*
-	 * Disable interrupts to avoid preemption between reading the 'ttbr0'
-	 * variable and the MSR. A context switch could trigger an ASID
-	 * roll-over and an update of 'ttbr0'.
-	 */
-	local_irq_save(flags);
-	ttbr0 = READ_ONCE(current_thread_info()->ttbr0);
-
-	/* Restore active ASID */
-	ttbr1 = read_sysreg(ttbr1_el1);
-	ttbr1 &= ~TTBR_ASID_MASK;		/* safety measure */
-	ttbr1 |= ttbr0 & TTBR_ASID_MASK;
-	write_sysreg(ttbr1, ttbr1_el1);
-	isb();
-
-	/* Restore user page table */
-	write_sysreg(ttbr0, ttbr0_el1);
-	isb();
-	local_irq_restore(flags);
-}
-
-static inline bool uaccess_ttbr0_disable(void)
-{
-	if (!system_uses_ttbr0_pan())
-		return false;
-	__uaccess_ttbr0_disable();
-	return true;
-}
-
-static inline bool uaccess_ttbr0_enable(void)
-{
-	if (!system_uses_ttbr0_pan())
-		return false;
-	__uaccess_ttbr0_enable();
-	return true;
-}
-#else
 static inline bool uaccess_ttbr0_disable(void)
 {
 	return false;
@@ -172,7 +114,6 @@ static inline bool uaccess_ttbr0_enable(void)
 {
 	return false;
 }
-#endif
 
 static inline void __uaccess_disable_hw_pan(void)
 {

@@ -34,15 +34,9 @@
  * user and kernel mode.
  */
 	.macro user_exit_irqoff
-#if defined(CONFIG_CONTEXT_TRACKING) || defined(CONFIG_TRACE_IRQFLAGS)
-	bl	enter_from_user_mode
-#endif
 	.endm
 
 	.macro user_enter_irqoff
-#if defined(CONFIG_CONTEXT_TRACKING) || defined(CONFIG_TRACE_IRQFLAGS)
-	bl	exit_to_user_mode
-#endif
 	.endm
 
 	.macro	clear_gp_regs
@@ -156,30 +150,10 @@ alternative_cb_end
 
 	/* Check for MTE asynchronous tag check faults */
 	.macro check_mte_async_tcf, tmp, ti_flags
-#ifdef CONFIG_ARM64_MTE
-	.arch_extension lse
-alternative_if_not ARM64_MTE
-	b	1f
-alternative_else_nop_endif
-	mrs_s	\tmp, SYS_TFSRE0_EL1
-	tbz	\tmp, #SYS_TFSR_EL1_TF0_SHIFT, 1f
-	/* Asynchronous TCF occurred for TTBR0 access, set the TI flag */
-	mov	\tmp, #_TIF_MTE_ASYNC_FAULT
-	add	\ti_flags, tsk, #TSK_TI_FLAGS
-	stset	\tmp, [\ti_flags]
-	msr_s	SYS_TFSRE0_EL1, xzr
-1:
-#endif
 	.endm
 
 	/* Clear the MTE asynchronous tag check faults */
 	.macro clear_mte_async_tcf
-#ifdef CONFIG_ARM64_MTE
-alternative_if ARM64_MTE
-	dsb	ish
-	msr_s	SYS_TFSRE0_EL1, xzr
-alternative_else_nop_endif
-#endif
 	.endm
 
 	.macro	kernel_entry, el, regsize = 64
@@ -248,11 +222,6 @@ alternative_else_nop_endif
 	.endif
 	add	x29, sp, #S_STACKFRAME
 
-#ifdef CONFIG_ARM64_SW_TTBR0_PAN
-alternative_if_not ARM64_HAS_PAN
-	bl	__swpan_entry_el\el
-alternative_else_nop_endif
-#endif
 
 	stp	x22, x23, [sp, #S_PC]
 
@@ -271,11 +240,6 @@ alternative_if ARM64_HAS_IRQ_PRIO_MASKING
 alternative_else_nop_endif
 
 	/* Re-enable tag checking (TCO set on exception entry) */
-#ifdef CONFIG_ARM64_MTE
-alternative_if ARM64_MTE
-	SET_PSTATE_TCO(0)
-alternative_else_nop_endif
-#endif
 
 	/*
 	 * Registers that may be useful after this macro is invoked:
@@ -309,12 +273,6 @@ alternative_if ARM64_HAS_IRQ_PRIO_MASKING
 alternative_else_nop_endif
 
 	ldp	x21, x22, [sp, #S_PC]		// load ELR, SPSR
-
-#ifdef CONFIG_ARM64_SW_TTBR0_PAN
-alternative_if_not ARM64_HAS_PAN
-	bl	__swpan_exit_el\el
-alternative_else_nop_endif
-#endif
 
 	.if	\el == 0
 	ldr	x23, [sp, #S_SP]		// load return stack pointer
@@ -386,54 +344,8 @@ alternative_else_nop_endif
 	sb
 	.endm
 
-#ifdef CONFIG_ARM64_SW_TTBR0_PAN
-	/*
-	 * Set the TTBR0 PAN bit in SPSR. When the exception is taken from
-	 * EL0, there is no need to check the state of TTBR0_EL1 since
-	 * accesses are always enabled.
-	 * Note that the meaning of this bit differs from the ARMv8.1 PAN
-	 * feature as all TTBR0_EL1 accesses are disabled, not just those to
-	 * user mappings.
-	 */
-SYM_CODE_START_LOCAL(__swpan_entry_el1)
-	mrs	x21, ttbr0_el1
-	tst	x21, #TTBR_ASID_MASK		// Check for the reserved ASID
-	orr	x23, x23, #PSR_PAN_BIT		// Set the emulated PAN in the saved SPSR
-	b.eq	1f				// TTBR0 access already disabled
-	and	x23, x23, #~PSR_PAN_BIT		// Clear the emulated PAN in the saved SPSR
-SYM_INNER_LABEL(__swpan_entry_el0, SYM_L_LOCAL)
-	__uaccess_ttbr0_disable x21
-1:	ret
-SYM_CODE_END(__swpan_entry_el1)
-
-	/*
-	 * Restore access to TTBR0_EL1. If returning to EL0, no need for SPSR
-	 * PAN bit checking.
-	 */
-SYM_CODE_START_LOCAL(__swpan_exit_el1)
-	tbnz	x22, #22, 1f			// Skip re-enabling TTBR0 access if the PSR_PAN_BIT is set
-	__uaccess_ttbr0_enable x0, x1
-1:	and	x22, x22, #~PSR_PAN_BIT		// ARMv8.0 CPUs do not understand this bit
-	ret
-SYM_CODE_END(__swpan_exit_el1)
-
-SYM_CODE_START_LOCAL(__swpan_exit_el0)
-	__uaccess_ttbr0_enable x0, x1
-	/*
-	 * Enable errata workarounds only if returning to user. The only
-	 * workaround currently required for TTBR0_EL1 changes are for the
-	 * Cavium erratum 27456 (broadcast TLBI instructions may cause I-cache
-	 * corruption).
-	 */
-	b	post_ttbr_update_workaround
-SYM_CODE_END(__swpan_exit_el0)
-#endif
-
 	.macro	irq_stack_entry
 	mov	x19, sp			// preserve the original sp
-#ifdef CONFIG_SHADOW_CALL_STACK
-	mov	x24, scs_sp		// preserve the original shadow stack
-#endif
 
 	/*
 	 * Compare sp with the base of the task stack.
@@ -452,10 +364,6 @@ SYM_CODE_END(__swpan_exit_el0)
 	/* switch to the irq stack */
 	mov	sp, x26
 
-#ifdef CONFIG_SHADOW_CALL_STACK
-	/* also switch to the irq shadow stack */
-	adr_this_cpu scs_sp, irq_shadow_call_stack, x26
-#endif
 
 9998:
 	.endm
@@ -467,9 +375,6 @@ SYM_CODE_END(__swpan_exit_el0)
 	 */
 	.macro	irq_stack_exit
 	mov	sp, x19
-#ifdef CONFIG_SHADOW_CALL_STACK
-	mov	scs_sp, x24
-#endif
 	.endm
 
 /* GPRs used by entry code */
@@ -570,17 +475,10 @@ SYM_CODE_START(vectors)
 	kernel_ventry	0, fiq_invalid			// FIQ 64-bit EL0
 	kernel_ventry	0, error			// Error 64-bit EL0
 
-#ifdef CONFIG_COMPAT
-	kernel_ventry	0, sync_compat, 32		// Synchronous 32-bit EL0
-	kernel_ventry	0, irq_compat, 32		// IRQ 32-bit EL0
-	kernel_ventry	0, fiq_invalid_compat, 32	// FIQ 32-bit EL0
-	kernel_ventry	0, error_compat, 32		// Error 32-bit EL0
-#else
 	kernel_ventry	0, sync_invalid, 32		// Synchronous 32-bit EL0
 	kernel_ventry	0, irq_invalid, 32		// IRQ 32-bit EL0
 	kernel_ventry	0, fiq_invalid, 32		// FIQ 32-bit EL0
 	kernel_ventry	0, error_invalid, 32		// Error 32-bit EL0
-#endif
 SYM_CODE_END(vectors)
 
 #ifdef CONFIG_VMAP_STACK
@@ -639,12 +537,6 @@ SYM_CODE_START_LOCAL(el0_error_invalid)
 	inv_entry 0, BAD_ERROR
 SYM_CODE_END(el0_error_invalid)
 
-#ifdef CONFIG_COMPAT
-SYM_CODE_START_LOCAL(el0_fiq_invalid_compat)
-	inv_entry 0, BAD_FIQ, 32
-SYM_CODE_END(el0_fiq_invalid_compat)
-#endif
-
 SYM_CODE_START_LOCAL(el1_sync_invalid)
 	inv_entry 1, BAD_SYNC
 SYM_CODE_END(el1_sync_invalid)
@@ -689,27 +581,6 @@ SYM_CODE_START_LOCAL_NOALIGN(el0_sync)
 	bl	el0_sync_handler
 	b	ret_to_user
 SYM_CODE_END(el0_sync)
-
-#ifdef CONFIG_COMPAT
-	.align	6
-SYM_CODE_START_LOCAL_NOALIGN(el0_sync_compat)
-	kernel_entry 0, 32
-	mov	x0, sp
-	bl	el0_sync_compat_handler
-	b	ret_to_user
-SYM_CODE_END(el0_sync_compat)
-
-	.align	6
-SYM_CODE_START_LOCAL_NOALIGN(el0_irq_compat)
-	kernel_entry 0, 32
-	b	el0_irq_naked
-SYM_CODE_END(el0_irq_compat)
-
-SYM_CODE_START_LOCAL_NOALIGN(el0_error_compat)
-	kernel_entry 0, 32
-	b	el0_error_naked
-SYM_CODE_END(el0_error_compat)
-#endif
 
 	.align	6
 SYM_CODE_START_LOCAL_NOALIGN(el0_irq)
@@ -1021,203 +892,3 @@ SYM_CODE_START(ret_from_fork)
 	b	ret_to_user
 SYM_CODE_END(ret_from_fork)
 NOKPROBE(ret_from_fork)
-
-#ifdef CONFIG_ARM_SDE_INTERFACE
-
-#include <asm/sdei.h>
-#include <uapi/linux/arm_sdei.h>
-
-.macro sdei_handler_exit exit_mode
-	/* On success, this call never returns... */
-	cmp	\exit_mode, #SDEI_EXIT_SMC
-	b.ne	99f
-	smc	#0
-	b	.
-99:	hvc	#0
-	b	.
-.endm
-
-#ifdef CONFIG_UNMAP_KERNEL_AT_EL0
-/*
- * The regular SDEI entry point may have been unmapped along with the rest of
- * the kernel. This trampoline restores the kernel mapping to make the x1 memory
- * argument accessible.
- *
- * This clobbers x4, __sdei_handler() will restore this from firmware's
- * copy.
- */
-.ltorg
-.pushsection ".entry.tramp.text", "ax"
-SYM_CODE_START(__sdei_asm_entry_trampoline)
-	mrs	x4, ttbr1_el1
-	tbz	x4, #USER_ASID_BIT, 1f
-
-	tramp_map_kernel tmp=x4
-	isb
-	mov	x4, xzr
-
-	/*
-	 * Use reg->interrupted_regs.addr_limit to remember whether to unmap
-	 * the kernel on exit.
-	 */
-1:	str	x4, [x1, #(SDEI_EVENT_INTREGS + S_ORIG_ADDR_LIMIT)]
-
-	tramp_data_read_var     x4, __sdei_asm_handler
-	br	x4
-SYM_CODE_END(__sdei_asm_entry_trampoline)
-NOKPROBE(__sdei_asm_entry_trampoline)
-
-/*
- * Make the exit call and restore the original ttbr1_el1
- *
- * x0 & x1: setup for the exit API call
- * x2: exit_mode
- * x4: struct sdei_registered_event argument from registration time.
- */
-SYM_CODE_START(__sdei_asm_exit_trampoline)
-	ldr	x4, [x4, #(SDEI_EVENT_INTREGS + S_ORIG_ADDR_LIMIT)]
-	cbnz	x4, 1f
-
-	tramp_unmap_kernel	tmp=x4
-
-1:	sdei_handler_exit exit_mode=x2
-SYM_CODE_END(__sdei_asm_exit_trampoline)
-NOKPROBE(__sdei_asm_exit_trampoline)
-	.ltorg
-.popsection		// .entry.tramp.text
-#endif /* CONFIG_UNMAP_KERNEL_AT_EL0 */
-
-/*
- * Software Delegated Exception entry point.
- *
- * x0: Event number
- * x1: struct sdei_registered_event argument from registration time.
- * x2: interrupted PC
- * x3: interrupted PSTATE
- * x4: maybe clobbered by the trampoline
- *
- * Firmware has preserved x0->x17 for us, we must save/restore the rest to
- * follow SMC-CC. We save (or retrieve) all the registers as the handler may
- * want them.
- */
-SYM_CODE_START(__sdei_asm_handler)
-	stp     x2, x3, [x1, #SDEI_EVENT_INTREGS + S_PC]
-	stp     x4, x5, [x1, #SDEI_EVENT_INTREGS + 16 * 2]
-	stp     x6, x7, [x1, #SDEI_EVENT_INTREGS + 16 * 3]
-	stp     x8, x9, [x1, #SDEI_EVENT_INTREGS + 16 * 4]
-	stp     x10, x11, [x1, #SDEI_EVENT_INTREGS + 16 * 5]
-	stp     x12, x13, [x1, #SDEI_EVENT_INTREGS + 16 * 6]
-	stp     x14, x15, [x1, #SDEI_EVENT_INTREGS + 16 * 7]
-	stp     x16, x17, [x1, #SDEI_EVENT_INTREGS + 16 * 8]
-	stp     x18, x19, [x1, #SDEI_EVENT_INTREGS + 16 * 9]
-	stp     x20, x21, [x1, #SDEI_EVENT_INTREGS + 16 * 10]
-	stp     x22, x23, [x1, #SDEI_EVENT_INTREGS + 16 * 11]
-	stp     x24, x25, [x1, #SDEI_EVENT_INTREGS + 16 * 12]
-	stp     x26, x27, [x1, #SDEI_EVENT_INTREGS + 16 * 13]
-	stp     x28, x29, [x1, #SDEI_EVENT_INTREGS + 16 * 14]
-	mov	x4, sp
-	stp     lr, x4, [x1, #SDEI_EVENT_INTREGS + S_LR]
-
-	mov	x19, x1
-
-	/* Store the registered-event for crash_smp_send_stop() */
-	ldrb	w4, [x19, #SDEI_EVENT_PRIORITY]
-	cbnz	w4, 1f
-	adr_this_cpu dst=x5, sym=sdei_active_normal_event, tmp=x6
-	b	2f
-1:	adr_this_cpu dst=x5, sym=sdei_active_critical_event, tmp=x6
-2:	str	x19, [x5]
-
-#ifdef CONFIG_VMAP_STACK
-	/*
-	 * entry.S may have been using sp as a scratch register, find whether
-	 * this is a normal or critical event and switch to the appropriate
-	 * stack for this CPU.
-	 */
-	cbnz	w4, 1f
-	ldr_this_cpu dst=x5, sym=sdei_stack_normal_ptr, tmp=x6
-	b	2f
-1:	ldr_this_cpu dst=x5, sym=sdei_stack_critical_ptr, tmp=x6
-2:	mov	x6, #SDEI_STACK_SIZE
-	add	x5, x5, x6
-	mov	sp, x5
-#endif
-
-#ifdef CONFIG_SHADOW_CALL_STACK
-	/* Use a separate shadow call stack for normal and critical events */
-	cbnz	w4, 3f
-	adr_this_cpu dst=scs_sp, sym=sdei_shadow_call_stack_normal, tmp=x6
-	b	4f
-3:	adr_this_cpu dst=scs_sp, sym=sdei_shadow_call_stack_critical, tmp=x6
-4:
-#endif
-
-	/*
-	 * We may have interrupted userspace, or a guest, or exit-from or
-	 * return-to either of these. We can't trust sp_el0, restore it.
-	 */
-	mrs	x28, sp_el0
-	ldr_this_cpu	dst=x0, sym=__entry_task, tmp=x1
-	msr	sp_el0, x0
-
-	/* If we interrupted the kernel point to the previous stack/frame. */
-	and     x0, x3, #0xc
-	mrs     x1, CurrentEL
-	cmp     x0, x1
-	csel	x29, x29, xzr, eq	// fp, or zero
-	csel	x4, x2, xzr, eq		// elr, or zero
-
-	stp	x29, x4, [sp, #-16]!
-	mov	x29, sp
-
-	add	x0, x19, #SDEI_EVENT_INTREGS
-	mov	x1, x19
-	bl	__sdei_handler
-
-	msr	sp_el0, x28
-	/* restore regs >x17 that we clobbered */
-	mov	x4, x19         // keep x4 for __sdei_asm_exit_trampoline
-	ldp	x28, x29, [x4, #SDEI_EVENT_INTREGS + 16 * 14]
-	ldp	x18, x19, [x4, #SDEI_EVENT_INTREGS + 16 * 9]
-	ldp	lr, x1, [x4, #SDEI_EVENT_INTREGS + S_LR]
-	mov	sp, x1
-
-	mov	x1, x0			// address to complete_and_resume
-	/* x0 = (x0 <= 1) ? EVENT_COMPLETE:EVENT_COMPLETE_AND_RESUME */
-	cmp	x0, #1
-	mov_q	x2, SDEI_1_0_FN_SDEI_EVENT_COMPLETE
-	mov_q	x3, SDEI_1_0_FN_SDEI_EVENT_COMPLETE_AND_RESUME
-	csel	x0, x2, x3, ls
-
-	ldr_l	x2, sdei_exit_mode
-
-	/* Clear the registered-event seen by crash_smp_send_stop() */
-	ldrb	w3, [x4, #SDEI_EVENT_PRIORITY]
-	cbnz	w3, 1f
-	adr_this_cpu dst=x5, sym=sdei_active_normal_event, tmp=x6
-	b	2f
-1:	adr_this_cpu dst=x5, sym=sdei_active_critical_event, tmp=x6
-2:	str	xzr, [x5]
-
-alternative_if_not ARM64_UNMAP_KERNEL_AT_EL0
-	sdei_handler_exit exit_mode=x2
-alternative_else_nop_endif
-
-#ifdef CONFIG_UNMAP_KERNEL_AT_EL0
-	tramp_alias	dst=x5, sym=__sdei_asm_exit_trampoline, tmp=x3
-	br	x5
-#endif
-SYM_CODE_END(__sdei_asm_handler)
-NOKPROBE(__sdei_asm_handler)
-
-SYM_CODE_START(__sdei_handler_abort)
-	mov_q	x0, SDEI_1_0_FN_SDEI_EVENT_COMPLETE_AND_RESUME
-	adr	x1, 1f
-	ldr_l	x2, sdei_exit_mode
-	sdei_handler_exit exit_mode=x2
-	// exit the handler and jump to the next instruction.
-	// Exit will stomp x0-x17, PSTATE, ELR_ELx, and SPSR_ELx.
-1:	ret
-SYM_CODE_END(__sdei_handler_abort)
-NOKPROBE(__sdei_handler_abort)
-#endif /* CONFIG_ARM_SDE_INTERFACE */
