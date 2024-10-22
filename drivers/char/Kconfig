@@ -457,7 +457,7 @@ config TELCLOCK
 
 # source "drivers/s390/char/Kconfig"
 
-source "drivers/char/xillybus/Kconfig"
+# source "drivers/char/xillybus/Kconfig"
 
 config ADI
 	tristate "SPARC Privileged ADI driver"

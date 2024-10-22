@@ -8,7 +8,7 @@ config XOR_BLOCKS
 #
 # async_tx api: hardware offloaded memory transfer/transform support
 #
-source "crypto/async_tx/Kconfig"
+# source "crypto/async_tx/Kconfig"
 
 #
 # Cryptographic API Configuration

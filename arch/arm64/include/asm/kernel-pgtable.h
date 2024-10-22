@@ -59,11 +59,7 @@
  * address is just pushed over a boundary and the start address isn't).
  */
 
-#ifdef CONFIG_RANDOMIZE_BASE
-#define EARLY_KASLR	(1)
-#else
 #define EARLY_KASLR	(0)
-#endif
 
 #define EARLY_ENTRIES(vstart, vend, shift) \
 	((((vend) - 1) >> (shift)) - ((vstart) >> (shift)) + 1 + EARLY_KASLR)

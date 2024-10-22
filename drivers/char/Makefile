@@ -21,7 +21,7 @@ obj-$(CONFIG_DTLK)		+= dtlk.o
 obj-$(CONFIG_APPLICOM)		+= applicom.o
 obj-$(CONFIG_SONYPI)		+= sonypi.o
 obj-$(CONFIG_HPET)		+= hpet.o
-obj-$(CONFIG_XILINX_HWICAP)	+= xilinx_hwicap/
+# obj-$(CONFIG_XILINX_HWICAP)	+= xilinx_hwicap/
 obj-$(CONFIG_NVRAM)		+= nvram.o
 obj-$(CONFIG_TOSHIBA)		+= toshiba.o
 obj-$(CONFIG_DS1620)		+= ds1620.o
@@ -44,6 +44,6 @@ obj-$(CONFIG_TCG_TPM)		+= tpm/
 
 obj-$(CONFIG_PS3_FLASH)		+= ps3flash.o
 
-obj-$(CONFIG_XILLYBUS)		+= xillybus/
+# obj-$(CONFIG_XILLYBUS)		+= xillybus/
 obj-$(CONFIG_POWERNV_OP_PANEL)	+= powernv-op-panel.o
 obj-$(CONFIG_ADI)		+= adi.o
