@@ -512,11 +512,6 @@ struct zone {
 	unsigned long		nr_isolate_pageblock;
 #endif
 
-#ifdef CONFIG_MEMORY_HOTPLUG
-	/* see spanned/present_pages for more description */
-	seqlock_t		span_seqlock;
-#endif
-
 	int initialized;
 
 	/* Write-intensive fields used from the page allocator */
@@ -1318,12 +1313,6 @@ static inline int online_section_nr(unsigned long nr)
 	return online_section(__nr_to_section(nr));
 }
 
-#ifdef CONFIG_MEMORY_HOTPLUG
-void online_mem_sections(unsigned long start_pfn, unsigned long end_pfn);
-#ifdef CONFIG_MEMORY_HOTREMOVE
-void offline_mem_sections(unsigned long start_pfn, unsigned long end_pfn);
-#endif
-#endif
 
 static inline struct mem_section *__pfn_to_section(unsigned long pfn)
 {
