@@ -420,7 +420,7 @@ static int restore_sigframe(struct pt_regs *regs,
 			if (!system_supports_sve())
 				return -EINVAL;
 
-			err = restore_sve_fpsimd_context(&user);
+			// err = restore_sve_fpsimd_context(&user);
 		} else {
 			err = restore_fpsimd_context(user.fpsimd);
 		}
@@ -489,23 +489,23 @@ static int setup_sigframe_layout(struct rt_sigframe_user_layout *user,
 			return err;
 	}
 
-	if (system_supports_sve()) {
-		unsigned int vq = 0;
+	// if (system_supports_sve()) {
+	// 	unsigned int vq = 0;
 
-		if (add_all || test_thread_flag(TIF_SVE)) {
-			int vl = sve_max_vl;
+	// 	if (add_all || test_thread_flag(TIF_SVE)) {
+	// 		int vl = sve_max_vl;
 
-			if (!add_all)
-				vl = current->thread.sve_vl;
+	// 		if (!add_all)
+	// 			vl = current->thread.sve_vl;
 
-			vq = sve_vq_from_vl(vl);
-		}
+	// 		vq = sve_vq_from_vl(vl);
+	// 	}
 
-		err = sigframe_alloc(user, &user->sve_offset,
-				     SVE_SIG_CONTEXT_SIZE(vq));
-		if (err)
-			return err;
-	}
+	// 	err = sigframe_alloc(user, &user->sve_offset,
+	// 			     SVE_SIG_CONTEXT_SIZE(vq));
+	// 	if (err)
+	// 		return err;
+	// }
 
 	return sigframe_alloc_end(user);
 }
@@ -548,11 +548,11 @@ static int setup_sigframe(struct rt_sigframe_user_layout *user,
 	}
 
 	/* Scalable Vector Extension state, if present */
-	if (system_supports_sve() && err == 0 && user->sve_offset) {
-		struct sve_context __user *sve_ctx =
-			apply_user_offset(user, user->sve_offset);
-		err |= preserve_sve_context(sve_ctx);
-	}
+	// if (system_supports_sve() && err == 0 && user->sve_offset) {
+	// 	struct sve_context __user *sve_ctx =
+	// 		apply_user_offset(user, user->sve_offset);
+	// 	err |= preserve_sve_context(sve_ctx);
+	// }
 
 	if (err == 0 && user->extra_offset) {
 		char __user *sfp = (char __user *)user->sigframe;

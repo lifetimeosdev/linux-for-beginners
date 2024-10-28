@@ -191,50 +191,50 @@ static int cookie_init_hw_msi_region(struct iommu_dma_cookie *cookie,
 	return 0;
 }
 
-static int iova_reserve_pci_windows(struct pci_dev *dev,
-		struct iova_domain *iovad)
-{
-	struct pci_host_bridge *bridge = pci_find_host_bridge(dev->bus);
-	struct resource_entry *window;
-	unsigned long lo, hi;
-	phys_addr_t start = 0, end;
+// static int iova_reserve_pci_windows(struct pci_dev *dev,
+// 		struct iova_domain *iovad)
+// {
+// 	struct pci_host_bridge *bridge = pci_find_host_bridge(dev->bus);
+// 	struct resource_entry *window;
+// 	unsigned long lo, hi;
+// 	phys_addr_t start = 0, end;
 
-	resource_list_for_each_entry(window, &bridge->windows) {
-		if (resource_type(window->res) != IORESOURCE_MEM)
-			continue;
+// 	resource_list_for_each_entry(window, &bridge->windows) {
+// 		if (resource_type(window->res) != IORESOURCE_MEM)
+// 			continue;
 
-		lo = iova_pfn(iovad, window->res->start - window->offset);
-		hi = iova_pfn(iovad, window->res->end - window->offset);
-		reserve_iova(iovad, lo, hi);
-	}
+// 		lo = iova_pfn(iovad, window->res->start - window->offset);
+// 		hi = iova_pfn(iovad, window->res->end - window->offset);
+// 		reserve_iova(iovad, lo, hi);
+// 	}
 
-	/* Get reserved DMA windows from host bridge */
-	resource_list_for_each_entry(window, &bridge->dma_ranges) {
-		end = window->res->start - window->offset;
-resv_iova:
-		if (end > start) {
-			lo = iova_pfn(iovad, start);
-			hi = iova_pfn(iovad, end);
-			reserve_iova(iovad, lo, hi);
-		} else if (end < start) {
-			/* dma_ranges list should be sorted */
-			dev_err(&dev->dev,
-				"Failed to reserve IOVA [%pa-%pa]\n",
-				&start, &end);
-			return -EINVAL;
-		}
+// 	/* Get reserved DMA windows from host bridge */
+// 	resource_list_for_each_entry(window, &bridge->dma_ranges) {
+// 		end = window->res->start - window->offset;
+// resv_iova:
+// 		if (end > start) {
+// 			lo = iova_pfn(iovad, start);
+// 			hi = iova_pfn(iovad, end);
+// 			reserve_iova(iovad, lo, hi);
+// 		} else if (end < start) {
+// 			/* dma_ranges list should be sorted */
+// 			dev_err(&dev->dev,
+// 				"Failed to reserve IOVA [%pa-%pa]\n",
+// 				&start, &end);
+// 			return -EINVAL;
+// 		}
 
-		start = window->res->end - window->offset + 1;
-		/* If window is last entry */
-		if (window->node.next == &bridge->dma_ranges &&
-		    end != ~(phys_addr_t)0) {
-			end = ~(phys_addr_t)0;
-			goto resv_iova;
-		}
-	}
+// 		start = window->res->end - window->offset + 1;
+// 		/* If window is last entry */
+// 		if (window->node.next == &bridge->dma_ranges &&
+// 		    end != ~(phys_addr_t)0) {
+// 			end = ~(phys_addr_t)0;
+// 			goto resv_iova;
+// 		}
+// 	}
 
-	return 0;
-}
+// 	return 0;
+// }
 
 static int iova_reserve_iommu_regions(struct device *dev,
 		struct iommu_domain *domain)
@@ -245,11 +245,11 @@ static int iova_reserve_iommu_regions(struct device *dev,
 	LIST_HEAD(resv_regions);
 	int ret = 0;
 
-	if (dev_is_pci(dev)) {
-		ret = iova_reserve_pci_windows(to_pci_dev(dev), iovad);
-		if (ret)
-			return ret;
-	}
+	//TODO: if (dev_is_pci(dev)) {
+	//	ret = iova_reserve_pci_windows(to_pci_dev(dev), iovad);
+	//	if (ret)
+	//		return ret;
+	//}
 
 	iommu_get_resv_regions(dev, &resv_regions);
 	list_for_each_entry(region, &resv_regions, list) {

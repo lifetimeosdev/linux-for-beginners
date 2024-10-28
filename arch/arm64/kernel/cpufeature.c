@@ -2247,22 +2247,22 @@ verify_local_elf_hwcaps(const struct arm64_cpu_capabilities *caps)
 		}
 }
 
-static void verify_sve_features(void)
-{
-	u64 safe_zcr = read_sanitised_ftr_reg(SYS_ZCR_EL1);
-	u64 zcr = read_zcr_features();
+// static void verify_sve_features(void)
+// {
+// 	u64 safe_zcr = read_sanitised_ftr_reg(SYS_ZCR_EL1);
+// 	u64 zcr = read_zcr_features();
 
-	unsigned int safe_len = safe_zcr & ZCR_ELx_LEN_MASK;
-	unsigned int len = zcr & ZCR_ELx_LEN_MASK;
+// 	unsigned int safe_len = safe_zcr & ZCR_ELx_LEN_MASK;
+// 	unsigned int len = zcr & ZCR_ELx_LEN_MASK;
 
-	if (len < safe_len || sve_verify_vq_map()) {
-		pr_crit("CPU%d: SVE: vector length support mismatch\n",
-			smp_processor_id());
-		cpu_die_early();
-	}
+// 	if (len < safe_len || sve_verify_vq_map()) {
+// 		pr_crit("CPU%d: SVE: vector length support mismatch\n",
+// 			smp_processor_id());
+// 		cpu_die_early();
+// 	}
 
-	/* Add checks on other ZCR bits here if necessary */
-}
+// 	/* Add checks on other ZCR bits here if necessary */
+// }
 
 static void verify_hyp_capabilities(void)
 {
@@ -2317,8 +2317,8 @@ static void verify_local_cpu_capabilities(void)
 	if (system_supports_32bit_el0())
 		verify_local_elf_hwcaps(compat_elf_hwcaps);
 
-	if (system_supports_sve())
-		verify_sve_features();
+	// if (system_supports_sve())
+	// 	verify_sve_features();
 
 	if (is_hyp_mode_available())
 		verify_hyp_capabilities();

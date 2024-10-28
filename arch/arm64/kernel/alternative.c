@@ -246,18 +246,3 @@ void __init apply_boot_alternatives(void)
 
 	__apply_alternatives(&region, false, &boot_capabilities[0]);
 }
-
-#ifdef CONFIG_MODULES
-void apply_alternatives_module(void *start, size_t length)
-{
-	struct alt_region region = {
-		.begin	= start,
-		.end	= start + length,
-	};
-	DECLARE_BITMAP(all_capabilities, ARM64_NPATCHABLE);
-
-	bitmap_fill(all_capabilities, ARM64_NPATCHABLE);
-
-	__apply_alternatives(&region, true, &all_capabilities[0]);
-}
-#endif

@@ -38,14 +38,6 @@ static const struct tcp_ulp_ops *__tcp_ulp_find_autoload(const char *name)
 	rcu_read_lock();
 	ulp = tcp_ulp_find(name);
 
-#ifdef CONFIG_MODULES
-	if (!ulp && capable(CAP_NET_ADMIN)) {
-		rcu_read_unlock();
-		request_module("tcp-ulp-%s", name);
-		rcu_read_lock();
-		ulp = tcp_ulp_find(name);
-	}
-#endif
 	if (!ulp || !try_module_get(ulp->owner))
 		ulp = NULL;
 

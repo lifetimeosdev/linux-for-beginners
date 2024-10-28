@@ -320,76 +320,6 @@ static int madvise_cold_or_pageout_pte_range(pmd_t *pmd,
 	if (fatal_signal_pending(current))
 		return -EINTR;
 
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-	if (pmd_trans_huge(*pmd)) {
-		pmd_t orig_pmd;
-		unsigned long next = pmd_addr_end(addr, end);
-
-		tlb_change_page_size(tlb, HPAGE_PMD_SIZE);
-		ptl = pmd_trans_huge_lock(pmd, vma);
-		if (!ptl)
-			return 0;
-
-		orig_pmd = *pmd;
-		if (is_huge_zero_pmd(orig_pmd))
-			goto huge_unlock;
-
-		if (unlikely(!pmd_present(orig_pmd))) {
-			VM_BUG_ON(thp_migration_supported() &&
-					!is_pmd_migration_entry(orig_pmd));
-			goto huge_unlock;
-		}
-
-		page = pmd_page(orig_pmd);
-
-		/* Do not interfere with other mappings of this page */
-		if (page_mapcount(page) != 1)
-			goto huge_unlock;
-
-		if (next - addr != HPAGE_PMD_SIZE) {
-			int err;
-
-			get_page(page);
-			spin_unlock(ptl);
-			lock_page(page);
-			err = split_huge_page(page);
-			unlock_page(page);
-			put_page(page);
-			if (!err)
-				goto regular_page;
-			return 0;
-		}
-
-		if (pmd_young(orig_pmd)) {
-			pmdp_invalidate(vma, addr, pmd);
-			orig_pmd = pmd_mkold(orig_pmd);
-
-			set_pmd_at(mm, addr, pmd, orig_pmd);
-			tlb_remove_pmd_tlb_entry(tlb, pmd, addr);
-		}
-
-		ClearPageReferenced(page);
-		test_and_clear_page_young(page);
-		if (pageout) {
-			if (!isolate_lru_page(page)) {
-				if (PageUnevictable(page))
-					putback_lru_page(page);
-				else
-					list_add(&page->lru, &page_list);
-			}
-		} else
-			deactivate_page(page);
-huge_unlock:
-		spin_unlock(ptl);
-		if (pageout)
-			reclaim_pages(&page_list);
-		return 0;
-	}
-
-regular_page:
-	if (pmd_trans_unstable(pmd))
-		return 0;
-#endif
 	tlb_change_page_size(tlb, PAGE_SIZE);
 	orig_pte = pte = pte_offset_map_lock(vma->vm_mm, pmd, addr, &ptl);
 	flush_tlb_batched_pending(mm);
@@ -582,9 +512,9 @@ static int madvise_free_pte_range(pmd_t *pmd, unsigned long addr,
 	unsigned long next;
 
 	next = pmd_addr_end(addr, end);
-	if (pmd_trans_huge(*pmd))
-		if (madvise_free_huge_pmd(tlb, vma, pmd, addr, next))
-			goto next;
+	// if (pmd_trans_huge(*pmd))
+	// 	if (madvise_free_huge_pmd(tlb, vma, pmd, addr, next))
+	// 		goto next;
 
 	if (pmd_trans_unstable(pmd))
 		return 0;
@@ -697,7 +627,7 @@ out:
 	arch_leave_lazy_mmu_mode();
 	pte_unmap_unlock(orig_pte, ptl);
 	cond_resched();
-next:
+// next:
 	return 0;
 }
 
@@ -965,10 +895,6 @@ madvise_behavior_valid(int behavior)
 #ifdef CONFIG_KSM
 	case MADV_MERGEABLE:
 	case MADV_UNMERGEABLE:
-#endif
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-	case MADV_HUGEPAGE:
-	case MADV_NOHUGEPAGE:
 #endif
 	case MADV_DONTDUMP:
 	case MADV_DODUMP:

@@ -193,9 +193,6 @@ static inline int pmd_none_or_clear_bad_unless_trans_huge(pmd_t *pmd)
 	pmd_t pmdval = pmd_read_atomic(pmd);
 
 	/* See pmd_none_or_trans_huge_or_clear_bad for info on barrier */
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-	barrier();
-#endif
 
 	if (pmd_none(pmdval))
 		return 1;
@@ -247,25 +244,25 @@ static inline unsigned long change_pmd_range(struct vm_area_struct *vma,
 			mmu_notifier_invalidate_range_start(&range);
 		}
 
-		if (is_swap_pmd(*pmd) || pmd_trans_huge(*pmd) || pmd_devmap(*pmd)) {
-			if (next - addr != HPAGE_PMD_SIZE) {
-				__split_huge_pmd(vma, pmd, addr, false, NULL);
-			} else {
-				int nr_ptes = change_huge_pmd(vma, pmd, addr,
-							      newprot, cp_flags);
+		// if (is_swap_pmd(*pmd) || pmd_trans_huge(*pmd) || pmd_devmap(*pmd)) {
+		// 	if (next - addr != HPAGE_PMD_SIZE) {
+		// 		__split_huge_pmd(vma, pmd, addr, false, NULL);
+		// 	} else {
+		// 		int nr_ptes = change_huge_pmd(vma, pmd, addr,
+		// 					      newprot, cp_flags);
 
-				if (nr_ptes) {
-					if (nr_ptes == HPAGE_PMD_NR) {
-						pages += HPAGE_PMD_NR;
-						nr_huge_updates++;
-					}
+		// 		if (nr_ptes) {
+		// 			if (nr_ptes == HPAGE_PMD_NR) {
+		// 				pages += HPAGE_PMD_NR;
+		// 				nr_huge_updates++;
+		// 			}
 
-					/* huge pmd was handled */
-					goto next;
-				}
-			}
-			/* fall through, the trans huge pmd just split */
-		}
+		// 			/* huge pmd was handled */
+		// 			goto next;
+		// 		}
+		// 	}
+		// 	/* fall through, the trans huge pmd just split */
+		// }
 		this_pages = change_pte_range(vma, pmd, addr, next, newprot,
 					      cp_flags);
 		pages += this_pages;

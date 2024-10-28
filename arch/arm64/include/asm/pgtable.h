@@ -36,16 +36,6 @@
 #include <linux/mm_types.h>
 #include <linux/sched.h>
 
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-#define __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
-
-/* Set stride and tlb_level in flush_*_tlb_range */
-#define flush_pmd_tlb_range(vma, addr, end)	\
-	__flush_tlb_range(vma, addr, end, PMD_SIZE, false, 2)
-#define flush_pud_tlb_range(vma, addr, end)	\
-	__flush_tlb_range(vma, addr, end, PUD_SIZE, false, 1)
-#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
-
 /*
  * Outside of a few very special situations (e.g. hibernation), we always
  * use broadcast TLB invalidation instructions, therefore a spurious page
@@ -396,13 +386,6 @@ static inline int pmd_present(pmd_t pmd)
  * THP definitions.
  */
 
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-static inline int pmd_trans_huge(pmd_t pmd)
-{
-	return pmd_val(pmd) && pmd_present(pmd) && !(pmd_val(pmd) & PMD_TABLE_BIT);
-}
-#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
-
 #define pmd_dirty(pmd)		pte_dirty(pmd_pte(pmd))
 #define pmd_young(pmd)		pte_young(pmd_pte(pmd))
 #define pmd_valid(pmd)		pte_valid(pmd_pte(pmd))
@@ -427,9 +410,6 @@ static inline pmd_t pmd_mkinvalid(pmd_t pmd)
 
 #define pmd_mkhuge(pmd)		(__pmd(pmd_val(pmd) & ~PMD_TABLE_BIT))
 
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-#define pmd_devmap(pmd)		pte_devmap(pmd_pte(pmd))
-#endif
 static inline pmd_t pmd_mkdevmap(pmd_t pmd)
 {
 	return pte_pmd(set_pte_bit(pmd_pte(pmd), __pgprot(PTE_DEVMAP)));
@@ -748,26 +728,6 @@ extern int ptep_set_access_flags(struct vm_area_struct *vma,
 				 unsigned long address, pte_t *ptep,
 				 pte_t entry, int dirty);
 
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-#define __HAVE_ARCH_PMDP_SET_ACCESS_FLAGS
-static inline int pmdp_set_access_flags(struct vm_area_struct *vma,
-					unsigned long address, pmd_t *pmdp,
-					pmd_t entry, int dirty)
-{
-	return ptep_set_access_flags(vma, address, (pte_t *)pmdp, pmd_pte(entry), dirty);
-}
-
-static inline int pud_devmap(pud_t pud)
-{
-	return 0;
-}
-
-static inline int pgd_devmap(pgd_t pgd)
-{
-	return 0;
-}
-#endif
-
 /*
  * Atomic pte/pmd modifications.
  */
@@ -815,31 +775,12 @@ static inline int ptep_clear_flush_young(struct vm_area_struct *vma,
 	return young;
 }
 
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-#define __HAVE_ARCH_PMDP_TEST_AND_CLEAR_YOUNG
-static inline int pmdp_test_and_clear_young(struct vm_area_struct *vma,
-					    unsigned long address,
-					    pmd_t *pmdp)
-{
-	return ptep_test_and_clear_young(vma, address, (pte_t *)pmdp);
-}
-#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
-
 #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
 static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
 				       unsigned long address, pte_t *ptep)
 {
 	return __pte(xchg_relaxed(&pte_val(*ptep), 0));
 }
-
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-#define __HAVE_ARCH_PMDP_HUGE_GET_AND_CLEAR
-static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm,
-					    unsigned long address, pmd_t *pmdp)
-{
-	return pte_pmd(ptep_get_and_clear(mm, address, (pte_t *)pmdp));
-}
-#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
 
 /*
  * ptep_set_wrprotect - mark read-only while trasferring potential hardware
@@ -858,22 +799,6 @@ static inline void ptep_set_wrprotect(struct mm_struct *mm, unsigned long addres
 					       pte_val(old_pte), pte_val(pte));
 	} while (pte_val(pte) != pte_val(old_pte));
 }
-
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-#define __HAVE_ARCH_PMDP_SET_WRPROTECT
-static inline void pmdp_set_wrprotect(struct mm_struct *mm,
-				      unsigned long address, pmd_t *pmdp)
-{
-	ptep_set_wrprotect(mm, address, (pte_t *)pmdp);
-}
-
-#define pmdp_establish pmdp_establish
-static inline pmd_t pmdp_establish(struct vm_area_struct *vma,
-		unsigned long address, pmd_t *pmdp, pmd_t pmd)
-{
-	return __pmd(xchg_relaxed(&pmd_val(*pmdp), pmd_val(pmd)));
-}
-#endif
 
 /*
  * Encode and decode a swap entry:

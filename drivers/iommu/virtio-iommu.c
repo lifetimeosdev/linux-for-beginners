@@ -920,9 +920,9 @@ static void viommu_release_device(struct device *dev)
 
 static struct iommu_group *viommu_device_group(struct device *dev)
 {
-	if (dev_is_pci(dev))
-		return pci_device_group(dev);
-	else
+	// if (dev_is_pci(dev))
+	// 	return pci_device_group(dev);
+	// else
 		return generic_device_group(dev);
 }
 

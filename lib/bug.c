@@ -60,75 +60,10 @@ static inline unsigned long bug_addr(const struct bug_entry *bug)
 #endif
 }
 
-#ifdef CONFIG_MODULES
-/* Updates are protected by module mutex */
-static LIST_HEAD(module_bug_list);
-
-static struct bug_entry *module_find_bug(unsigned long bugaddr)
-{
-	struct module *mod;
-	struct bug_entry *bug = NULL;
-
-	rcu_read_lock_sched();
-	list_for_each_entry_rcu(mod, &module_bug_list, bug_list) {
-		unsigned i;
-
-		bug = mod->bug_table;
-		for (i = 0; i < mod->num_bugs; ++i, ++bug)
-			if (bugaddr == bug_addr(bug))
-				goto out;
-	}
-	bug = NULL;
-out:
-	rcu_read_unlock_sched();
-
-	return bug;
-}
-
-void module_bug_finalize(const Elf_Ehdr *hdr, const Elf_Shdr *sechdrs,
-			 struct module *mod)
-{
-	char *secstrings;
-	unsigned int i;
-
-	lockdep_assert_held(&module_mutex);
-
-	mod->bug_table = NULL;
-	mod->num_bugs = 0;
-
-	/* Find the __bug_table section, if present */
-	secstrings = (char *)hdr + sechdrs[hdr->e_shstrndx].sh_offset;
-	for (i = 1; i < hdr->e_shnum; i++) {
-		if (strcmp(secstrings+sechdrs[i].sh_name, "__bug_table"))
-			continue;
-		mod->bug_table = (void *) sechdrs[i].sh_addr;
-		mod->num_bugs = sechdrs[i].sh_size / sizeof(struct bug_entry);
-		break;
-	}
-
-	/*
-	 * Strictly speaking this should have a spinlock to protect against
-	 * traversals, but since we only traverse on BUG()s, a spinlock
-	 * could potentially lead to deadlock and thus be counter-productive.
-	 * Thus, this uses RCU to safely manipulate the bug list, since BUG
-	 * must run in non-interruptive state.
-	 */
-	list_add_rcu(&mod->bug_list, &module_bug_list);
-}
-
-void module_bug_cleanup(struct module *mod)
-{
-	lockdep_assert_held(&module_mutex);
-	list_del_rcu(&mod->bug_list);
-}
-
-#else
-
 static inline struct bug_entry *module_find_bug(unsigned long bugaddr)
 {
 	return NULL;
 }
-#endif
 
 struct bug_entry *find_bug(unsigned long bugaddr)
 {
@@ -216,15 +151,5 @@ static void clear_once_table(struct bug_entry *start, struct bug_entry *end)
 
 void generic_bug_clear_once(void)
 {
-#ifdef CONFIG_MODULES
-	struct module *mod;
-
-	rcu_read_lock_sched();
-	list_for_each_entry_rcu(mod, &module_bug_list, bug_list)
-		clear_once_table(mod->bug_table,
-				 mod->bug_table + mod->num_bugs);
-	rcu_read_unlock_sched();
-#endif
-
 	clear_once_table(__start___bug_table, __stop___bug_table);
 }

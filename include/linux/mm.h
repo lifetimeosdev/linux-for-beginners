@@ -833,10 +833,6 @@ static inline int page_mapcount(struct page *page)
 	return atomic_read(&page->_mapcount) + 1;
 }
 
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-int total_mapcount(struct page *page);
-int page_trans_huge_mapcount(struct page *page, int *total_mapcount);
-#else
 static inline int total_mapcount(struct page *page)
 {
 	return page_mapcount(page);
@@ -849,7 +845,6 @@ static inline int page_trans_huge_mapcount(struct page *page,
 		*total_mapcount = mapcount;
 	return mapcount;
 }
-#endif
 
 static inline struct page *virt_to_head_page(const void *x)
 {
@@ -877,9 +872,6 @@ enum compound_dtor_id {
 	COMPOUND_PAGE_DTOR,
 #ifdef CONFIG_HUGETLB_PAGE
 	HUGETLB_PAGE_DTOR,
-#endif
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-	TRANSHUGE_PAGE_DTOR,
 #endif
 	NR_COMPOUND_DTORS,
 };
@@ -2142,7 +2134,7 @@ static inline bool ptlock_init(struct page *page) { return true; }
 static inline void ptlock_free(struct page *page) {}
 #endif /* USE_SPLIT_PTE_PTLOCKS */
 
-static inline void pgtable_init(void)
+static inline void __init pgtable_init(void)
 {
 	ptlock_cache_init();
 	pgtable_cache_init();
@@ -2206,17 +2198,11 @@ static inline spinlock_t *pmd_lockptr(struct mm_struct *mm, pmd_t *pmd)
 
 static inline bool pmd_ptlock_init(struct page *page)
 {
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-	page->pmd_huge_pte = NULL;
-#endif
 	return ptlock_init(page);
 }
 
 static inline void pmd_ptlock_free(struct page *page)
 {
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-	VM_BUG_ON_PAGE(page->pmd_huge_pte, page);
-#endif
 	ptlock_free(page);
 }
 

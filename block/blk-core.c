@@ -1446,8 +1446,8 @@ bool blk_update_request(struct request *req, blk_status_t error,
 	 * Upper layers may call blk_crypto_evict_key() anytime after the last
 	 * bio_endio().  Therefore, the keyslot must be released before that.
 	 */
-	if (blk_crypto_rq_has_keyslot(req) && nr_bytes >= blk_rq_bytes(req))
-		__blk_crypto_rq_put_keyslot(req);
+	// if (blk_crypto_rq_has_keyslot(req) && nr_bytes >= blk_rq_bytes(req))
+	// 	__blk_crypto_rq_put_keyslot(req);
 
 	if (unlikely(error && !blk_rq_is_passthrough(req) &&
 		     !(req->rq_flags & RQF_QUIET)))

@@ -100,17 +100,6 @@ nf_conntrack_helper_try_module_get(const char *name, u16 l3num, u8 protonum)
 	rcu_read_lock();
 
 	h = __nf_conntrack_helper_find(name, l3num, protonum);
-#ifdef CONFIG_MODULES
-	if (h == NULL) {
-		rcu_read_unlock();
-		if (request_module("nfct-helper-%s", name) == 0) {
-			rcu_read_lock();
-			h = __nf_conntrack_helper_find(name, l3num, protonum);
-		} else {
-			return h;
-		}
-	}
-#endif
 	if (h != NULL && !try_module_get(h->me))
 		h = NULL;
 	if (h != NULL && !refcount_inc_not_zero(&h->refcnt)) {

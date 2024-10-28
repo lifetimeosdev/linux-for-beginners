@@ -526,47 +526,10 @@ static void smaps_pte_entry(pte_t *pte, unsigned long addr,
 	smaps_account(mss, page, false, young, dirty, locked, migration);
 }
 
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-static void smaps_pmd_entry(pmd_t *pmd, unsigned long addr,
-		struct mm_walk *walk)
-{
-	struct mem_size_stats *mss = walk->private;
-	struct vm_area_struct *vma = walk->vma;
-	bool locked = !!(vma->vm_flags & VM_LOCKED);
-	struct page *page = NULL;
-	bool migration = false;
-
-	if (pmd_present(*pmd)) {
-		/* FOLL_DUMP will return -EFAULT on huge zero page */
-		page = follow_trans_huge_pmd(vma, addr, pmd, FOLL_DUMP);
-	} else if (unlikely(thp_migration_supported() && is_swap_pmd(*pmd))) {
-		swp_entry_t entry = pmd_to_swp_entry(*pmd);
-
-		if (is_migration_entry(entry)) {
-			migration = true;
-			page = migration_entry_to_page(entry);
-		}
-	}
-	if (IS_ERR_OR_NULL(page))
-		return;
-	if (PageAnon(page))
-		mss->anonymous_thp += HPAGE_PMD_SIZE;
-	else if (PageSwapBacked(page))
-		mss->shmem_thp += HPAGE_PMD_SIZE;
-	else if (is_zone_device_page(page))
-		/* pass */;
-	else
-		mss->file_thp += HPAGE_PMD_SIZE;
-
-	smaps_account(mss, page, true, pmd_young(*pmd), pmd_dirty(*pmd),
-		      locked, migration);
-}
-#else
 static void smaps_pmd_entry(pmd_t *pmd, unsigned long addr,
 		struct mm_walk *walk)
 {
 }
-#endif
 
 static int smaps_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
 			   struct mm_walk *walk)
@@ -1400,72 +1363,6 @@ static int pagemap_pmd_range(pmd_t *pmdp, unsigned long addr, unsigned long end,
 	spinlock_t *ptl;
 	pte_t *pte, *orig_pte;
 	int err = 0;
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-	bool migration = false;
-
-	ptl = pmd_trans_huge_lock(pmdp, vma);
-	if (ptl) {
-		u64 flags = 0, frame = 0;
-		pmd_t pmd = *pmdp;
-		struct page *page = NULL;
-
-		if (vma->vm_flags & VM_SOFTDIRTY)
-			flags |= PM_SOFT_DIRTY;
-
-		if (pmd_present(pmd)) {
-			page = pmd_page(pmd);
-
-			flags |= PM_PRESENT;
-			if (pmd_soft_dirty(pmd))
-				flags |= PM_SOFT_DIRTY;
-			if (pm->show_pfn)
-				frame = pmd_pfn(pmd) +
-					((addr & ~PMD_MASK) >> PAGE_SHIFT);
-		}
-#ifdef CONFIG_ARCH_ENABLE_THP_MIGRATION
-		else if (is_swap_pmd(pmd)) {
-			swp_entry_t entry = pmd_to_swp_entry(pmd);
-			unsigned long offset;
-
-			if (pm->show_pfn) {
-				offset = swp_offset(entry) +
-					((addr & ~PMD_MASK) >> PAGE_SHIFT);
-				frame = swp_type(entry) |
-					(offset << MAX_SWAPFILES_SHIFT);
-			}
-			flags |= PM_SWAP;
-			if (pmd_swp_soft_dirty(pmd))
-				flags |= PM_SOFT_DIRTY;
-			VM_BUG_ON(!is_pmd_migration_entry(pmd));
-			migration = is_migration_entry(entry);
-			page = migration_entry_to_page(entry);
-		}
-#endif
-
-		if (page && !migration && page_mapcount(page) == 1)
-			flags |= PM_MMAP_EXCLUSIVE;
-
-		for (; addr != end; addr += PAGE_SIZE) {
-			pagemap_entry_t pme = make_pme(frame, flags);
-
-			err = add_to_pagemap(addr, &pme, pm);
-			if (err)
-				break;
-			if (pm->show_pfn) {
-				if (flags & PM_PRESENT)
-					frame++;
-				else if (flags & PM_SWAP)
-					frame += (1 << MAX_SWAPFILES_SHIFT);
-			}
-		}
-		spin_unlock(ptl);
-		return err;
-	}
-
-	if (pmd_trans_unstable(pmdp))
-		return 0;
-#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
-
 	/*
 	 * We can assume that @vma always points to a valid one and @end never
 	 * goes beyond vma->vm_end.

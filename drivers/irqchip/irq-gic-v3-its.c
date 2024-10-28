@@ -2236,8 +2236,8 @@ static bool gic_check_reserved_range(phys_addr_t addr, unsigned long size)
 
 static int gic_reserve_range(phys_addr_t addr, unsigned long size)
 {
-	if (efi_enabled(EFI_CONFIG_TABLES))
-		return efi_mem_reserve_persistent(addr, size);
+	// if (efi_enabled(EFI_CONFIG_TABLES))
+	// 	return efi_mem_reserve_persistent(addr, size);
 
 	return 0;
 }

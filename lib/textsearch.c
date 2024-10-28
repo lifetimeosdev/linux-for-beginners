@@ -271,18 +271,6 @@ struct ts_config *textsearch_prepare(const char *algo, const void *pattern,
 		return ERR_PTR(-EINVAL);
 
 	ops = lookup_ts_algo(algo);
-#ifdef CONFIG_MODULES
-	/*
-	 * Why not always autoload you may ask. Some users are
-	 * in a situation where requesting a module may deadlock,
-	 * especially when the module is located on a NFS mount.
-	 */
-	if (ops == NULL && flags & TS_AUTOLOAD) {
-		request_module("ts_%s", algo);
-		ops = lookup_ts_algo(algo);
-	}
-#endif
-
 	if (ops == NULL)
 		goto errout;
 

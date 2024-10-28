@@ -33,28 +33,6 @@
  */
 
 .macro ___EXPORT_SYMBOL name,val,sec
-#ifdef CONFIG_MODULES
-	.section ___ksymtab\sec+\name,"a"
-	.balign KSYM_ALIGN
-__ksymtab_\name:
-	__put \val, __kstrtab_\name
-	.previous
-	.section __ksymtab_strings,"aMS",%progbits,1
-__kstrtab_\name:
-	.asciz "\name"
-	.previous
-#ifdef CONFIG_MODVERSIONS
-	.section ___kcrctab\sec+\name,"a"
-	.balign KCRC_ALIGN
-#if defined(CONFIG_MODULE_REL_CRCS)
-	.long __crc_\name - .
-#else
-	.long __crc_\name
-#endif
-	.weak __crc_\name
-	.previous
-#endif
-#endif
 .endm
 
 #if defined(CONFIG_TRIM_UNUSED_KSYMS)

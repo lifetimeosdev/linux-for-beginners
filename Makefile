@@ -423,11 +423,11 @@ HOSTCXX	= g++
 endif
 
 export KBUILD_USERCFLAGS := -Wall -Wmissing-prototypes -Wstrict-prototypes \
-			      -O2 -fomit-frame-pointer -std=gnu89
+			      -O0 -g -fomit-frame-pointer -std=gnu89
 export KBUILD_USERLDFLAGS :=
 
 KBUILD_HOSTCFLAGS   := $(KBUILD_USERCFLAGS) $(HOST_LFS_CFLAGS) $(HOSTCFLAGS)
-KBUILD_HOSTCXXFLAGS := -Wall -O2 $(HOST_LFS_CFLAGS) $(HOSTCXXFLAGS)
+KBUILD_HOSTCXXFLAGS := -Wall -O0 -g $(HOST_LFS_CFLAGS) $(HOSTCXXFLAGS)
 KBUILD_HOSTLDFLAGS  := $(HOST_LFS_LDFLAGS) $(HOSTLDFLAGS)
 KBUILD_HOSTLDLIBS   := $(HOST_LFS_LIBS) $(HOSTLDLIBS)
 
@@ -756,11 +756,11 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, address-of-packed-member)
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
-KBUILD_CFLAGS += -O2
+KBUILD_CFLAGS += -O0 -g
 else ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3
-KBUILD_CFLAGS += -O3
+KBUILD_CFLAGS += -O0 -g
 else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
-KBUILD_CFLAGS += -Os
+KBUILD_CFLAGS += -O0 -g
 endif
 
 # Tell gcc to never replace conditional load with a non-conditional one

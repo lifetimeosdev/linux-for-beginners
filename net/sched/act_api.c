@@ -970,26 +970,6 @@ struct tc_action_ops *tc_action_load_ops(char *name, struct nlattr *nla,
 
 	a_o = tc_lookup_action_n(act_name);
 	if (a_o == NULL) {
-#ifdef CONFIG_MODULES
-		if (rtnl_held)
-			rtnl_unlock();
-		request_module("act_%s", act_name);
-		if (rtnl_held)
-			rtnl_lock();
-
-		a_o = tc_lookup_action_n(act_name);
-
-		/* We dropped the RTNL semaphore in order to
-		 * perform the module load.  So, even if we
-		 * succeeded in loading the module we have to
-		 * tell the caller to replay the request.  We
-		 * indicate this using -EAGAIN.
-		 */
-		if (a_o != NULL) {
-			module_put(a_o->owner);
-			return ERR_PTR(-EAGAIN);
-		}
-#endif
 		NL_SET_ERR_MSG(extack, "Failed to load TC action module");
 		return ERR_PTR(-ENOENT);
 	}

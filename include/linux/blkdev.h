@@ -226,11 +226,6 @@ struct request {
 	unsigned short nr_integrity_segments;
 #endif
 
-#ifdef CONFIG_BLK_INLINE_ENCRYPTION
-	struct bio_crypt_ctx *crypt_ctx;
-	struct blk_ksm_keyslot *crypt_keyslot;
-#endif
-
 	unsigned short write_hint;
 	unsigned short ioprio;
 
@@ -479,11 +474,6 @@ struct request_queue {
 
 	unsigned int		dma_pad_mask;
 	unsigned int		dma_alignment;
-
-#ifdef CONFIG_BLK_INLINE_ENCRYPTION
-	/* Inline crypto capabilities */
-	struct blk_keyslot_manager *ksm;
-#endif
 
 	unsigned int		rq_timeout;
 	int			poll_nsec;
@@ -1852,14 +1842,6 @@ static inline struct bio_vec *rq_integrity_vec(struct request *rq)
 
 #endif /* CONFIG_BLK_DEV_INTEGRITY */
 
-#ifdef CONFIG_BLK_INLINE_ENCRYPTION
-
-bool blk_ksm_register(struct blk_keyslot_manager *ksm, struct request_queue *q);
-
-void blk_ksm_unregister(struct request_queue *q);
-
-#else /* CONFIG_BLK_INLINE_ENCRYPTION */
-
 static inline bool blk_ksm_register(struct blk_keyslot_manager *ksm,
 				    struct request_queue *q)
 {
@@ -1867,9 +1849,6 @@ static inline bool blk_ksm_register(struct blk_keyslot_manager *ksm,
 }
 
 static inline void blk_ksm_unregister(struct request_queue *q) { }
-
-#endif /* CONFIG_BLK_INLINE_ENCRYPTION */
-
 
 struct block_device_operations {
 	blk_qc_t (*submit_bio) (struct bio *bio);

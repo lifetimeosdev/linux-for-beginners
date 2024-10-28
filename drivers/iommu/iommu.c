@@ -1268,8 +1268,8 @@ int iommu_group_id(struct iommu_group *group)
 }
 EXPORT_SYMBOL_GPL(iommu_group_id);
 
-static struct iommu_group *get_pci_alias_group(struct pci_dev *pdev,
-					       unsigned long *devfns);
+// static struct iommu_group *get_pci_alias_group(struct pci_dev *pdev,
+// 					       unsigned long *devfns);
 
 /*
  * To consider a PCI device isolated, we require ACS to support Source
@@ -1287,30 +1287,30 @@ static struct iommu_group *get_pci_alias_group(struct pci_dev *pdev,
  * each function, we also need to look for aliases to or from other devices
  * that may already have a group.
  */
-static struct iommu_group *get_pci_function_alias_group(struct pci_dev *pdev,
-							unsigned long *devfns)
-{
-	struct pci_dev *tmp = NULL;
-	struct iommu_group *group;
+// static struct iommu_group *get_pci_function_alias_group(struct pci_dev *pdev,
+// 							unsigned long *devfns)
+// {
+// 	struct pci_dev *tmp = NULL;
+// 	struct iommu_group *group;
 
-	if (!pdev->multifunction || pci_acs_enabled(pdev, REQ_ACS_FLAGS))
-		return NULL;
+// 	if (!pdev->multifunction || pci_acs_enabled(pdev, REQ_ACS_FLAGS))
+// 		return NULL;
 
-	for_each_pci_dev(tmp) {
-		if (tmp == pdev || tmp->bus != pdev->bus ||
-		    PCI_SLOT(tmp->devfn) != PCI_SLOT(pdev->devfn) ||
-		    pci_acs_enabled(tmp, REQ_ACS_FLAGS))
-			continue;
+// 	for_each_pci_dev(tmp) {
+// 		if (tmp == pdev || tmp->bus != pdev->bus ||
+// 		    PCI_SLOT(tmp->devfn) != PCI_SLOT(pdev->devfn) ||
+// 		    pci_acs_enabled(tmp, REQ_ACS_FLAGS))
+// 			continue;
 
-		group = get_pci_alias_group(tmp, devfns);
-		if (group) {
-			pci_dev_put(tmp);
-			return group;
-		}
-	}
+// 		group = get_pci_alias_group(tmp, devfns);
+// 		if (group) {
+// 			pci_dev_put(tmp);
+// 			return group;
+// 		}
+// 	}
 
-	return NULL;
-}
+// 	return NULL;
+// }
 
 /*
  * Look for aliases to or from the given device for existing groups. DMA
@@ -1321,41 +1321,41 @@ static struct iommu_group *get_pci_function_alias_group(struct pci_dev *pdev,
  * multifunction devices could have aliases between them that would cause a
  * loop.  To prevent this, we use a bitmap to track where we've been.
  */
-static struct iommu_group *get_pci_alias_group(struct pci_dev *pdev,
-					       unsigned long *devfns)
-{
-	struct pci_dev *tmp = NULL;
-	struct iommu_group *group;
+// static struct iommu_group *get_pci_alias_group(struct pci_dev *pdev,
+// 					       unsigned long *devfns)
+// {
+// 	struct pci_dev *tmp = NULL;
+// 	struct iommu_group *group;
 
-	if (test_and_set_bit(pdev->devfn & 0xff, devfns))
-		return NULL;
+// 	if (test_and_set_bit(pdev->devfn & 0xff, devfns))
+// 		return NULL;
 
-	group = iommu_group_get(&pdev->dev);
-	if (group)
-		return group;
+// 	group = iommu_group_get(&pdev->dev);
+// 	if (group)
+// 		return group;
 
-	for_each_pci_dev(tmp) {
-		if (tmp == pdev || tmp->bus != pdev->bus)
-			continue;
+// 	// for_each_pci_dev(tmp) {
+// 	// 	if (tmp == pdev || tmp->bus != pdev->bus)
+// 	// 		continue;
 
-		/* We alias them or they alias us */
-		if (pci_devs_are_dma_aliases(pdev, tmp)) {
-			group = get_pci_alias_group(tmp, devfns);
-			if (group) {
-				pci_dev_put(tmp);
-				return group;
-			}
+// 	// 	/* We alias them or they alias us */
+// 	// 	if (pci_devs_are_dma_aliases(pdev, tmp)) {
+// 	// 		group = get_pci_alias_group(tmp, devfns);
+// 	// 		if (group) {
+// 	// 			pci_dev_put(tmp);
+// 	// 			return group;
+// 	// 		}
 
-			group = get_pci_function_alias_group(tmp, devfns);
-			if (group) {
-				pci_dev_put(tmp);
-				return group;
-			}
-		}
-	}
+// 	// 		group = get_pci_function_alias_group(tmp, devfns);
+// 	// 		if (group) {
+// 	// 			pci_dev_put(tmp);
+// 	// 			return group;
+// 	// 		}
+// 	// 	}
+// 	// }
 
-	return NULL;
-}
+// 	return NULL;
+// }
 
 struct group_for_pci_data {
 	struct pci_dev *pdev;
@@ -1366,15 +1366,15 @@ struct group_for_pci_data {
  * DMA alias iterator callback, return the last seen device.  Stop and return
  * the IOMMU group if we find one along the way.
  */
-static int get_pci_alias_or_group(struct pci_dev *pdev, u16 alias, void *opaque)
-{
-	struct group_for_pci_data *data = opaque;
+// static int get_pci_alias_or_group(struct pci_dev *pdev, u16 alias, void *opaque)
+// {
+	// struct group_for_pci_data *data = opaque;
 
-	data->pdev = pdev;
-	data->group = iommu_group_get(&pdev->dev);
+	// data->pdev = pdev;
+	// data->group = iommu_group_get(&pdev->dev);
 
-	return data->group != NULL;
-}
+	// return data->group != NULL;
+// }
 
 /*
  * Generic device_group call-back function. It just allocates one
@@ -1390,68 +1390,68 @@ EXPORT_SYMBOL_GPL(generic_device_group);
  * Use standard PCI bus topology, isolation features, and DMA alias quirks
  * to find or create an IOMMU group for a device.
  */
-struct iommu_group *pci_device_group(struct device *dev)
-{
-	struct pci_dev *pdev = to_pci_dev(dev);
-	struct group_for_pci_data data;
-	struct pci_bus *bus;
-	struct iommu_group *group = NULL;
-	u64 devfns[4] = { 0 };
+// struct iommu_group *pci_device_group(struct device *dev)
+// {
+	// struct pci_dev *pdev = to_pci_dev(dev);
+	// struct group_for_pci_data data;
+	// struct pci_bus *bus;
+	// struct iommu_group *group = NULL;
+	// u64 devfns[4] = { 0 };
 
-	if (WARN_ON(!dev_is_pci(dev)))
-		return ERR_PTR(-EINVAL);
+	// if (WARN_ON(!dev_is_pci(dev)))
+		// return ERR_PTR(-EINVAL);
 
-	/*
-	 * Find the upstream DMA alias for the device.  A device must not
-	 * be aliased due to topology in order to have its own IOMMU group.
-	 * If we find an alias along the way that already belongs to a
-	 * group, use it.
-	 */
-	if (pci_for_each_dma_alias(pdev, get_pci_alias_or_group, &data))
-		return data.group;
+	// /*
+	//  * Find the upstream DMA alias for the device.  A device must not
+	//  * be aliased due to topology in order to have its own IOMMU group.
+	//  * If we find an alias along the way that already belongs to a
+	//  * group, use it.
+	//  */
+	// if (pci_for_each_dma_alias(pdev, get_pci_alias_or_group, &data))
+		// return data.group;
 
-	pdev = data.pdev;
+	// pdev = data.pdev;
 
-	/*
-	 * Continue upstream from the point of minimum IOMMU granularity
-	 * due to aliases to the point where devices are protected from
-	 * peer-to-peer DMA by PCI ACS.  Again, if we find an existing
-	 * group, use it.
-	 */
-	for (bus = pdev->bus; !pci_is_root_bus(bus); bus = bus->parent) {
-		if (!bus->self)
-			continue;
+	// /*
+	//  * Continue upstream from the point of minimum IOMMU granularity
+	//  * due to aliases to the point where devices are protected from
+	//  * peer-to-peer DMA by PCI ACS.  Again, if we find an existing
+	//  * group, use it.
+	//  */
+	// for (bus = pdev->bus; !pci_is_root_bus(bus); bus = bus->parent) {
+		// if (!bus->self)
+			// continue;
 
-		if (pci_acs_path_enabled(bus->self, NULL, REQ_ACS_FLAGS))
-			break;
+		// if (pci_acs_path_enabled(bus->self, NULL, REQ_ACS_FLAGS))
+			// break;
 
-		pdev = bus->self;
+		// pdev = bus->self;
 
-		group = iommu_group_get(&pdev->dev);
-		if (group)
-			return group;
-	}
+		// group = iommu_group_get(&pdev->dev);
+		// if (group)
+			// return group;
+	// }
 
-	/*
-	 * Look for existing groups on device aliases.  If we alias another
-	 * device or another device aliases us, use the same group.
-	 */
-	group = get_pci_alias_group(pdev, (unsigned long *)devfns);
-	if (group)
-		return group;
+	// /*
+	//  * Look for existing groups on device aliases.  If we alias another
+	//  * device or another device aliases us, use the same group.
+	//  */
+	// group = get_pci_alias_group(pdev, (unsigned long *)devfns);
+	// if (group)
+		// return group;
 
-	/*
-	 * Look for existing groups on non-isolated functions on the same
-	 * slot and aliases of those funcions, if any.  No need to clear
-	 * the search bitmap, the tested devfns are still valid.
-	 */
-	group = get_pci_function_alias_group(pdev, (unsigned long *)devfns);
-	if (group)
-		return group;
+	// /*
+	//  * Look for existing groups on non-isolated functions on the same
+	//  * slot and aliases of those funcions, if any.  No need to clear
+	//  * the search bitmap, the tested devfns are still valid.
+	//  */
+	// group = get_pci_function_alias_group(pdev, (unsigned long *)devfns);
+	// if (group)
+		// return group;
 
-	/* No shared group found, allocate new */
-	return iommu_group_alloc();
-}
+	// /* No shared group found, allocate new */
+	// return iommu_group_alloc();
+// }
 EXPORT_SYMBOL_GPL(pci_device_group);
 
 /* Get the IOMMU group for device on fsl-mc bus */

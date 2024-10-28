@@ -397,11 +397,11 @@ static inline void task_core_dumping(struct seq_file *m, struct mm_struct *mm)
 
 static inline void task_thp_status(struct seq_file *m, struct mm_struct *mm)
 {
-	bool thp_enabled = IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE);
+	// bool thp_enabled = IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE);
 
-	if (thp_enabled)
-		thp_enabled = !test_bit(MMF_DISABLE_THP, &mm->flags);
-	seq_printf(m, "THP_enabled:\t%d\n", thp_enabled);
+	// if (thp_enabled)
+	// 	thp_enabled = !test_bit(MMF_DISABLE_THP, &mm->flags);
+	// seq_printf(m, "THP_enabled:\t%d\n", thp_enabled);
 }
 
 int proc_pid_status(struct seq_file *m, struct pid_namespace *ns,

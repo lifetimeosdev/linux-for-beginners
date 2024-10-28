@@ -646,48 +646,6 @@ out:
 	return pfn_to_page(pfn);
 }
 
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-struct page *vm_normal_page_pmd(struct vm_area_struct *vma, unsigned long addr,
-				pmd_t pmd)
-{
-	unsigned long pfn = pmd_pfn(pmd);
-
-	/*
-	 * There is no pmd_special() but there may be special pmds, e.g.
-	 * in a direct-access (dax) mapping, so let's just replicate the
-	 * !CONFIG_ARCH_HAS_PTE_SPECIAL case from vm_normal_page() here.
-	 */
-	if (unlikely(vma->vm_flags & (VM_PFNMAP|VM_MIXEDMAP))) {
-		if (vma->vm_flags & VM_MIXEDMAP) {
-			if (!pfn_valid(pfn))
-				return NULL;
-			goto out;
-		} else {
-			unsigned long off;
-			off = (addr - vma->vm_start) >> PAGE_SHIFT;
-			if (pfn == vma->vm_pgoff + off)
-				return NULL;
-			if (!is_cow_mapping(vma->vm_flags))
-				return NULL;
-		}
-	}
-
-	if (pmd_devmap(pmd))
-		return NULL;
-	if (is_huge_zero_pmd(pmd))
-		return NULL;
-	if (unlikely(pfn > highest_memmap_pfn))
-		return NULL;
-
-	/*
-	 * NOTE! We still have PageReserved() pages in the page tables.
-	 * eg. VDSO mappings can cause them to exist.
-	 */
-out:
-	return pfn_to_page(pfn);
-}
-#endif
-
 /*
  * copy one vm_area from one task to the other. Assumes the page tables
  * already present in the new task to be cleared in the whole range
@@ -1043,7 +1001,7 @@ copy_pmd_range(struct vm_area_struct *dst_vma, struct vm_area_struct *src_vma,
 	       unsigned long end)
 {
 	struct mm_struct *dst_mm = dst_vma->vm_mm;
-	struct mm_struct *src_mm = src_vma->vm_mm;
+	// struct mm_struct *src_mm = src_vma->vm_mm;
 	pmd_t *src_pmd, *dst_pmd;
 	unsigned long next;
 
@@ -1053,18 +1011,18 @@ copy_pmd_range(struct vm_area_struct *dst_vma, struct vm_area_struct *src_vma,
 	src_pmd = pmd_offset(src_pud, addr);
 	do {
 		next = pmd_addr_end(addr, end);
-		if (is_swap_pmd(*src_pmd) || pmd_trans_huge(*src_pmd)
-			|| pmd_devmap(*src_pmd)) {
-			int err;
-			VM_BUG_ON_VMA(next-addr != HPAGE_PMD_SIZE, src_vma);
-			err = copy_huge_pmd(dst_mm, src_mm, dst_pmd, src_pmd,
-					    addr, dst_vma, src_vma);
-			if (err == -ENOMEM)
-				return -ENOMEM;
-			if (!err)
-				continue;
-			/* fall through */
-		}
+		// if (is_swap_pmd(*src_pmd) || pmd_trans_huge(*src_pmd)
+		// 	|| pmd_devmap(*src_pmd)) {
+		// 	int err;
+		// 	VM_BUG_ON_VMA(next-addr != HPAGE_PMD_SIZE, src_vma);
+		// 	err = copy_huge_pmd(dst_mm, src_mm, dst_pmd, src_pmd,
+		// 			    addr, dst_vma, src_vma);
+		// 	if (err == -ENOMEM)
+		// 		return -ENOMEM;
+		// 	if (!err)
+		// 		continue;
+		// 	/* fall through */
+		// }
 		if (pmd_none_or_clear_bad(src_pmd))
 			continue;
 		if (copy_pte_range(dst_vma, src_vma, dst_pmd, src_pmd,
@@ -1080,7 +1038,7 @@ copy_pud_range(struct vm_area_struct *dst_vma, struct vm_area_struct *src_vma,
 	       unsigned long end)
 {
 	struct mm_struct *dst_mm = dst_vma->vm_mm;
-	struct mm_struct *src_mm = src_vma->vm_mm;
+	// struct mm_struct *src_mm = src_vma->vm_mm;
 	pud_t *src_pud, *dst_pud;
 	unsigned long next;
 
@@ -1090,18 +1048,18 @@ copy_pud_range(struct vm_area_struct *dst_vma, struct vm_area_struct *src_vma,
 	src_pud = pud_offset(src_p4d, addr);
 	do {
 		next = pud_addr_end(addr, end);
-		if (pud_trans_huge(*src_pud) || pud_devmap(*src_pud)) {
-			int err;
+		// if (pud_trans_huge(*src_pud) || pud_devmap(*src_pud)) {
+		// 	int err;
 
-			VM_BUG_ON_VMA(next-addr != HPAGE_PUD_SIZE, src_vma);
-			err = copy_huge_pud(dst_mm, src_mm,
-					    dst_pud, src_pud, addr, src_vma);
-			if (err == -ENOMEM)
-				return -ENOMEM;
-			if (!err)
-				continue;
-			/* fall through */
-		}
+		// 	VM_BUG_ON_VMA(next-addr != HPAGE_PUD_SIZE, src_vma);
+		// 	err = copy_huge_pud(dst_mm, src_mm,
+		// 			    dst_pud, src_pud, addr, src_vma);
+		// 	if (err == -ENOMEM)
+		// 		return -ENOMEM;
+		// 	if (!err)
+		// 		continue;
+		// 	/* fall through */
+		// }
 		if (pud_none_or_clear_bad(src_pud))
 			continue;
 		if (copy_pmd_range(dst_vma, src_vma, dst_pud, src_pud,
@@ -1374,13 +1332,14 @@ static inline unsigned long zap_pmd_range(struct mmu_gather *tlb,
 	pmd = pmd_offset(pud, addr);
 	do {
 		next = pmd_addr_end(addr, end);
-		if (is_swap_pmd(*pmd) || pmd_trans_huge(*pmd) || pmd_devmap(*pmd)) {
-			if (next - addr != HPAGE_PMD_SIZE)
-				__split_huge_pmd(vma, pmd, addr, false, NULL);
-			else if (zap_huge_pmd(tlb, vma, pmd, addr))
-				goto next;
-			/* fall through */
-		} else if (details && details->single_page &&
+		// if (is_swap_pmd(*pmd) || pmd_trans_huge(*pmd) || pmd_devmap(*pmd)) {
+		// 	if (next - addr != HPAGE_PMD_SIZE)
+		// 		__split_huge_pmd(vma, pmd, addr, false, NULL);
+		// 	else if (zap_huge_pmd(tlb, vma, pmd, addr))
+		// 		goto next;
+		// 	/* fall through */
+		// } else if (details && details->single_page &&
+		if (details && details->single_page &&
 			   PageTransCompound(details->single_page) &&
 			   next - addr == HPAGE_PMD_SIZE && pmd_none(*pmd)) {
 			spinlock_t *ptl = pmd_lock(tlb->mm, pmd);
@@ -1420,18 +1379,18 @@ static inline unsigned long zap_pud_range(struct mmu_gather *tlb,
 	pud = pud_offset(p4d, addr);
 	do {
 		next = pud_addr_end(addr, end);
-		if (pud_trans_huge(*pud) || pud_devmap(*pud)) {
-			if (next - addr != HPAGE_PUD_SIZE) {
-				mmap_assert_locked(tlb->mm);
-				split_huge_pud(vma, pud, addr);
-			} else if (zap_huge_pud(tlb, vma, pud, addr))
-				goto next;
-			/* fall through */
-		}
+		// if (pud_trans_huge(*pud) || pud_devmap(*pud)) {
+		// 	if (next - addr != HPAGE_PUD_SIZE) {
+		// 		mmap_assert_locked(tlb->mm);
+		// 		split_huge_pud(vma, pud, addr);
+		// 	} else if (zap_huge_pud(tlb, vma, pud, addr))
+		// 		goto next;
+		// 	/* fall through */
+		// }
 		if (pud_none_or_clear_bad(pud))
 			continue;
 		next = zap_pmd_range(tlb, vma, pud, addr, next, details);
-next:
+// next:
 		cond_resched();
 	} while (pud++, addr = next, addr != end);
 
@@ -3784,84 +3743,11 @@ map_pte:
 	return 0;
 }
 
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-static void deposit_prealloc_pte(struct vm_fault *vmf)
-{
-	struct vm_area_struct *vma = vmf->vma;
-
-	pgtable_trans_huge_deposit(vma->vm_mm, vmf->pmd, vmf->prealloc_pte);
-	/*
-	 * We are going to consume the prealloc table,
-	 * count that as nr_ptes.
-	 */
-	mm_inc_nr_ptes(vma->vm_mm);
-	vmf->prealloc_pte = NULL;
-}
-
-static vm_fault_t do_set_pmd(struct vm_fault *vmf, struct page *page)
-{
-	struct vm_area_struct *vma = vmf->vma;
-	bool write = vmf->flags & FAULT_FLAG_WRITE;
-	unsigned long haddr = vmf->address & HPAGE_PMD_MASK;
-	pmd_t entry;
-	int i;
-	vm_fault_t ret = VM_FAULT_FALLBACK;
-
-	if (!transhuge_vma_suitable(vma, haddr))
-		return ret;
-
-	page = compound_head(page);
-	if (compound_order(page) != HPAGE_PMD_ORDER)
-		return ret;
-
-	/*
-	 * Archs like ppc64 need additonal space to store information
-	 * related to pte entry. Use the preallocated table for that.
-	 */
-	if (arch_needs_pgtable_deposit() && !vmf->prealloc_pte) {
-		vmf->prealloc_pte = pte_alloc_one(vma->vm_mm);
-		if (!vmf->prealloc_pte)
-			return VM_FAULT_OOM;
-		smp_wmb(); /* See comment in __pte_alloc() */
-	}
-
-	vmf->ptl = pmd_lock(vma->vm_mm, vmf->pmd);
-	if (unlikely(!pmd_none(*vmf->pmd)))
-		goto out;
-
-	for (i = 0; i < HPAGE_PMD_NR; i++)
-		flush_icache_page(vma, page + i);
-
-	entry = mk_huge_pmd(page, vma->vm_page_prot);
-	if (write)
-		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
-
-	add_mm_counter(vma->vm_mm, mm_counter_file(page), HPAGE_PMD_NR);
-	page_add_file_rmap(page, true);
-	/*
-	 * deposit and withdraw with pmd lock held
-	 */
-	if (arch_needs_pgtable_deposit())
-		deposit_prealloc_pte(vmf);
-
-	set_pmd_at(vma->vm_mm, haddr, vmf->pmd, entry);
-
-	update_mmu_cache_pmd(vma, haddr, vmf->pmd);
-
-	/* fault is handled */
-	ret = 0;
-	count_vm_event(THP_FILE_MAPPED);
-out:
-	spin_unlock(vmf->ptl);
-	return ret;
-}
-#else
 static vm_fault_t do_set_pmd(struct vm_fault *vmf, struct page *page)
 {
 	BUILD_BUG();
 	return 0;
 }
-#endif
 
 /**
  * alloc_set_pte - setup new PTE entry for given page and add reverse page
@@ -4374,36 +4260,13 @@ static inline vm_fault_t wp_huge_pmd(struct vm_fault *vmf, pmd_t orig_pmd)
 	return VM_FAULT_FALLBACK;
 }
 
-static vm_fault_t create_huge_pud(struct vm_fault *vmf)
-{
-#if defined(CONFIG_TRANSPARENT_HUGEPAGE) &&			\
-	defined(CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD)
-	/* No support for anonymous transparent PUD pages yet */
-	if (vma_is_anonymous(vmf->vma))
-		return VM_FAULT_FALLBACK;
-	if (vmf->vma->vm_ops->huge_fault)
-		return vmf->vma->vm_ops->huge_fault(vmf, PE_SIZE_PUD);
-#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
-	return VM_FAULT_FALLBACK;
-}
+// static vm_fault_t create_huge_pud(struct vm_fault *vmf)
+// {
+// 	return VM_FAULT_FALLBACK;
+// }
 
 static vm_fault_t wp_huge_pud(struct vm_fault *vmf, pud_t orig_pud)
 {
-#if defined(CONFIG_TRANSPARENT_HUGEPAGE) &&			\
-	defined(CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD)
-	/* No support for anonymous transparent PUD pages yet */
-	if (vma_is_anonymous(vmf->vma))
-		goto split;
-	if (vmf->vma->vm_ops->huge_fault) {
-		vm_fault_t ret = vmf->vma->vm_ops->huge_fault(vmf, PE_SIZE_PUD);
-
-		if (!(ret & VM_FAULT_FALLBACK))
-			return ret;
-	}
-split:
-	/* COW or write-notify not handled on PUD level: split pud.*/
-	__split_huge_pud(vmf->vma, vmf->pud, vmf->address);
-#endif /* CONFIG_TRANSPARENT_HUGEPAGE && CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD */
 	return VM_FAULT_FALLBACK;
 }
 
@@ -4540,11 +4403,12 @@ static vm_fault_t __handle_mm_fault(struct vm_area_struct *vma,
 	if (!vmf.pud)
 		return VM_FAULT_OOM;
 retry_pud:
-	if (pud_none(*vmf.pud) && __transparent_hugepage_enabled(vma)) {
-		ret = create_huge_pud(&vmf);
-		if (!(ret & VM_FAULT_FALLBACK))
-			return ret;
-	} else {
+	// if (pud_none(*vmf.pud) && __transparent_hugepage_enabled(vma)) {
+	// 	ret = create_huge_pud(&vmf);
+	// 	if (!(ret & VM_FAULT_FALLBACK))
+	// 		return ret;
+	// } else {
+	{
 		pud_t orig_pud = *vmf.pud;
 
 		barrier();
@@ -4571,11 +4435,12 @@ retry_pud:
 	if (pud_trans_unstable(vmf.pud))
 		goto retry_pud;
 
-	if (pmd_none(*vmf.pmd) && __transparent_hugepage_enabled(vma)) {
-		ret = create_huge_pmd(&vmf);
-		if (!(ret & VM_FAULT_FALLBACK))
-			return ret;
-	} else {
+	// if (pmd_none(*vmf.pmd) && __transparent_hugepage_enabled(vma)) {
+	// 	ret = create_huge_pmd(&vmf);
+	// 	if (!(ret & VM_FAULT_FALLBACK))
+	// 		return ret;
+	// } else {
+	{
 		pmd_t orig_pmd = *vmf.pmd;
 
 		barrier();
@@ -4586,19 +4451,19 @@ retry_pud:
 				pmd_migration_entry_wait(mm, vmf.pmd);
 			return 0;
 		}
-		if (pmd_trans_huge(orig_pmd) || pmd_devmap(orig_pmd)) {
-			if (pmd_protnone(orig_pmd) && vma_is_accessible(vma))
-				return do_huge_pmd_numa_page(&vmf, orig_pmd);
+		// if (pmd_trans_huge(orig_pmd) || pmd_devmap(orig_pmd)) {
+		// 	if (pmd_protnone(orig_pmd) && vma_is_accessible(vma))
+		// 		return do_huge_pmd_numa_page(&vmf, orig_pmd);
 
-			if (dirty && !pmd_write(orig_pmd)) {
-				ret = wp_huge_pmd(&vmf, orig_pmd);
-				if (!(ret & VM_FAULT_FALLBACK))
-					return ret;
-			} else {
-				huge_pmd_set_accessed(&vmf, orig_pmd);
-				return 0;
-			}
-		}
+		// 	if (dirty && !pmd_write(orig_pmd)) {
+		// 		ret = wp_huge_pmd(&vmf, orig_pmd);
+		// 		if (!(ret & VM_FAULT_FALLBACK))
+		// 			return ret;
+		// 	} else {
+		// 		huge_pmd_set_accessed(&vmf, orig_pmd);
+		// 		return 0;
+		// 	}
+		// }
 	}
 
 	return handle_pte_fault(&vmf);

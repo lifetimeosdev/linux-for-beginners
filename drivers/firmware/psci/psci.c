@@ -285,15 +285,16 @@ static int __init psci_features(u32 psci_func_id)
 			      psci_func_id, 0, 0);
 }
 
-static int psci_system_suspend(unsigned long unused)
-{
-	return invoke_psci_fn(PSCI_FN_NATIVE(1_0, SYSTEM_SUSPEND),
-			      __pa_symbol(cpu_resume), 0, 0);
-}
+// static int psci_system_suspend(unsigned long unused)
+// {
+// 	return invoke_psci_fn(PSCI_FN_NATIVE(1_0, SYSTEM_SUSPEND),
+// 			      __pa_symbol(cpu_resume), 0, 0);
+// }
 
 static int psci_system_suspend_enter(suspend_state_t state)
 {
-	return cpu_suspend(0, psci_system_suspend);
+	//TODO: return cpu_suspend(0, psci_system_suspend);
+	return 0;
 }
 
 static const struct platform_suspend_ops psci_suspend_ops = {

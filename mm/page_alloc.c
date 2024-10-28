@@ -339,9 +339,6 @@ compound_page_dtor * const compound_page_dtors[NR_COMPOUND_DTORS] = {
 #ifdef CONFIG_HUGETLB_PAGE
 	[HUGETLB_PAGE_DTOR] = free_huge_page,
 #endif
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-	[TRANSHUGE_PAGE_DTOR] = free_transhuge_page,
-#endif
 };
 
 int min_free_kbytes = 1024;
@@ -5465,11 +5462,6 @@ void show_free_areas(unsigned int filter, nodemask_t *nodemask)
 			" dirty:%lukB"
 			" writeback:%lukB"
 			" shmem:%lukB"
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-			" shmem_thp: %lukB"
-			" shmem_pmdmapped: %lukB"
-			" anon_thp: %lukB"
-#endif
 			" writeback_tmp:%lukB"
 			" kernel_stack:%lukB"
 			" all_unreclaimable? %s"
@@ -5486,12 +5478,6 @@ void show_free_areas(unsigned int filter, nodemask_t *nodemask)
 			K(node_page_state(pgdat, NR_FILE_DIRTY)),
 			K(node_page_state(pgdat, NR_WRITEBACK)),
 			K(node_page_state(pgdat, NR_SHMEM)),
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-			K(node_page_state(pgdat, NR_SHMEM_THPS) * HPAGE_PMD_NR),
-			K(node_page_state(pgdat, NR_SHMEM_PMDMAPPED)
-					* HPAGE_PMD_NR),
-			K(node_page_state(pgdat, NR_ANON_THPS) * HPAGE_PMD_NR),
-#endif
 			K(node_page_state(pgdat, NR_WRITEBACK_TEMP)),
 			node_page_state(pgdat, NR_KERNEL_STACK_KB),
 			pgdat->kswapd_failures >= MAX_RECLAIM_RETRIES ?
@@ -6633,18 +6619,7 @@ static unsigned long __init calc_memmap_size(unsigned long spanned_pages,
 	return PAGE_ALIGN(pages * sizeof(struct page)) >> PAGE_SHIFT;
 }
 
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-static void pgdat_init_split_queue(struct pglist_data *pgdat)
-{
-	struct deferred_split *ds_queue = &pgdat->deferred_split_queue;
-
-	spin_lock_init(&ds_queue->split_queue_lock);
-	INIT_LIST_HEAD(&ds_queue->split_queue);
-	ds_queue->split_queue_len = 0;
-}
-#else
 static void pgdat_init_split_queue(struct pglist_data *pgdat) {}
-#endif
 
 #ifdef CONFIG_COMPACTION
 static void pgdat_init_kcompactd(struct pglist_data *pgdat)

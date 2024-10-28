@@ -798,10 +798,10 @@ static bool page_referenced_one(struct page *page, struct vm_area_struct *vma,
 				if (likely(!(vma->vm_flags & VM_SEQ_READ)))
 					referenced++;
 			}
-		} else if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE)) {
-			if (pmdp_clear_flush_young_notify(vma, address,
-						pvmw.pmd))
-				referenced++;
+		// } else if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE)) {
+		// 	if (pmdp_clear_flush_young_notify(vma, address,
+		// 				pvmw.pmd))
+		// 		referenced++;
 		} else {
 			/* unexpected pmd-mapped page? */
 			WARN_ON_ONCE(1);
@@ -933,23 +933,8 @@ static bool page_mkclean_one(struct page *page, struct vm_area_struct *vma,
 			set_pte_at(vma->vm_mm, address, pte, entry);
 			ret = 1;
 		} else {
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-			pmd_t *pmd = pvmw.pmd;
-			pmd_t entry;
-
-			if (!pmd_dirty(*pmd) && !pmd_write(*pmd))
-				continue;
-
-			flush_cache_page(vma, address, page_to_pfn(page));
-			entry = pmdp_invalidate(vma, address, pmd);
-			entry = pmd_wrprotect(entry);
-			entry = pmd_mkclean(entry);
-			set_pmd_at(vma->vm_mm, address, pmd, entry);
-			ret = 1;
-#else
 			/* unexpected pmd-mapped page? */
 			WARN_ON_ONCE(1);
-#endif
 		}
 
 		/*

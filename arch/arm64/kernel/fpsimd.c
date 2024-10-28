@@ -122,12 +122,12 @@ struct fpsimd_last_state_struct {
 static DEFINE_PER_CPU(struct fpsimd_last_state_struct, fpsimd_last_state);
 
 /* Default VL for tasks that don't set it explicitly: */
-static int __sve_default_vl = -1;
+// static int __sve_default_vl = -1;
 
-static int get_sve_default_vl(void)
-{
-	return READ_ONCE(__sve_default_vl);
-}
+// static int get_sve_default_vl(void)
+// {
+// 	return READ_ONCE(__sve_default_vl);
+// }
 
 /* Dummy declaration for code that will be optimised out: */
 extern __ro_after_init DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
@@ -188,18 +188,18 @@ static bool have_cpu_fpsimd_context(void)
  * Call __sve_free() directly only if you know task can't be scheduled
  * or preempted.
  */
-static void __sve_free(struct task_struct *task)
-{
-	kfree(task->thread.sve_state);
-	task->thread.sve_state = NULL;
-}
+// static void __sve_free(struct task_struct *task)
+// {
+// 	kfree(task->thread.sve_state);
+// 	task->thread.sve_state = NULL;
+// }
 
-static void sve_free(struct task_struct *task)
-{
-	WARN_ON(test_tsk_thread_flag(task, TIF_SVE));
+// static void sve_free(struct task_struct *task)
+// {
+// 	WARN_ON(test_tsk_thread_flag(task, TIF_SVE));
 
-	__sve_free(task);
-}
+// 	__sve_free(task);
+// }
 
 /*
  * TIF_SVE controls whether a task can use SVE without trapping while
@@ -260,11 +260,11 @@ static void task_fpsimd_load(void)
 	WARN_ON(!system_supports_fpsimd());
 	WARN_ON(!have_cpu_fpsimd_context());
 
-	if (system_supports_sve() && test_thread_flag(TIF_SVE))
-		sve_load_state(sve_pffr(&current->thread),
-			       &current->thread.uw.fpsimd_state.fpsr,
-			       sve_vq_from_vl(current->thread.sve_vl) - 1);
-	else
+	// if (system_supports_sve() && test_thread_flag(TIF_SVE))
+	// 	sve_load_state(sve_pffr(&current->thread),
+	// 		       &current->thread.uw.fpsimd_state.fpsr,
+	// 		       sve_vq_from_vl(current->thread.sve_vl) - 1);
+	// else
 		fpsimd_load_state(&current->thread.uw.fpsimd_state);
 }
 
@@ -282,21 +282,21 @@ static void fpsimd_save(void)
 	WARN_ON(!have_cpu_fpsimd_context());
 
 	if (!test_thread_flag(TIF_FOREIGN_FPSTATE)) {
-		if (system_supports_sve() && test_thread_flag(TIF_SVE)) {
-			if (WARN_ON(sve_get_vl() != last->sve_vl)) {
-				/*
-				 * Can't save the user regs, so current would
-				 * re-enter user with corrupt state.
-				 * There's no way to recover, so kill it:
-				 */
-				force_signal_inject(SIGKILL, SI_KERNEL, 0, 0);
-				return;
-			}
+		// if (system_supports_sve() && test_thread_flag(TIF_SVE)) {
+		// 	if (WARN_ON(sve_get_vl() != last->sve_vl)) {
+		// 		/*
+		// 		 * Can't save the user regs, so current would
+		// 		 * re-enter user with corrupt state.
+		// 		 * There's no way to recover, so kill it:
+		// 		 */
+		// 		force_signal_inject(SIGKILL, SI_KERNEL, 0, 0);
+		// 		return;
+		// 	}
 
-			sve_save_state((char *)last->sve_state +
-						sve_ffr_offset(last->sve_vl),
-				       &last->st->fpsr);
-		} else
+		// 	sve_save_state((char *)last->sve_state +
+		// 				sve_ffr_offset(last->sve_vl),
+		// 		       &last->st->fpsr);
+		// } else
 			fpsimd_save_state(last->st);
 	}
 }
@@ -307,24 +307,24 @@ static void fpsimd_save(void)
  * If things go wrong there's a bug somewhere, but try to fall back to a
  * safe choice.
  */
-static unsigned int find_supported_vector_length(unsigned int vl)
-{
-	int bit;
-	int max_vl = sve_max_vl;
+// static unsigned int find_supported_vector_length(unsigned int vl)
+// {
+// 	int bit;
+// 	int max_vl = sve_max_vl;
 
-	if (WARN_ON(!sve_vl_valid(vl)))
-		vl = SVE_VL_MIN;
+// 	if (WARN_ON(!sve_vl_valid(vl)))
+// 		vl = SVE_VL_MIN;
 
-	if (WARN_ON(!sve_vl_valid(max_vl)))
-		max_vl = SVE_VL_MIN;
+// 	if (WARN_ON(!sve_vl_valid(max_vl)))
+// 		max_vl = SVE_VL_MIN;
 
-	if (vl > max_vl)
-		vl = max_vl;
+// 	if (vl > max_vl)
+// 		vl = max_vl;
 
-	bit = find_next_bit(sve_vq_map, SVE_VQ_MAX,
-			    __vq_to_bit(sve_vq_from_vl(vl)));
-	return sve_vl_from_vq(__bit_to_vq(bit));
-}
+// 	bit = find_next_bit(sve_vq_map, SVE_VQ_MAX,
+// 			    __vq_to_bit(sve_vq_from_vl(vl)));
+// 	return sve_vl_from_vq(__bit_to_vq(bit));
+// }
 
 #if defined(CONFIG_ARM64_SVE) && defined(CONFIG_SYSCTL)
 
@@ -550,7 +550,7 @@ void fpsimd_thread_switch(struct task_struct *next)
 
 void fpsimd_flush_thread(void)
 {
-	int vl, supported_vl;
+	// int vl, supported_vl;
 
 	if (!system_supports_fpsimd())
 		return;
@@ -561,40 +561,40 @@ void fpsimd_flush_thread(void)
 	memset(&current->thread.uw.fpsimd_state, 0,
 	       sizeof(current->thread.uw.fpsimd_state));
 
-	if (system_supports_sve()) {
-		clear_thread_flag(TIF_SVE);
-		sve_free(current);
+	// if (system_supports_sve()) {
+	// 	clear_thread_flag(TIF_SVE);
+	// 	sve_free(current);
 
-		/*
-		 * Reset the task vector length as required.
-		 * This is where we ensure that all user tasks have a valid
-		 * vector length configured: no kernel task can become a user
-		 * task without an exec and hence a call to this function.
-		 * By the time the first call to this function is made, all
-		 * early hardware probing is complete, so __sve_default_vl
-		 * should be valid.
-		 * If a bug causes this to go wrong, we make some noise and
-		 * try to fudge thread.sve_vl to a safe value here.
-		 */
-		vl = current->thread.sve_vl_onexec ?
-			current->thread.sve_vl_onexec : get_sve_default_vl();
+	// 	/*
+	// 	 * Reset the task vector length as required.
+	// 	 * This is where we ensure that all user tasks have a valid
+	// 	 * vector length configured: no kernel task can become a user
+	// 	 * task without an exec and hence a call to this function.
+	// 	 * By the time the first call to this function is made, all
+	// 	 * early hardware probing is complete, so __sve_default_vl
+	// 	 * should be valid.
+	// 	 * If a bug causes this to go wrong, we make some noise and
+	// 	 * try to fudge thread.sve_vl to a safe value here.
+	// 	 */
+	// 	vl = current->thread.sve_vl_onexec ?
+	// 		current->thread.sve_vl_onexec : get_sve_default_vl();
 
-		if (WARN_ON(!sve_vl_valid(vl)))
-			vl = SVE_VL_MIN;
+	// 	if (WARN_ON(!sve_vl_valid(vl)))
+	// 		vl = SVE_VL_MIN;
 
-		supported_vl = find_supported_vector_length(vl);
-		if (WARN_ON(supported_vl != vl))
-			vl = supported_vl;
+	// 	supported_vl = find_supported_vector_length(vl);
+	// 	if (WARN_ON(supported_vl != vl))
+	// 		vl = supported_vl;
 
-		current->thread.sve_vl = vl;
+	// 	current->thread.sve_vl = vl;
 
-		/*
-		 * If the task is not set to inherit, ensure that the vector
-		 * length will be reset by a subsequent exec:
-		 */
-		if (!test_thread_flag(TIF_SVE_VL_INHERIT))
-			current->thread.sve_vl_onexec = 0;
-	}
+	// 	/*
+	// 	 * If the task is not set to inherit, ensure that the vector
+	// 	 * length will be reset by a subsequent exec:
+	// 	 */
+	// 	if (!test_thread_flag(TIF_SVE_VL_INHERIT))
+	// 		current->thread.sve_vl_onexec = 0;
+	// }
 
 	put_cpu_fpsimd_context();
 }

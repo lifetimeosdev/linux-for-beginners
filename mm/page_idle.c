@@ -68,9 +68,9 @@ static bool page_idle_clear_pte_refs_one(struct page *page,
 			 */
 			if (ptep_clear_young_notify(vma, addr, pvmw.pte))
 				referenced = true;
-		} else if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE)) {
-			if (pmdp_clear_young_notify(vma, addr, pvmw.pmd))
-				referenced = true;
+		// } else if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE)) {
+		// 	if (pmdp_clear_young_notify(vma, addr, pvmw.pmd))
+		// 		referenced = true;
 		} else {
 			/* unexpected pmd-mapped page? */
 			WARN_ON_ONCE(1);

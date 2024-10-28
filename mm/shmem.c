@@ -471,183 +471,6 @@ static bool shmem_confirm_swap(struct address_space *mapping,
 #define SHMEM_HUGE_DENY		(-1)
 #define SHMEM_HUGE_FORCE	(-2)
 
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-/* ifdef here to avoid bloating shmem.o when not necessary */
-
-static int shmem_huge __read_mostly;
-
-#if defined(CONFIG_SYSFS)
-static int shmem_parse_huge(const char *str)
-{
-	if (!strcmp(str, "never"))
-		return SHMEM_HUGE_NEVER;
-	if (!strcmp(str, "always"))
-		return SHMEM_HUGE_ALWAYS;
-	if (!strcmp(str, "within_size"))
-		return SHMEM_HUGE_WITHIN_SIZE;
-	if (!strcmp(str, "advise"))
-		return SHMEM_HUGE_ADVISE;
-	if (!strcmp(str, "deny"))
-		return SHMEM_HUGE_DENY;
-	if (!strcmp(str, "force"))
-		return SHMEM_HUGE_FORCE;
-	return -EINVAL;
-}
-#endif
-
-#if defined(CONFIG_SYSFS) || defined(CONFIG_TMPFS)
-static const char *shmem_format_huge(int huge)
-{
-	switch (huge) {
-	case SHMEM_HUGE_NEVER:
-		return "never";
-	case SHMEM_HUGE_ALWAYS:
-		return "always";
-	case SHMEM_HUGE_WITHIN_SIZE:
-		return "within_size";
-	case SHMEM_HUGE_ADVISE:
-		return "advise";
-	case SHMEM_HUGE_DENY:
-		return "deny";
-	case SHMEM_HUGE_FORCE:
-		return "force";
-	default:
-		VM_BUG_ON(1);
-		return "bad_val";
-	}
-}
-#endif
-
-static unsigned long shmem_unused_huge_shrink(struct shmem_sb_info *sbinfo,
-		struct shrink_control *sc, unsigned long nr_to_split)
-{
-	LIST_HEAD(list), *pos, *next;
-	LIST_HEAD(to_remove);
-	struct inode *inode;
-	struct shmem_inode_info *info;
-	struct page *page;
-	unsigned long batch = sc ? sc->nr_to_scan : 128;
-	int split = 0;
-
-	if (list_empty(&sbinfo->shrinklist))
-		return SHRINK_STOP;
-
-	spin_lock(&sbinfo->shrinklist_lock);
-	list_for_each_safe(pos, next, &sbinfo->shrinklist) {
-		info = list_entry(pos, struct shmem_inode_info, shrinklist);
-
-		/* pin the inode */
-		inode = igrab(&info->vfs_inode);
-
-		/* inode is about to be evicted */
-		if (!inode) {
-			list_del_init(&info->shrinklist);
-			goto next;
-		}
-
-		/* Check if there's anything to gain */
-		if (round_up(inode->i_size, PAGE_SIZE) ==
-				round_up(inode->i_size, HPAGE_PMD_SIZE)) {
-			list_move(&info->shrinklist, &to_remove);
-			goto next;
-		}
-
-		list_move(&info->shrinklist, &list);
-next:
-		sbinfo->shrinklist_len--;
-		if (!--batch)
-			break;
-	}
-	spin_unlock(&sbinfo->shrinklist_lock);
-
-	list_for_each_safe(pos, next, &to_remove) {
-		info = list_entry(pos, struct shmem_inode_info, shrinklist);
-		inode = &info->vfs_inode;
-		list_del_init(&info->shrinklist);
-		iput(inode);
-	}
-
-	list_for_each_safe(pos, next, &list) {
-		int ret;
-
-		info = list_entry(pos, struct shmem_inode_info, shrinklist);
-		inode = &info->vfs_inode;
-
-		if (nr_to_split && split >= nr_to_split)
-			goto move_back;
-
-		page = find_get_page(inode->i_mapping,
-				(inode->i_size & HPAGE_PMD_MASK) >> PAGE_SHIFT);
-		if (!page)
-			goto drop;
-
-		/* No huge page at the end of the file: nothing to split */
-		if (!PageTransHuge(page)) {
-			put_page(page);
-			goto drop;
-		}
-
-		/*
-		 * Move the inode on the list back to shrinklist if we failed
-		 * to lock the page at this time.
-		 *
-		 * Waiting for the lock may lead to deadlock in the
-		 * reclaim path.
-		 */
-		if (!trylock_page(page)) {
-			put_page(page);
-			goto move_back;
-		}
-
-		ret = split_huge_page(page);
-		unlock_page(page);
-		put_page(page);
-
-		/* If split failed move the inode on the list back to shrinklist */
-		if (ret)
-			goto move_back;
-
-		split++;
-drop:
-		list_del_init(&info->shrinklist);
-		goto put;
-move_back:
-		/*
-		 * Make sure the inode is either on the global list or deleted
-		 * from any local list before iput() since it could be deleted
-		 * in another thread once we put the inode (then the local list
-		 * is corrupted).
-		 */
-		spin_lock(&sbinfo->shrinklist_lock);
-		list_move(&info->shrinklist, &sbinfo->shrinklist);
-		sbinfo->shrinklist_len++;
-		spin_unlock(&sbinfo->shrinklist_lock);
-put:
-		iput(inode);
-	}
-
-	return split;
-}
-
-static long shmem_unused_huge_scan(struct super_block *sb,
-		struct shrink_control *sc)
-{
-	struct shmem_sb_info *sbinfo = SHMEM_SB(sb);
-
-	if (!READ_ONCE(sbinfo->shrinklist_len))
-		return SHRINK_STOP;
-
-	return shmem_unused_huge_shrink(sbinfo, sc, 0);
-}
-
-static long shmem_unused_huge_count(struct super_block *sb,
-		struct shrink_control *sc)
-{
-	struct shmem_sb_info *sbinfo = SHMEM_SB(sb);
-	return READ_ONCE(sbinfo->shrinklist_len);
-}
-#else /* !CONFIG_TRANSPARENT_HUGEPAGE */
-
 #define shmem_huge SHMEM_HUGE_DENY
 
 static unsigned long shmem_unused_huge_shrink(struct shmem_sb_info *sbinfo,
@@ -655,14 +478,13 @@ static unsigned long shmem_unused_huge_shrink(struct shmem_sb_info *sbinfo,
 {
 	return 0;
 }
-#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
 
 static inline bool is_huge_enabled(struct shmem_sb_info *sbinfo)
 {
-	if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE) &&
-	    (shmem_huge == SHMEM_HUGE_FORCE || sbinfo->huge) &&
-	    shmem_huge != SHMEM_HUGE_DENY)
-		return true;
+	// if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE) &&
+	//     (shmem_huge == SHMEM_HUGE_FORCE || sbinfo->huge) &&
+	//     shmem_huge != SHMEM_HUGE_DENY)
+	// 	return true;
 	return false;
 }
 
@@ -1035,15 +857,15 @@ static void shmem_undo_range(struct inode *inode, loff_t lstart, loff_t lend,
 				VM_BUG_ON_PAGE(PageWriteback(page), page);
 				if (shmem_punch_compound(page, start, end))
 					truncate_inode_page(mapping, page);
-				else if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE)) {
-					/* Wipe the page and don't get stuck */
-					clear_highpage(page);
-					flush_dcache_page(page);
-					set_page_dirty(page);
-					if (index <
-					    round_up(start, HPAGE_PMD_NR))
-						start = index + 1;
-				}
+				// else if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE)) {
+				// 	/* Wipe the page and don't get stuck */
+				// 	clear_highpage(page);
+				// 	flush_dcache_page(page);
+				// 	set_page_dirty(page);
+				// 	if (index <
+				// 	    round_up(start, HPAGE_PMD_NR))
+				// 		start = index + 1;
+				// }
 			}
 			unlock_page(page);
 		}
@@ -1089,7 +911,7 @@ static int shmem_setattr(struct dentry *dentry, struct iattr *attr)
 {
 	struct inode *inode = d_inode(dentry);
 	struct shmem_inode_info *info = SHMEM_I(inode);
-	struct shmem_sb_info *sbinfo = SHMEM_SB(inode->i_sb);
+	// struct shmem_sb_info *sbinfo = SHMEM_SB(inode->i_sb);
 	int error;
 
 	error = setattr_prepare(dentry, attr);
@@ -1130,19 +952,19 @@ static int shmem_setattr(struct dentry *dentry, struct iattr *attr)
 			 * Part of the huge page can be beyond i_size: subject
 			 * to shrink under memory pressure.
 			 */
-			if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE)) {
-				spin_lock(&sbinfo->shrinklist_lock);
-				/*
-				 * _careful to defend against unlocked access to
-				 * ->shrink_list in shmem_unused_huge_shrink()
-				 */
-				if (list_empty_careful(&info->shrinklist)) {
-					list_add_tail(&info->shrinklist,
-							&sbinfo->shrinklist);
-					sbinfo->shrinklist_len++;
-				}
-				spin_unlock(&sbinfo->shrinklist_lock);
-			}
+			// if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE)) {
+			// 	spin_lock(&sbinfo->shrinklist_lock);
+			// 	/*
+			// 	 * _careful to defend against unlocked access to
+			// 	 * ->shrink_list in shmem_unused_huge_shrink()
+			// 	 */
+			// 	if (list_empty_careful(&info->shrinklist)) {
+			// 		list_add_tail(&info->shrinklist,
+			// 				&sbinfo->shrinklist);
+			// 		sbinfo->shrinklist_len++;
+			// 	}
+			// 	spin_unlock(&sbinfo->shrinklist_lock);
+			// }
 		}
 	}
 
@@ -2254,11 +2076,11 @@ static int shmem_mmap(struct file *file, struct vm_area_struct *vma)
 
 	file_accessed(file);
 	vma->vm_ops = &shmem_vm_ops;
-	if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE) &&
-			((vma->vm_start + ~HPAGE_PMD_MASK) & HPAGE_PMD_MASK) <
-			(vma->vm_end & HPAGE_PMD_MASK)) {
-		khugepaged_enter(vma, vma->vm_flags);
-	}
+	// if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE) &&
+	// 		((vma->vm_start + ~HPAGE_PMD_MASK) & HPAGE_PMD_MASK) <
+	// 		(vma->vm_end & HPAGE_PMD_MASK)) {
+	// 	khugepaged_enter(vma, vma->vm_flags);
+	// }
 	return 0;
 }
 
@@ -3693,11 +3515,6 @@ static int shmem_show_options(struct seq_file *seq, struct dentry *root)
 	 */
 	if (IS_ENABLED(CONFIG_TMPFS_INODE64) || sbinfo->full_inums)
 		seq_printf(seq, ",inode%d", (sbinfo->full_inums ? 64 : 32));
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-	/* Rightly or wrongly, show huge mount option unmasked by shmem_huge */
-	if (sbinfo->huge)
-		seq_printf(seq, ",huge=%s", shmem_format_huge(sbinfo->huge));
-#endif
 	shmem_show_mpol(seq, sbinfo->mpol);
 	return 0;
 }
@@ -3947,10 +3764,6 @@ static const struct super_operations shmem_ops = {
 	.evict_inode	= shmem_evict_inode,
 	.drop_inode	= generic_delete_inode,
 	.put_super	= shmem_put_super,
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-	.nr_cached_objects	= shmem_unused_huge_count,
-	.free_cached_objects	= shmem_unused_huge_scan,
-#endif
 };
 
 static const struct vm_operations_struct shmem_vm_ops = {
@@ -4005,12 +3818,6 @@ int __init shmem_init(void)
 		goto out1;
 	}
 
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-	if (has_transparent_hugepage() && shmem_huge > SHMEM_HUGE_DENY)
-		SHMEM_SB(shm_mnt->mnt_sb)->huge = shmem_huge;
-	else
-		shmem_huge = 0; /* just in case it was patched */
-#endif
 	return 0;
 
 out1:
@@ -4074,42 +3881,6 @@ static ssize_t shmem_enabled_store(struct kobject *kobj,
 struct kobj_attribute shmem_enabled_attr =
 	__ATTR(shmem_enabled, 0644, shmem_enabled_show, shmem_enabled_store);
 #endif /* CONFIG_TRANSPARENT_HUGEPAGE && CONFIG_SYSFS */
-
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-bool shmem_huge_enabled(struct vm_area_struct *vma)
-{
-	struct inode *inode = file_inode(vma->vm_file);
-	struct shmem_sb_info *sbinfo = SHMEM_SB(inode->i_sb);
-	loff_t i_size;
-	pgoff_t off;
-
-	if (!transhuge_vma_enabled(vma, vma->vm_flags))
-		return false;
-	if (shmem_huge == SHMEM_HUGE_FORCE)
-		return true;
-	if (shmem_huge == SHMEM_HUGE_DENY)
-		return false;
-	switch (sbinfo->huge) {
-		case SHMEM_HUGE_NEVER:
-			return false;
-		case SHMEM_HUGE_ALWAYS:
-			return true;
-		case SHMEM_HUGE_WITHIN_SIZE:
-			off = round_up(vma->vm_pgoff, HPAGE_PMD_NR);
-			i_size = round_up(i_size_read(inode), PAGE_SIZE);
-			if (i_size >= HPAGE_PMD_SIZE &&
-					i_size >> PAGE_SHIFT >= off)
-				return true;
-			fallthrough;
-		case SHMEM_HUGE_ADVISE:
-			/* TODO: implement fadvise() hints */
-			return (vma->vm_flags & VM_HUGEPAGE);
-		default:
-			VM_BUG_ON(1);
-			return false;
-	}
-}
-#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
 
 #else /* !CONFIG_SHMEM */
 
@@ -4278,11 +4049,11 @@ int shmem_zero_setup(struct vm_area_struct *vma)
 	vma->vm_file = file;
 	vma->vm_ops = &shmem_vm_ops;
 
-	if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE) &&
-			((vma->vm_start + ~HPAGE_PMD_MASK) & HPAGE_PMD_MASK) <
-			(vma->vm_end & HPAGE_PMD_MASK)) {
-		khugepaged_enter(vma, vma->vm_flags);
-	}
+	// if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE) &&
+	// 		((vma->vm_start + ~HPAGE_PMD_MASK) & HPAGE_PMD_MASK) <
+	// 		(vma->vm_end & HPAGE_PMD_MASK)) {
+	// 	khugepaged_enter(vma, vma->vm_flags);
+	// }
 
 	return 0;
 }

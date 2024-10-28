@@ -1180,34 +1180,6 @@ static struct Qdisc *qdisc_create(struct net_device *dev,
 	struct qdisc_size_table *stab;
 
 	ops = qdisc_lookup_ops(kind);
-#ifdef CONFIG_MODULES
-	if (ops == NULL && kind != NULL) {
-		char name[IFNAMSIZ];
-		if (nla_strlcpy(name, kind, IFNAMSIZ) < IFNAMSIZ) {
-			/* We dropped the RTNL semaphore in order to
-			 * perform the module load.  So, even if we
-			 * succeeded in loading the module we have to
-			 * tell the caller to replay the request.  We
-			 * indicate this using -EAGAIN.
-			 * We replay the request because the device may
-			 * go away in the mean time.
-			 */
-			rtnl_unlock();
-			request_module("sch_%s", name);
-			rtnl_lock();
-			ops = qdisc_lookup_ops(kind);
-			if (ops != NULL) {
-				/* We will try again qdisc_lookup_ops,
-				 * so don't keep a reference.
-				 */
-				module_put(ops->owner);
-				err = -EAGAIN;
-				goto err_out;
-			}
-		}
-	}
-#endif
-
 	err = -ENOENT;
 	if (!ops) {
 		NL_SET_ERR_MSG(extack, "Specified qdisc kind is unknown");

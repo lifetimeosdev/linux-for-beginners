@@ -679,13 +679,6 @@ static int netlink_create(struct net *net, struct socket *sock, int protocol,
 	protocol = array_index_nospec(protocol, MAX_LINKS);
 
 	netlink_lock_table();
-#ifdef CONFIG_MODULES
-	if (!nl_table[protocol].registered) {
-		netlink_unlock_table();
-		request_module("net-pf-%d-proto-%d", PF_NETLINK, protocol);
-		netlink_lock_table();
-	}
-#endif
 	if (nl_table[protocol].registered &&
 	    try_module_get(nl_table[protocol].module))
 		module = nl_table[protocol].module;

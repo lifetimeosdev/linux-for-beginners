@@ -97,59 +97,7 @@ static void __init populate_kernel_ei_list(void)
 				      NULL);
 }
 
-#ifdef CONFIG_MODULES
-static void module_load_ei_list(struct module *mod)
-{
-	if (!mod->num_ei_funcs)
-		return;
-
-	populate_error_injection_list(mod->ei_funcs,
-				      mod->ei_funcs + mod->num_ei_funcs, mod);
-}
-
-static void module_unload_ei_list(struct module *mod)
-{
-	struct ei_entry *ent, *n;
-
-	if (!mod->num_ei_funcs)
-		return;
-
-	mutex_lock(&ei_mutex);
-	list_for_each_entry_safe(ent, n, &error_injection_list, list) {
-		if (ent->priv == mod) {
-			list_del_init(&ent->list);
-			kfree(ent);
-		}
-	}
-	mutex_unlock(&ei_mutex);
-}
-
-/* Module notifier call back, checking error injection table on the module */
-static int ei_module_callback(struct notifier_block *nb,
-			      unsigned long val, void *data)
-{
-	struct module *mod = data;
-
-	if (val == MODULE_STATE_COMING)
-		module_load_ei_list(mod);
-	else if (val == MODULE_STATE_GOING)
-		module_unload_ei_list(mod);
-
-	return NOTIFY_DONE;
-}
-
-static struct notifier_block ei_module_nb = {
-	.notifier_call = ei_module_callback,
-	.priority = 0
-};
-
-static __init int module_ei_init(void)
-{
-	return register_module_notifier(&ei_module_nb);
-}
-#else /* !CONFIG_MODULES */
 #define module_ei_init()	(0)
-#endif
 
 /*
  * error_injection/whitelist -- shows which functions can be overridden for

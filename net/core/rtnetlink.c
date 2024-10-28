@@ -3275,9 +3275,6 @@ static int __rtnl_newlink(struct sk_buff *skb, struct nlmsghdr *nlh,
 	bool link_specified;
 	int err;
 
-#ifdef CONFIG_MODULES
-replay:
-#endif
 	err = nlmsg_parse_deprecated(nlh, sizeof(*ifm), tb, IFLA_MAX,
 				     ifla_policy, extack);
 	if (err < 0)
@@ -3424,16 +3421,6 @@ replay:
 		return -EOPNOTSUPP;
 
 	if (!ops) {
-#ifdef CONFIG_MODULES
-		if (kind[0]) {
-			__rtnl_unlock();
-			request_module("rtnl-link-%s", kind);
-			rtnl_lock();
-			ops = rtnl_link_ops_get(kind);
-			if (ops)
-				goto replay;
-		}
-#endif
 		NL_SET_ERR_MSG(extack, "Unknown device type");
 		return -EOPNOTSUPP;
 	}

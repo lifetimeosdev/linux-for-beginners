@@ -1875,10 +1875,10 @@ struct bpf_prog *bpf_prog_select_runtime(struct bpf_prog *fp, int *err)
 		} else {
 			bpf_prog_free_unused_jited_linfo(fp);
 		}
-	} else {
-		*err = bpf_prog_offload_compile(fp);
-		if (*err)
-			return fp;
+	// } else {
+	// 	*err = bpf_prog_offload_compile(fp);
+	// 	if (*err)
+	// 		return fp;
 	}
 
 finalize:
@@ -2185,8 +2185,8 @@ static void bpf_prog_free_deferred(struct work_struct *work)
 
 	aux = container_of(work, struct bpf_prog_aux, work);
 	bpf_free_used_maps(aux);
-	if (bpf_prog_is_dev_bound(aux))
-		bpf_prog_offload_destroy(aux->prog);
+	// if (bpf_prog_is_dev_bound(aux))
+	// 	bpf_prog_offload_destroy(aux->prog);
 #ifdef CONFIG_PERF_EVENTS
 	if (aux->prog->has_callchain_buf)
 		put_callchain_buffers();

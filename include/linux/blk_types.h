@@ -233,10 +233,6 @@ struct bio {
 #endif
 #endif
 
-#ifdef CONFIG_BLK_INLINE_ENCRYPTION
-	struct bio_crypt_ctx	*bi_crypt_context;
-#endif
-
 	union {
 #if defined(CONFIG_BLK_DEV_INTEGRITY)
 		struct bio_integrity_payload *bi_integrity; /* data integrity */

@@ -54,11 +54,7 @@ struct snd_seq_driver {
 /*
  * prototypes
  */
-#ifdef CONFIG_MODULES
-void snd_seq_device_load_drivers(void);
-#else
 #define snd_seq_device_load_drivers()
-#endif
 int snd_seq_device_new(struct snd_card *card, int device, const char *id,
 		       int argsize, struct snd_seq_device **result);
 

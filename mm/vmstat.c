@@ -1031,35 +1031,6 @@ const char * const vmstat_text[] = {
 	"unevictable_pgs_cleared",
 	"unevictable_pgs_stranded",
 
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-	"thp_fault_alloc",
-	"thp_fault_fallback",
-	"thp_fault_fallback_charge",
-	"thp_collapse_alloc",
-	"thp_collapse_alloc_failed",
-	"thp_file_alloc",
-	"thp_file_fallback",
-	"thp_file_fallback_charge",
-	"thp_file_mapped",
-	"thp_split_page",
-	"thp_split_page_failed",
-	"thp_deferred_split_page",
-	"thp_split_pmd",
-#ifdef CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD
-	"thp_split_pud",
-#endif
-	"thp_zero_page_alloc",
-	"thp_zero_page_alloc_failed",
-	"thp_swpout",
-	"thp_swpout_fallback",
-#endif
-#ifdef CONFIG_MEMORY_BALLOON
-	"balloon_inflate",
-	"balloon_deflate",
-#ifdef CONFIG_BALLOON_COMPACTION
-	"balloon_migrate",
-#endif
-#endif /* CONFIG_MEMORY_BALLOON */
 #ifdef CONFIG_DEBUG_TLBFLUSH
 	"nr_tlb_remote_flush",
 	"nr_tlb_remote_flush_received",

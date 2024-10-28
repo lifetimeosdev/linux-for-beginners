@@ -39,14 +39,6 @@ static struct tcp_congestion_ops *tcp_ca_find_autoload(struct net *net,
 {
 	struct tcp_congestion_ops *ca = tcp_ca_find(name);
 
-#ifdef CONFIG_MODULES
-	if (!ca && capable(CAP_NET_ADMIN)) {
-		rcu_read_unlock();
-		request_module("tcp_%s", name);
-		rcu_read_lock();
-		ca = tcp_ca_find(name);
-	}
-#endif
 	return ca;
 }
 

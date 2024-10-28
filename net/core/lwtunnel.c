@@ -23,39 +23,6 @@
 #include <net/ip6_fib.h>
 #include <net/rtnh.h>
 
-#ifdef CONFIG_MODULES
-
-static const char *lwtunnel_encap_str(enum lwtunnel_encap_types encap_type)
-{
-	/* Only lwt encaps implemented without using an interface for
-	 * the encap need to return a string here.
-	 */
-	switch (encap_type) {
-	case LWTUNNEL_ENCAP_MPLS:
-		return "MPLS";
-	case LWTUNNEL_ENCAP_ILA:
-		return "ILA";
-	case LWTUNNEL_ENCAP_SEG6:
-		return "SEG6";
-	case LWTUNNEL_ENCAP_BPF:
-		return "BPF";
-	case LWTUNNEL_ENCAP_SEG6_LOCAL:
-		return "SEG6LOCAL";
-	case LWTUNNEL_ENCAP_RPL:
-		return "RPL";
-	case LWTUNNEL_ENCAP_IP6:
-	case LWTUNNEL_ENCAP_IP:
-	case LWTUNNEL_ENCAP_NONE:
-	case __LWTUNNEL_ENCAP_MAX:
-		/* should not have got here */
-		WARN_ON(1);
-		break;
-	}
-	return NULL;
-}
-
-#endif /* CONFIG_MODULES */
-
 struct lwtunnel_state *lwtunnel_state_alloc(int encap_len)
 {
 	struct lwtunnel_state *lws;
@@ -153,21 +120,6 @@ int lwtunnel_valid_encap_type(u16 encap_type, struct netlink_ext_ack *extack)
 	rcu_read_lock();
 	ops = rcu_dereference(lwtun_encaps[encap_type]);
 	rcu_read_unlock();
-#ifdef CONFIG_MODULES
-	if (!ops) {
-		const char *encap_type_str = lwtunnel_encap_str(encap_type);
-
-		if (encap_type_str) {
-			__rtnl_unlock();
-			request_module("rtnl-lwt-%s", encap_type_str);
-			rtnl_lock();
-
-			rcu_read_lock();
-			ops = rcu_dereference(lwtun_encaps[encap_type]);
-			rcu_read_unlock();
-		}
-	}
-#endif
 	ret = ops ? 0 : -EOPNOTSUPP;
 	if (ret < 0)
 		NL_SET_ERR_MSG(extack, "lwt encapsulation type not supported");

@@ -37,32 +37,7 @@ extern int __frontswap_load(struct page *page);
 extern void __frontswap_invalidate_page(unsigned, pgoff_t);
 extern void __frontswap_invalidate_area(unsigned);
 
-#ifdef CONFIG_FRONTSWAP
-extern struct static_key_false frontswap_enabled_key;
-
-static inline bool frontswap_enabled(void)
-{
-	return static_branch_unlikely(&frontswap_enabled_key);
-}
-
-static inline bool frontswap_test(struct swap_info_struct *sis, pgoff_t offset)
-{
-	return __frontswap_test(sis, offset);
-}
-
-static inline void frontswap_map_set(struct swap_info_struct *p,
-				     unsigned long *map)
-{
-	p->frontswap_map = map;
-}
-
-static inline unsigned long *frontswap_map_get(struct swap_info_struct *p)
-{
-	return p->frontswap_map;
-}
-#else
 /* all inline routines become no-ops and all externs are ignored */
-
 static inline bool frontswap_enabled(void)
 {
 	return false;
@@ -82,41 +57,37 @@ static inline unsigned long *frontswap_map_get(struct swap_info_struct *p)
 {
 	return NULL;
 }
-#endif
 
 static inline int frontswap_store(struct page *page)
 {
-	if (frontswap_enabled())
-		return __frontswap_store(page);
+	// if (frontswap_enabled())
+	// 	return __frontswap_store(page);
 
 	return -1;
 }
 
 static inline int frontswap_load(struct page *page)
 {
-	if (frontswap_enabled())
-		return __frontswap_load(page);
+	// if (frontswap_enabled())
+	// 	return __frontswap_load(page);
 
 	return -1;
 }
 
 static inline void frontswap_invalidate_page(unsigned type, pgoff_t offset)
 {
-	if (frontswap_enabled())
-		__frontswap_invalidate_page(type, offset);
+	// if (frontswap_enabled())
+	// 	__frontswap_invalidate_page(type, offset);
 }
 
 static inline void frontswap_invalidate_area(unsigned type)
 {
-	if (frontswap_enabled())
-		__frontswap_invalidate_area(type);
+	// if (frontswap_enabled())
+	// 	__frontswap_invalidate_area(type);
 }
 
 static inline void frontswap_init(unsigned type, unsigned long *map)
 {
-#ifdef CONFIG_FRONTSWAP
-	__frontswap_init(type, map);
-#endif
 }
 
 #endif /* _LINUX_FRONTSWAP_H */

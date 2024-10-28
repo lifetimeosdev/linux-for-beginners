@@ -226,10 +226,6 @@ out:
 
 static inline void count_swpout_vm_event(struct page *page)
 {
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-	if (unlikely(PageTransHuge(page)))
-		count_vm_event(THP_SWPOUT);
-#endif
 	count_vm_events(PSWPOUT, thp_nr_pages(page));
 }
 
@@ -341,11 +337,11 @@ int swap_readpage(struct page *page, bool synchronous)
 	 */
 	psi_memstall_enter(&pflags);
 
-	if (frontswap_load(page) == 0) {
-		SetPageUptodate(page);
-		unlock_page(page);
-		goto out;
-	}
+	// if (frontswap_load(page) == 0) {
+	// 	SetPageUptodate(page);
+	// 	unlock_page(page);
+	// 	goto out;
+	// }
 
 	if (data_race(sis->flags & SWP_FS_OPS)) {
 		struct file *swap_file = sis->swap_file;
