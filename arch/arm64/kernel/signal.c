@@ -429,7 +429,8 @@ static int restore_sigframe(struct pt_regs *regs,
 	return err;
 }
 
-SYSCALL_DEFINE0(rt_sigreturn)
+long __arm64_sys_rt_sigreturn(const struct pt_regs *__unused);  
+long __arm64_sys_rt_sigreturn(const struct pt_regs *__unused)
 {
 	struct pt_regs *regs = current_pt_regs();
 	struct rt_sigframe __user *frame;

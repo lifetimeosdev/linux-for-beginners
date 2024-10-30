@@ -123,93 +123,10 @@ struct open_how;
 #define __SC_ARGS(t, a)	a
 #define __SC_TEST(t, a) (void)BUILD_BUG_ON_ZERO(!__TYPE_IS_LL(t) && sizeof(t) > sizeof(long))
 
-#ifdef CONFIG_FTRACE_SYSCALLS
-#define __SC_STR_ADECL(t, a)	#a
-#define __SC_STR_TDECL(t, a)	#t
-
-extern struct trace_event_class event_class_syscall_enter;
-extern struct trace_event_class event_class_syscall_exit;
-extern struct trace_event_functions enter_syscall_print_funcs;
-extern struct trace_event_functions exit_syscall_print_funcs;
-
-#define SYSCALL_TRACE_ENTER_EVENT(sname)				\
-	static struct syscall_metadata __syscall_meta_##sname;		\
-	static struct trace_event_call __used				\
-	  event_enter_##sname = {					\
-		.class			= &event_class_syscall_enter,	\
-		{							\
-			.name                   = "sys_enter"#sname,	\
-		},							\
-		.event.funcs            = &enter_syscall_print_funcs,	\
-		.data			= (void *)&__syscall_meta_##sname,\
-		.flags                  = TRACE_EVENT_FL_CAP_ANY,	\
-	};								\
-	static struct trace_event_call __used				\
-	  __section("_ftrace_events")					\
-	 *__event_enter_##sname = &event_enter_##sname;
-
-#define SYSCALL_TRACE_EXIT_EVENT(sname)					\
-	static struct syscall_metadata __syscall_meta_##sname;		\
-	static struct trace_event_call __used				\
-	  event_exit_##sname = {					\
-		.class			= &event_class_syscall_exit,	\
-		{							\
-			.name                   = "sys_exit"#sname,	\
-		},							\
-		.event.funcs		= &exit_syscall_print_funcs,	\
-		.data			= (void *)&__syscall_meta_##sname,\
-		.flags                  = TRACE_EVENT_FL_CAP_ANY,	\
-	};								\
-	static struct trace_event_call __used				\
-	  __section("_ftrace_events")					\
-	*__event_exit_##sname = &event_exit_##sname;
-
-#define SYSCALL_METADATA(sname, nb, ...)			\
-	static const char *types_##sname[] = {			\
-		__MAP(nb,__SC_STR_TDECL,__VA_ARGS__)		\
-	};							\
-	static const char *args_##sname[] = {			\
-		__MAP(nb,__SC_STR_ADECL,__VA_ARGS__)		\
-	};							\
-	SYSCALL_TRACE_ENTER_EVENT(sname);			\
-	SYSCALL_TRACE_EXIT_EVENT(sname);			\
-	static struct syscall_metadata __used			\
-	  __syscall_meta_##sname = {				\
-		.name 		= "sys"#sname,			\
-		.syscall_nr	= -1,	/* Filled in at boot */	\
-		.nb_args 	= nb,				\
-		.types		= nb ? types_##sname : NULL,	\
-		.args		= nb ? args_##sname : NULL,	\
-		.enter_event	= &event_enter_##sname,		\
-		.exit_event	= &event_exit_##sname,		\
-		.enter_fields	= LIST_HEAD_INIT(__syscall_meta_##sname.enter_fields), \
-	};							\
-	static struct syscall_metadata __used			\
-	  __section("__syscalls_metadata")			\
-	 *__p_syscall_meta_##sname = &__syscall_meta_##sname;
-
-static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
-{
-	return tp_event->class == &event_class_syscall_enter ||
-	       tp_event->class == &event_class_syscall_exit;
-}
-
-#else
-#define SYSCALL_METADATA(sname, nb, ...)
-
 static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
 {
 	return 0;
 }
-#endif
-
-#ifndef SYSCALL_DEFINE0
-#define SYSCALL_DEFINE0(sname)					\
-	SYSCALL_METADATA(_##sname, 0);				\
-	asmlinkage long sys_##sname(void);			\
-	ALLOW_ERROR_INJECTION(sys_##sname, ERRNO);		\
-	asmlinkage long sys_##sname(void)
-#endif /* SYSCALL_DEFINE0 */
 
 #define SYSCALL_DEFINE1(name, ...) SYSCALL_DEFINEx(1, _##name, __VA_ARGS__)
 #define SYSCALL_DEFINE2(name, ...) SYSCALL_DEFINEx(2, _##name, __VA_ARGS__)
@@ -221,36 +138,9 @@ static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
 #define SYSCALL_DEFINE_MAXARGS	6
 
 #define SYSCALL_DEFINEx(x, sname, ...)				\
-	SYSCALL_METADATA(sname, x, __VA_ARGS__)			\
 	__SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
 
 #define __PROTECT(...) asmlinkage_protect(__VA_ARGS__)
-
-/*
- * The asmlinkage stub is aliased to a function named __se_sys_*() which
- * sign-extends 32-bit ints to longs whenever needed. The actual work is
- * done within __do_sys_*().
- */
-#ifndef __SYSCALL_DEFINEx
-#define __SYSCALL_DEFINEx(x, name, ...)					\
-	__diag_push();							\
-	__diag_ignore(GCC, 8, "-Wattribute-alias",			\
-		      "Type aliasing is used to sanitize syscall arguments");\
-	asmlinkage long sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))	\
-		__attribute__((alias(__stringify(__se_sys##name))));	\
-	ALLOW_ERROR_INJECTION(sys##name, ERRNO);			\
-	static inline long __do_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
-	asmlinkage long __se_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__));	\
-	asmlinkage long __se_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__))	\
-	{								\
-		long ret = __do_sys##name(__MAP(x,__SC_CAST,__VA_ARGS__));\
-		__MAP(x,__SC_TEST,__VA_ARGS__);				\
-		__PROTECT(x, ret,__MAP(x,__SC_ARGS,__VA_ARGS__));	\
-		return ret;						\
-	}								\
-	__diag_pop();							\
-	static inline long __do_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))
-#endif /* __SYSCALL_DEFINEx */
 
 /* For split 64-bit arguments on 32-bit architectures */
 #ifdef __LITTLE_ENDIAN
@@ -698,12 +588,10 @@ asmlinkage long sys_tgkill(pid_t tgid, pid_t pid, int sig);
 asmlinkage long sys_sigaltstack(const struct sigaltstack __user *uss,
 				struct sigaltstack __user *uoss);
 asmlinkage long sys_rt_sigsuspend(sigset_t __user *unewset, size_t sigsetsize);
-#ifndef CONFIG_ODD_RT_SIGACTION
 asmlinkage long sys_rt_sigaction(int,
 				 const struct sigaction __user *,
 				 struct sigaction __user *,
 				 size_t);
-#endif
 asmlinkage long sys_rt_sigprocmask(int how, sigset_t __user *set,
 				sigset_t __user *oset, size_t sigsetsize);
 asmlinkage long sys_rt_sigpending(sigset_t __user *set, size_t sigsetsize);

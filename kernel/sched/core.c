@@ -5929,7 +5929,8 @@ static void do_sched_yield(void)
 	schedule();
 }
 
-SYSCALL_DEFINE0(sched_yield)
+long __arm64_sys_sched_yield(const struct pt_regs *__unused);
+long __arm64_sys_sched_yield(const struct pt_regs *__unused)
 {
 	do_sched_yield();
 	return 0;
@@ -6232,19 +6233,6 @@ SYSCALL_DEFINE2(sched_rr_get_interval, pid_t, pid,
 
 	return retval;
 }
-
-#ifdef CONFIG_COMPAT_32BIT_TIME
-SYSCALL_DEFINE2(sched_rr_get_interval_time32, pid_t, pid,
-		struct old_timespec32 __user *, interval)
-{
-	struct timespec64 t;
-	int retval = sched_rr_get_interval(pid, &t);
-
-	if (retval == 0)
-		retval = put_old_timespec32(&t, interval);
-	return retval;
-}
-#endif
 
 void sched_show_task(struct task_struct *p)
 {

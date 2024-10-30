@@ -1194,4 +1194,4 @@ int should_failslab(struct kmem_cache *s, gfp_t gfpflags)
 		return -ENOMEM;
 	return 0;
 }
-ALLOW_ERROR_INJECTION(should_failslab, ERRNO);
+// ALLOW_ERROR_INJECTION(should_failslab, ERRNO);

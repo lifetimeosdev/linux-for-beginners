@@ -122,7 +122,8 @@ void ksys_sync(void)
 		laptop_sync_completion();
 }
 
-SYSCALL_DEFINE0(sync)
+long __arm64_sys_sync(const struct pt_regs *__unused);
+long __arm64_sys_sync(const struct pt_regs *__unused)
 {
 	ksys_sync();
 	return 0;

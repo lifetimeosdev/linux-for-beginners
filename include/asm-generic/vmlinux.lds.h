@@ -200,14 +200,7 @@
 #define KPROBE_BLACKLIST()
 #endif
 
-#ifdef CONFIG_FUNCTION_ERROR_INJECTION
-#define ERROR_INJECT_WHITELIST()	STRUCT_ALIGN();			      \
-			__start_error_injection_whitelist = .;		      \
-			KEEP(*(_error_injection_whitelist))		      \
-			__stop_error_injection_whitelist = .;
-#else
 #define ERROR_INJECT_WHITELIST()
-#endif
 
 #ifdef CONFIG_EVENT_TRACING
 #define FTRACE_EVENTS()	. = ALIGN(8);					\

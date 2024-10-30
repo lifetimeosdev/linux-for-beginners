@@ -737,23 +737,6 @@ SYSCALL_DEFINE2(timer_gettime, timer_t, timer_id,
 	return ret;
 }
 
-#ifdef CONFIG_COMPAT_32BIT_TIME
-
-SYSCALL_DEFINE2(timer_gettime32, timer_t, timer_id,
-		struct old_itimerspec32 __user *, setting)
-{
-	struct itimerspec64 cur_setting;
-
-	int ret = do_timer_gettime(timer_id, &cur_setting);
-	if (!ret) {
-		if (put_old_itimerspec32(&cur_setting, setting))
-			ret = -EFAULT;
-	}
-	return ret;
-}
-
-#endif
-
 /*
  * Get the number of overruns of a POSIX.1b interval timer.  This is to
  * be the overrun of the timer last delivered.  At the same time we are
@@ -949,29 +932,6 @@ SYSCALL_DEFINE4(timer_settime, timer_t, timer_id, int, flags,
 	}
 	return error;
 }
-
-#ifdef CONFIG_COMPAT_32BIT_TIME
-SYSCALL_DEFINE4(timer_settime32, timer_t, timer_id, int, flags,
-		struct old_itimerspec32 __user *, new,
-		struct old_itimerspec32 __user *, old)
-{
-	struct itimerspec64 new_spec, old_spec;
-	struct itimerspec64 *rtn = old ? &old_spec : NULL;
-	int error = 0;
-
-	if (!new)
-		return -EINVAL;
-	if (get_old_itimerspec32(&new_spec, new))
-		return -EFAULT;
-
-	error = do_timer_settime(timer_id, flags, &new_spec, rtn);
-	if (!error && old) {
-		if (put_old_itimerspec32(&old_spec, old))
-			error = -EFAULT;
-	}
-	return error;
-}
-#endif
 
 int common_timer_del(struct k_itimer *timer)
 {
@@ -1173,78 +1133,6 @@ SYSCALL_DEFINE2(clock_getres, const clockid_t, which_clock,
 	return error;
 }
 
-#ifdef CONFIG_COMPAT_32BIT_TIME
-
-SYSCALL_DEFINE2(clock_settime32, clockid_t, which_clock,
-		struct old_timespec32 __user *, tp)
-{
-	const struct k_clock *kc = clockid_to_kclock(which_clock);
-	struct timespec64 ts;
-
-	if (!kc || !kc->clock_set)
-		return -EINVAL;
-
-	if (get_old_timespec32(&ts, tp))
-		return -EFAULT;
-
-	return kc->clock_set(which_clock, &ts);
-}
-
-SYSCALL_DEFINE2(clock_gettime32, clockid_t, which_clock,
-		struct old_timespec32 __user *, tp)
-{
-	const struct k_clock *kc = clockid_to_kclock(which_clock);
-	struct timespec64 ts;
-	int err;
-
-	if (!kc)
-		return -EINVAL;
-
-	err = kc->clock_get_timespec(which_clock, &ts);
-
-	if (!err && put_old_timespec32(&ts, tp))
-		err = -EFAULT;
-
-	return err;
-}
-
-SYSCALL_DEFINE2(clock_adjtime32, clockid_t, which_clock,
-		struct old_timex32 __user *, utp)
-{
-	struct __kernel_timex ktx;
-	int err;
-
-	err = get_old_timex32(&ktx, utp);
-	if (err)
-		return err;
-
-	err = do_clock_adjtime(which_clock, &ktx);
-
-	if (err >= 0 && put_old_timex32(utp, &ktx))
-		return -EFAULT;
-
-	return err;
-}
-
-SYSCALL_DEFINE2(clock_getres_time32, clockid_t, which_clock,
-		struct old_timespec32 __user *, tp)
-{
-	const struct k_clock *kc = clockid_to_kclock(which_clock);
-	struct timespec64 ts;
-	int err;
-
-	if (!kc)
-		return -EINVAL;
-
-	err = kc->clock_getres(which_clock, &ts);
-	if (!err && tp && put_old_timespec32(&ts, tp))
-		return -EFAULT;
-
-	return err;
-}
-
-#endif
-
 /*
  * nanosleep for monotonic and realtime clocks
  */
@@ -1296,36 +1184,6 @@ SYSCALL_DEFINE4(clock_nanosleep, const clockid_t, which_clock, int, flags,
 
 	return kc->nsleep(which_clock, flags, &t);
 }
-
-#ifdef CONFIG_COMPAT_32BIT_TIME
-
-SYSCALL_DEFINE4(clock_nanosleep_time32, clockid_t, which_clock, int, flags,
-		struct old_timespec32 __user *, rqtp,
-		struct old_timespec32 __user *, rmtp)
-{
-	const struct k_clock *kc = clockid_to_kclock(which_clock);
-	struct timespec64 t;
-
-	if (!kc)
-		return -EINVAL;
-	if (!kc->nsleep)
-		return -EOPNOTSUPP;
-
-	if (get_old_timespec32(&t, rqtp))
-		return -EFAULT;
-
-	if (!timespec64_valid(&t))
-		return -EINVAL;
-	if (flags & TIMER_ABSTIME)
-		rmtp = NULL;
-	current->restart_block.fn = do_no_restart_syscall;
-	current->restart_block.nanosleep.type = rmtp ? TT_COMPAT : TT_NONE;
-	current->restart_block.nanosleep.compat_rmtp = rmtp;
-
-	return kc->nsleep(which_clock, flags, &t);
-}
-
-#endif
 
 static const struct k_clock clock_realtime = {
 	.clock_getres		= posix_get_hrtimer_res,

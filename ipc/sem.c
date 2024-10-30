@@ -2137,28 +2137,6 @@ SYSCALL_DEFINE4(semtimedop, int, semid, struct sembuf __user *, tsops,
 	return ksys_semtimedop(semid, tsops, nsops, timeout);
 }
 
-#ifdef CONFIG_COMPAT_32BIT_TIME
-long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
-			    unsigned int nsops,
-			    const struct old_timespec32 __user *timeout)
-{
-	if (timeout) {
-		struct timespec64 ts;
-		if (get_old_timespec32(&ts, timeout))
-			return -EFAULT;
-		return do_semtimedop(semid, tsems, nsops, &ts);
-	}
-	return do_semtimedop(semid, tsems, nsops, NULL);
-}
-
-SYSCALL_DEFINE4(semtimedop_time32, int, semid, struct sembuf __user *, tsems,
-		       unsigned int, nsops,
-		       const struct old_timespec32 __user *, timeout)
-{
-	return compat_ksys_semtimedop(semid, tsems, nsops, timeout);
-}
-#endif
-
 SYSCALL_DEFINE3(semop, int, semid, struct sembuf __user *, tsops,
 		unsigned, nsops)
 {

@@ -830,7 +830,8 @@ SYSCALL_DEFINE1(mlockall, int, flags)
 	return ret;
 }
 
-SYSCALL_DEFINE0(munlockall)
+long __arm64_sys_munlockall(const struct pt_regs *__unused);
+long __arm64_sys_munlockall(const struct pt_regs *__unused)
 {
 	int ret;
 

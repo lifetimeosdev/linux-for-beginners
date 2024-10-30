@@ -2881,7 +2881,8 @@ out:
 /**
  *  sys_restart_syscall - restart a system call
  */
-SYSCALL_DEFINE0(restart_syscall)
+long __arm64_sys_restart_syscall(const struct pt_regs *__unused);
+long __arm64_sys_restart_syscall(const struct pt_regs *__unused)
 {
 	struct restart_block *restart = &current->restart_block;
 	return restart->fn(restart);
@@ -3280,39 +3281,6 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const sigset_t __user *, uthese,
 
 	return ret;
 }
-
-#ifdef CONFIG_COMPAT_32BIT_TIME
-SYSCALL_DEFINE4(rt_sigtimedwait_time32, const sigset_t __user *, uthese,
-		siginfo_t __user *, uinfo,
-		const struct old_timespec32 __user *, uts,
-		size_t, sigsetsize)
-{
-	sigset_t these;
-	struct timespec64 ts;
-	kernel_siginfo_t info;
-	int ret;
-
-	if (sigsetsize != sizeof(sigset_t))
-		return -EINVAL;
-
-	if (copy_from_user(&these, uthese, sizeof(these)))
-		return -EFAULT;
-
-	if (uts) {
-		if (get_old_timespec32(&ts, uts))
-			return -EFAULT;
-	}
-
-	ret = do_sigtimedwait(&these, &info, uts ? &ts : NULL);
-
-	if (ret > 0 && uinfo) {
-		if (copy_siginfo_to_user(uinfo, &info))
-			ret = -EFAULT;
-	}
-
-	return ret;
-}
-#endif
 
 static inline void prepare_kill_siginfo(int sig, struct kernel_siginfo *info)
 {
@@ -3731,80 +3699,6 @@ int __save_altstack(stack_t __user *uss, unsigned long sp)
 	return 0;
 }
 
-#ifdef __ARCH_WANT_SYS_SIGPENDING
-
-/**
- *  sys_sigpending - examine pending signals
- *  @uset: where mask of pending signal is returned
- */
-SYSCALL_DEFINE1(sigpending, old_sigset_t __user *, uset)
-{
-	sigset_t set;
-
-	if (sizeof(old_sigset_t) > sizeof(*uset))
-		return -EINVAL;
-
-	do_sigpending(&set);
-
-	if (copy_to_user(uset, &set, sizeof(old_sigset_t)))
-		return -EFAULT;
-
-	return 0;
-}
-
-#endif
-
-#ifdef __ARCH_WANT_SYS_SIGPROCMASK
-/**
- *  sys_sigprocmask - examine and change blocked signals
- *  @how: whether to add, remove, or set signals
- *  @nset: signals to add or remove (if non-null)
- *  @oset: previous value of signal mask if non-null
- *
- * Some platforms have their own version with special arguments;
- * others support only sys_rt_sigprocmask.
- */
-
-SYSCALL_DEFINE3(sigprocmask, int, how, old_sigset_t __user *, nset,
-		old_sigset_t __user *, oset)
-{
-	old_sigset_t old_set, new_set;
-	sigset_t new_blocked;
-
-	old_set = current->blocked.sig[0];
-
-	if (nset) {
-		if (copy_from_user(&new_set, nset, sizeof(*nset)))
-			return -EFAULT;
-
-		new_blocked = current->blocked;
-
-		switch (how) {
-		case SIG_BLOCK:
-			sigaddsetmask(&new_blocked, new_set);
-			break;
-		case SIG_UNBLOCK:
-			sigdelsetmask(&new_blocked, new_set);
-			break;
-		case SIG_SETMASK:
-			new_blocked.sig[0] = new_set;
-			break;
-		default:
-			return -EINVAL;
-		}
-
-		set_current_blocked(&new_blocked);
-	}
-
-	if (oset) {
-		if (copy_to_user(oset, &old_set, sizeof(*oset)))
-			return -EFAULT;
-	}
-
-	return 0;
-}
-#endif /* __ARCH_WANT_SYS_SIGPROCMASK */
-
 #ifndef CONFIG_ODD_RT_SIGACTION
 /**
  *  sys_rt_sigaction - alter an action taken by a process
@@ -3839,138 +3733,6 @@ SYSCALL_DEFINE4(rt_sigaction, int, sig,
 }
 #endif /* !CONFIG_ODD_RT_SIGACTION */
 
-#ifdef CONFIG_OLD_SIGACTION
-SYSCALL_DEFINE3(sigaction, int, sig,
-		const struct old_sigaction __user *, act,
-	        struct old_sigaction __user *, oact)
-{
-	struct k_sigaction new_ka, old_ka;
-	int ret;
-
-	if (act) {
-		old_sigset_t mask;
-		if (!access_ok(act, sizeof(*act)) ||
-		    __get_user(new_ka.sa.sa_handler, &act->sa_handler) ||
-		    __get_user(new_ka.sa.sa_restorer, &act->sa_restorer) ||
-		    __get_user(new_ka.sa.sa_flags, &act->sa_flags) ||
-		    __get_user(mask, &act->sa_mask))
-			return -EFAULT;
-#ifdef __ARCH_HAS_KA_RESTORER
-		new_ka.ka_restorer = NULL;
-#endif
-		siginitset(&new_ka.sa.sa_mask, mask);
-	}
-
-	ret = do_sigaction(sig, act ? &new_ka : NULL, oact ? &old_ka : NULL);
-
-	if (!ret && oact) {
-		if (!access_ok(oact, sizeof(*oact)) ||
-		    __put_user(old_ka.sa.sa_handler, &oact->sa_handler) ||
-		    __put_user(old_ka.sa.sa_restorer, &oact->sa_restorer) ||
-		    __put_user(old_ka.sa.sa_flags, &oact->sa_flags) ||
-		    __put_user(old_ka.sa.sa_mask.sig[0], &oact->sa_mask))
-			return -EFAULT;
-	}
-
-	return ret;
-}
-#endif
-#ifdef CONFIG_COMPAT_OLD_SIGACTION
-COMPAT_SYSCALL_DEFINE3(sigaction, int, sig,
-		const struct compat_old_sigaction __user *, act,
-	        struct compat_old_sigaction __user *, oact)
-{
-	struct k_sigaction new_ka, old_ka;
-	int ret;
-	compat_old_sigset_t mask;
-	compat_uptr_t handler, restorer;
-
-	if (act) {
-		if (!access_ok(act, sizeof(*act)) ||
-		    __get_user(handler, &act->sa_handler) ||
-		    __get_user(restorer, &act->sa_restorer) ||
-		    __get_user(new_ka.sa.sa_flags, &act->sa_flags) ||
-		    __get_user(mask, &act->sa_mask))
-			return -EFAULT;
-
-#ifdef __ARCH_HAS_KA_RESTORER
-		new_ka.ka_restorer = NULL;
-#endif
-		new_ka.sa.sa_handler = compat_ptr(handler);
-		new_ka.sa.sa_restorer = compat_ptr(restorer);
-		siginitset(&new_ka.sa.sa_mask, mask);
-	}
-
-	ret = do_sigaction(sig, act ? &new_ka : NULL, oact ? &old_ka : NULL);
-
-	if (!ret && oact) {
-		if (!access_ok(oact, sizeof(*oact)) ||
-		    __put_user(ptr_to_compat(old_ka.sa.sa_handler),
-			       &oact->sa_handler) ||
-		    __put_user(ptr_to_compat(old_ka.sa.sa_restorer),
-			       &oact->sa_restorer) ||
-		    __put_user(old_ka.sa.sa_flags, &oact->sa_flags) ||
-		    __put_user(old_ka.sa.sa_mask.sig[0], &oact->sa_mask))
-			return -EFAULT;
-	}
-	return ret;
-}
-#endif
-
-#ifdef CONFIG_SGETMASK_SYSCALL
-
-/*
- * For backwards compatibility.  Functionality superseded by sigprocmask.
- */
-SYSCALL_DEFINE0(sgetmask)
-{
-	/* SMP safe */
-	return current->blocked.sig[0];
-}
-
-SYSCALL_DEFINE1(ssetmask, int, newmask)
-{
-	int old = current->blocked.sig[0];
-	sigset_t newset;
-
-	siginitset(&newset, newmask);
-	set_current_blocked(&newset);
-
-	return old;
-}
-#endif /* CONFIG_SGETMASK_SYSCALL */
-
-#ifdef __ARCH_WANT_SYS_SIGNAL
-/*
- * For backwards compatibility.  Functionality superseded by sigaction.
- */
-SYSCALL_DEFINE2(signal, int, sig, __sighandler_t, handler)
-{
-	struct k_sigaction new_sa, old_sa;
-	int ret;
-
-	new_sa.sa.sa_handler = handler;
-	new_sa.sa.sa_flags = SA_ONESHOT | SA_NOMASK;
-	sigemptyset(&new_sa.sa.sa_mask);
-
-	ret = do_sigaction(sig, &new_sa, &old_sa);
-
-	return ret ? ret : (unsigned long)old_sa.sa.sa_handler;
-}
-#endif /* __ARCH_WANT_SYS_SIGNAL */
-
-#ifdef __ARCH_WANT_SYS_PAUSE
-
-SYSCALL_DEFINE0(pause)
-{
-	while (!signal_pending(current)) {
-		__set_current_state(TASK_INTERRUPTIBLE);
-		schedule();
-	}
-	return -ERESTARTNOHAND;
-}
-
-#endif
 
 static int sigsuspend(sigset_t *set)
 {

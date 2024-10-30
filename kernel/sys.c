@@ -913,13 +913,15 @@ SYSCALL_DEFINE1(setfsgid, gid_t, gid)
  *
  * This is SMP safe as current->tgid does not change.
  */
-SYSCALL_DEFINE0(getpid)
+long __arm64_sys_getpid(const struct pt_regs *__unused);
+long __arm64_sys_getpid(const struct pt_regs *__unused)
 {
 	return task_tgid_vnr(current);
 }
 
 /* Thread ID - the internal kernel "pid" */
-SYSCALL_DEFINE0(gettid)
+long __arm64_sys_gettid(const struct pt_regs *__unused);
+long __arm64_sys_gettid(const struct pt_regs *__unused)
 {
 	return task_pid_vnr(current);
 }
@@ -930,7 +932,8 @@ SYSCALL_DEFINE0(gettid)
  * value of ->real_parent under rcu_read_lock(), see
  * release_task()->call_rcu(delayed_put_task_struct).
  */
-SYSCALL_DEFINE0(getppid)
+long __arm64_sys_getppid(const struct pt_regs *__unused);
+long __arm64_sys_getppid(const struct pt_regs *__unused)
 {
 	int pid;
 
@@ -941,25 +944,29 @@ SYSCALL_DEFINE0(getppid)
 	return pid;
 }
 
-SYSCALL_DEFINE0(getuid)
+long __arm64_sys_getuid(const struct pt_regs *__unused);
+long __arm64_sys_getuid(const struct pt_regs *__unused)
 {
 	/* Only we change this so SMP safe */
 	return from_kuid_munged(current_user_ns(), current_uid());
 }
 
-SYSCALL_DEFINE0(geteuid)
+long __arm64_sys_geteuid(const struct pt_regs *__unused);
+long __arm64_sys_geteuid(const struct pt_regs *__unused)
 {
 	/* Only we change this so SMP safe */
 	return from_kuid_munged(current_user_ns(), current_euid());
 }
-
-SYSCALL_DEFINE0(getgid)
+ 
+long __arm64_sys_getgid(const struct pt_regs *__unused);
+long __arm64_sys_getgid(const struct pt_regs *__unused)
 {
 	/* Only we change this so SMP safe */
 	return from_kgid_munged(current_user_ns(), current_gid());
 }
 
-SYSCALL_DEFINE0(getegid)
+long __arm64_sys_getegid(const struct pt_regs *__unused);
+long __arm64_sys_getegid(const struct pt_regs *__unused)
 {
 	/* Only we change this so SMP safe */
 	return from_kgid_munged(current_user_ns(), current_egid());
@@ -1106,15 +1113,6 @@ SYSCALL_DEFINE1(getpgid, pid_t, pid)
 	return do_getpgid(pid);
 }
 
-#ifdef __ARCH_WANT_SYS_GETPGRP
-
-SYSCALL_DEFINE0(getpgrp)
-{
-	return do_getpgid(0);
-}
-
-#endif
-
 SYSCALL_DEFINE1(getsid, pid_t, pid)
 {
 	struct task_struct *p;
@@ -1187,7 +1185,8 @@ out:
 	return err;
 }
 
-SYSCALL_DEFINE0(setsid)
+long __arm64_sys_setsid(const struct pt_regs *__unused);
+long __arm64_sys_setsid(const struct pt_regs *__unused)
 {
 	return ksys_setsid();
 }

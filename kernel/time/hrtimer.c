@@ -1915,12 +1915,6 @@ EXPORT_SYMBOL_GPL(hrtimer_init_sleeper);
 int nanosleep_copyout(struct restart_block *restart, struct timespec64 *ts)
 {
 	switch(restart->nanosleep.type) {
-#ifdef CONFIG_COMPAT_32BIT_TIME
-	case TT_COMPAT:
-		if (put_old_timespec32(ts, restart->nanosleep.compat_rmtp))
-			return -EFAULT;
-		break;
-#endif
 	case TT_NATIVE:
 		if (put_timespec64(ts, restart->nanosleep.rmtp))
 			return -EFAULT;
@@ -2032,27 +2026,6 @@ SYSCALL_DEFINE2(nanosleep, struct __kernel_timespec __user *, rqtp,
 				 CLOCK_MONOTONIC);
 }
 
-#endif
-
-#ifdef CONFIG_COMPAT_32BIT_TIME
-
-SYSCALL_DEFINE2(nanosleep_time32, struct old_timespec32 __user *, rqtp,
-		       struct old_timespec32 __user *, rmtp)
-{
-	struct timespec64 tu;
-
-	if (get_old_timespec32(&tu, rqtp))
-		return -EFAULT;
-
-	if (!timespec64_valid(&tu))
-		return -EINVAL;
-
-	current->restart_block.fn = do_no_restart_syscall;
-	current->restart_block.nanosleep.type = rmtp ? TT_COMPAT : TT_NONE;
-	current->restart_block.nanosleep.compat_rmtp = rmtp;
-	return hrtimer_nanosleep(timespec64_to_ktime(tu), HRTIMER_MODE_REL,
-				 CLOCK_MONOTONIC);
-}
 #endif
 
 /*

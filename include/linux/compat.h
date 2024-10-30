@@ -40,52 +40,6 @@
 #define __SC_DELOUSE(t,v) ((__force t)(unsigned long)(v))
 #endif
 
-#ifndef COMPAT_SYSCALL_DEFINE0
-#define COMPAT_SYSCALL_DEFINE0(name) \
-	asmlinkage long compat_sys_##name(void); \
-	ALLOW_ERROR_INJECTION(compat_sys_##name, ERRNO); \
-	asmlinkage long compat_sys_##name(void)
-#endif /* COMPAT_SYSCALL_DEFINE0 */
-
-#define COMPAT_SYSCALL_DEFINE1(name, ...) \
-        COMPAT_SYSCALL_DEFINEx(1, _##name, __VA_ARGS__)
-#define COMPAT_SYSCALL_DEFINE2(name, ...) \
-	COMPAT_SYSCALL_DEFINEx(2, _##name, __VA_ARGS__)
-#define COMPAT_SYSCALL_DEFINE3(name, ...) \
-	COMPAT_SYSCALL_DEFINEx(3, _##name, __VA_ARGS__)
-#define COMPAT_SYSCALL_DEFINE4(name, ...) \
-	COMPAT_SYSCALL_DEFINEx(4, _##name, __VA_ARGS__)
-#define COMPAT_SYSCALL_DEFINE5(name, ...) \
-	COMPAT_SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
-#define COMPAT_SYSCALL_DEFINE6(name, ...) \
-	COMPAT_SYSCALL_DEFINEx(6, _##name, __VA_ARGS__)
-
-/*
- * The asmlinkage stub is aliased to a function named __se_compat_sys_*() which
- * sign-extends 32-bit ints to longs whenever needed. The actual work is
- * done within __do_compat_sys_*().
- */
-#ifndef COMPAT_SYSCALL_DEFINEx
-#define COMPAT_SYSCALL_DEFINEx(x, name, ...)					\
-	__diag_push();								\
-	__diag_ignore(GCC, 8, "-Wattribute-alias",				\
-		      "Type aliasing is used to sanitize syscall arguments");\
-	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));	\
-	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))	\
-		__attribute__((alias(__stringify(__se_compat_sys##name))));	\
-	ALLOW_ERROR_INJECTION(compat_sys##name, ERRNO);				\
-	static inline long __do_compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
-	asmlinkage long __se_compat_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__));	\
-	asmlinkage long __se_compat_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__))	\
-	{									\
-		long ret = __do_compat_sys##name(__MAP(x,__SC_DELOUSE,__VA_ARGS__));\
-		__MAP(x,__SC_TEST,__VA_ARGS__);					\
-		return ret;							\
-	}									\
-	__diag_pop();								\
-	static inline long __do_compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))
-#endif /* COMPAT_SYSCALL_DEFINEx */
-
 struct compat_iovec {
 	compat_uptr_t	iov_base;
 	compat_size_t	iov_len;

@@ -1309,7 +1309,8 @@ SYSCALL_DEFINE3(close_range, unsigned int, fd, unsigned int, max_fd,
  * This routine simulates a hangup on the tty, to arrange that users
  * are given clean terminals at login time.
  */
-SYSCALL_DEFINE0(vhangup)
+long __arm64_sys_vhangup(const struct pt_regs *__unused);
+long __arm64_sys_vhangup(const struct pt_regs *__unused)
 {
 	if (capable(CAP_SYS_TTY_CONFIG)) {
 		tty_vhangup_self();

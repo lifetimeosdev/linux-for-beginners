@@ -565,32 +565,3 @@ SYSCALL_DEFINE2(timerfd_gettime, int, ufd, struct __kernel_itimerspec __user *, 
 		return ret;
 	return put_itimerspec64(&kotmr, otmr) ? -EFAULT : 0;
 }
-
-#ifdef CONFIG_COMPAT_32BIT_TIME
-SYSCALL_DEFINE4(timerfd_settime32, int, ufd, int, flags,
-		const struct old_itimerspec32 __user *, utmr,
-		struct old_itimerspec32 __user *, otmr)
-{
-	struct itimerspec64 new, old;
-	int ret;
-
-	if (get_old_itimerspec32(&new, utmr))
-		return -EFAULT;
-	ret = do_timerfd_settime(ufd, flags, &new, &old);
-	if (ret)
-		return ret;
-	if (otmr && put_old_itimerspec32(&old, otmr))
-		return -EFAULT;
-	return ret;
-}
-
-SYSCALL_DEFINE2(timerfd_gettime32, int, ufd,
-		struct old_itimerspec32 __user *, otmr)
-{
-	struct itimerspec64 kotmr;
-	int ret = do_timerfd_gettime(ufd, &kotmr);
-	if (ret)
-		return ret;
-	return put_old_itimerspec32(&kotmr, otmr) ? -EFAULT : 0;
-}
-#endif

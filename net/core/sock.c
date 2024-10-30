@@ -3178,10 +3178,6 @@ int sock_gettstamp(struct socket *sock, void __user *userstamp,
 	if (timeval)
 		ts.tv_nsec /= 1000;
 
-#ifdef CONFIG_COMPAT_32BIT_TIME
-	if (time32)
-		return put_old_timespec32(&ts, userstamp);
-#endif
 	return put_timespec64(&ts, userstamp);
 }
 EXPORT_SYMBOL(sock_gettstamp);
