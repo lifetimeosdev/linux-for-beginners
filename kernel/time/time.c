@@ -51,53 +51,6 @@ struct timezone sys_tz;
 
 EXPORT_SYMBOL(sys_tz);
 
-#ifdef __ARCH_WANT_SYS_TIME
-
-/*
- * sys_time() can be implemented in user-level using
- * sys_gettimeofday().  Is this for backwards compatibility?  If so,
- * why not move it into the appropriate arch directory (for those
- * architectures that need it).
- */
-SYSCALL_DEFINE1(time, __kernel_old_time_t __user *, tloc)
-{
-	__kernel_old_time_t i = (__kernel_old_time_t)ktime_get_real_seconds();
-
-	if (tloc) {
-		if (put_user(i,tloc))
-			return -EFAULT;
-	}
-	force_successful_syscall_return();
-	return i;
-}
-
-/*
- * sys_stime() can be implemented in user-level using
- * sys_settimeofday().  Is this for backwards compatibility?  If so,
- * why not move it into the appropriate arch directory (for those
- * architectures that need it).
- */
-
-SYSCALL_DEFINE1(stime, __kernel_old_time_t __user *, tptr)
-{
-	struct timespec64 tv;
-	int err;
-
-	if (get_user(tv.tv_sec, tptr))
-		return -EFAULT;
-
-	tv.tv_nsec = 0;
-
-	err = security_settime64(&tv, NULL);
-	if (err)
-		return err;
-
-	do_settimeofday64(&tv);
-	return 0;
-}
-
-#endif /* __ARCH_WANT_SYS_TIME */
-
 SYSCALL_DEFINE2(gettimeofday, struct __kernel_old_timeval __user *, tv,
 		struct timezone __user *, tz)
 {
@@ -181,8 +134,7 @@ SYSCALL_DEFINE2(settimeofday, struct __kernel_old_timeval __user *, tv,
 	return do_sys_settimeofday64(tv ? &new_ts : NULL, tz ? &new_tz : NULL);
 }
 
-#ifdef CONFIG_64BIT
-SYSCALL_DEFINE1(adjtimex, struct __kernel_timex __user *, txc_p)
+static inline long __do_sys_adjtimex(struct __kernel_timex *txc_p)
 {
 	struct __kernel_timex txc;		/* Local copy of parameter */
 	int ret;
@@ -196,7 +148,12 @@ SYSCALL_DEFINE1(adjtimex, struct __kernel_timex __user *, txc_p)
 	ret = do_adjtimex(&txc);
 	return copy_to_user(txc_p, &txc, sizeof(struct __kernel_timex)) ? -EFAULT : ret;
 }
-#endif
+
+long __arm64_sys_adjtimex(const struct pt_regs *regs)
+{
+	long ret = __do_sys_adjtimex((struct __kernel_timex *)regs->regs[0]);
+	return ret;
+}
 
 /*
  * Convert jiffies to milliseconds and back.

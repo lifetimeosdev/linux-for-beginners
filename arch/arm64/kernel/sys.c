@@ -28,12 +28,18 @@ SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
 	return ksys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
 }
 
-SYSCALL_DEFINE1(arm64_personality, unsigned int, personality)
+static inline long __do_sys_arm64_personality(unsigned int personality)
 {
 	if (personality(personality) == PER_LINUX32 &&
 		!system_supports_32bit_el0())
 		return -EINVAL;
 	return ksys_personality(personality);
+}
+
+long __arm64_sys_arm64_personality(const struct pt_regs *regs)
+{
+	long ret = __do_sys_arm64_personality((unsigned int)regs->regs[0]);
+	return ret;
 }
 
 asmlinkage long sys_ni_syscall(void);

@@ -458,8 +458,13 @@ SYSCALL_DEFINE2(eventfd2, unsigned int, count, int, flags)
 	return do_eventfd(count, flags);
 }
 
-SYSCALL_DEFINE1(eventfd, unsigned int, count)
+static inline long __do_sys_eventfd(unsigned int count)
 {
 	return do_eventfd(count, 0);
 }
 
+long __arm64_sys_eventfd(const struct pt_regs *regs)
+{
+	long ret = __do_sys_eventfd((unsigned int)regs->regs[0]);
+	return ret;
+}

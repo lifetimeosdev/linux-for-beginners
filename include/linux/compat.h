@@ -21,7 +21,6 @@
 
 #include <asm/compat.h>
 
-#ifdef CONFIG_ARCH_HAS_SYSCALL_WRAPPER
 /*
  * It may be useful for an architecture to override the definitions of the
  * COMPAT_SYSCALL_DEFINE0 and COMPAT_SYSCALL_DEFINEx() macros, in particular
@@ -30,7 +29,6 @@
  * if CONFIG_ARCH_HAS_SYSCALL_WRAPPER is enabled.
  */
 #include <asm/syscall_wrapper.h>
-#endif /* CONFIG_ARCH_HAS_SYSCALL_WRAPPER */
 
 #ifndef COMPAT_USE_64BIT_TIME
 #define COMPAT_USE_64BIT_TIME 0

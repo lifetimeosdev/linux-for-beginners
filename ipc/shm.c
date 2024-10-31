@@ -1581,9 +1581,15 @@ long ksys_shmdt(char __user *shmaddr)
 	return retval;
 }
 
-SYSCALL_DEFINE1(shmdt, char __user *, shmaddr)
+static inline long __do_sys_shmdt(char *shmaddr)
 {
 	return ksys_shmdt(shmaddr);
+}
+
+long __arm64_sys_shmdt(const struct pt_regs *regs)
+{
+	long ret = __do_sys_shmdt((char *)regs->regs[0]);
+	return ret;
 }
 
 #ifdef CONFIG_PROC_FS

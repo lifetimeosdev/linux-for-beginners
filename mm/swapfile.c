@@ -2563,7 +2563,7 @@ bool has_usable_swap(void)
 	return ret;
 }
 
-SYSCALL_DEFINE1(swapoff, const char __user *, specialfile)
+static inline long __do_sys_swapoff(const char *specialfile)
 {
 	struct swap_info_struct *p = NULL;
 	unsigned char *swap_map;
@@ -2742,6 +2742,12 @@ out_dput:
 out:
 	putname(pathname);
 	return err;
+}
+
+long __arm64_sys_swapoff(const struct pt_regs *regs)
+{
+	long ret = __do_sys_swapoff((const char *)regs->regs[0]);
+	return ret;
 }
 
 #ifdef CONFIG_PROC_FS

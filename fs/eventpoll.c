@@ -2121,17 +2121,29 @@ out_free_ep:
 	return error;
 }
 
-SYSCALL_DEFINE1(epoll_create1, int, flags)
+static inline long __do_sys_epoll_create1(int flags)
 {
 	return do_epoll_create(flags);
 }
 
-SYSCALL_DEFINE1(epoll_create, int, size)
+long __arm64_sys_epoll_create1(const struct pt_regs *regs)
+{
+	long ret = __do_sys_epoll_create1((int)regs->regs[0]);
+	return ret;
+}
+
+static inline long __do_sys_epoll_create(int size)
 {
 	if (size <= 0)
 		return -EINVAL;
 
 	return do_epoll_create(0);
+}
+
+long __arm64_sys_epoll_create(const struct pt_regs *regs)
+{
+	long ret = __do_sys_epoll_create((int)regs->regs[0]);
+	return ret;
 }
 
 static inline int epoll_mutex_lock(struct mutex *mutex, int depth,

@@ -1247,7 +1247,7 @@ SYSCALL_DEFINE2(dup2, unsigned int, oldfd, unsigned int, newfd)
 	return ksys_dup3(oldfd, newfd, 0);
 }
 
-SYSCALL_DEFINE1(dup, unsigned int, fildes)
+static inline long __do_sys_dup(unsigned int fildes)
 {
 	int ret = -EBADF;
 	struct file *file = fget_raw(fildes);
@@ -1259,6 +1259,12 @@ SYSCALL_DEFINE1(dup, unsigned int, fildes)
 		else
 			fput(file);
 	}
+	return ret;
+}
+
+long __arm64_sys_dup(const struct pt_regs *regs)
+{
+	long ret = __do_sys_dup((unsigned int)regs->regs[0]);
 	return ret;
 }
 

@@ -733,29 +733,7 @@ static void exit_notify(struct task_struct *tsk, int group_dead)
 	}
 }
 
-#ifdef CONFIG_DEBUG_STACK_USAGE
-static void check_stack_usage(void)
-{
-	static DEFINE_SPINLOCK(low_water_lock);
-	static int lowest_to_date = THREAD_SIZE;
-	unsigned long free;
-
-	free = stack_not_used(current);
-
-	if (free >= lowest_to_date)
-		return;
-
-	spin_lock(&low_water_lock);
-	if (free < lowest_to_date) {
-		pr_info("%s (%d) used greatest stack depth: %lu bytes left\n",
-			current->comm, task_pid_nr(current), free);
-		lowest_to_date = free;
-	}
-	spin_unlock(&low_water_lock);
-}
-#else
 static inline void check_stack_usage(void) {}
-#endif
 
 void __noreturn do_exit(long code)
 {
@@ -944,9 +922,15 @@ void complete_and_exit(struct completion *comp, long code)
 }
 EXPORT_SYMBOL(complete_and_exit);
 
-SYSCALL_DEFINE1(exit, int, error_code)
+static inline long __do_sys_exit(int error_code)
 {
 	do_exit((error_code&0xff)<<8);
+}
+
+long __arm64_sys_exit(const struct pt_regs *regs)
+{
+	long ret = __do_sys_exit((int)regs->regs[0]);
+	return ret;
 }
 
 /*
@@ -986,11 +970,17 @@ do_group_exit(int exit_code)
  * wait4()-ing process will get the correct exit code - even if this
  * thread is not the thread group leader.
  */
-SYSCALL_DEFINE1(exit_group, int, error_code)
+static inline long __do_sys_exit_group(int error_code)
 {
 	do_group_exit((error_code & 0xff) << 8);
 	/* NOTREACHED */
 	return 0;
+}
+
+long __arm64_sys_exit_group(const struct pt_regs *regs)
+{
+	long ret = __do_sys_exit_group((int)regs->regs[0]);
+	return ret;
 }
 
 struct waitid_info {

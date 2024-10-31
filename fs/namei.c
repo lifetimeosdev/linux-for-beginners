@@ -3841,9 +3841,15 @@ exit1:
 	return error;
 }
 
-SYSCALL_DEFINE1(rmdir, const char __user *, pathname)
+static inline long __do_sys_rmdir(const char *pathname)
 {
 	return do_rmdir(AT_FDCWD, getname(pathname));
+}
+
+long __arm64_sys_rmdir(const struct pt_regs *regs)
+{
+	long ret = __do_sys_rmdir((const char *)regs->regs[0]);
+	return ret;
 }
 
 /**
@@ -3993,9 +3999,15 @@ SYSCALL_DEFINE3(unlinkat, int, dfd, const char __user *, pathname, int, flag)
 	return do_unlinkat(dfd, getname(pathname));
 }
 
-SYSCALL_DEFINE1(unlink, const char __user *, pathname)
+static inline long __do_sys_unlink(const char *pathname)
 {
 	return do_unlinkat(AT_FDCWD, getname(pathname));
+}
+
+long __arm64_sys_unlink(const struct pt_regs *regs)
+{
+	long ret = __do_sys_unlink((const char *)regs->regs[0]);
+	return ret;
 }
 
 int vfs_symlink(struct inode *dir, struct dentry *dentry, const char *oldname)

@@ -83,7 +83,6 @@ struct open_how;
 #include <linux/personality.h>
 #include <trace/syscall.h>
 
-#ifdef CONFIG_ARCH_HAS_SYSCALL_WRAPPER
 /*
  * It may be useful for an architecture to override the definitions of the
  * SYSCALL_DEFINE0() and __SYSCALL_DEFINEx() macros, in particular to use a
@@ -92,7 +91,6 @@ struct open_how;
  * CONFIG_ARCH_HAS_SYSCALL_WRAPPER is enabled.
  */
 #include <asm/syscall_wrapper.h>
-#endif /* CONFIG_ARCH_HAS_SYSCALL_WRAPPER */
 
 /*
  * __MAP - apply a macro to syscall arguments
@@ -128,6 +126,9 @@ static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
 	return 0;
 }
 
+#define SYSCALL_DEFINEx(x, sname, ...)				\
+	__SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
+
 #define SYSCALL_DEFINE1(name, ...) SYSCALL_DEFINEx(1, _##name, __VA_ARGS__)
 #define SYSCALL_DEFINE2(name, ...) SYSCALL_DEFINEx(2, _##name, __VA_ARGS__)
 #define SYSCALL_DEFINE3(name, ...) SYSCALL_DEFINEx(3, _##name, __VA_ARGS__)
@@ -137,8 +138,6 @@ static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
 
 #define SYSCALL_DEFINE_MAXARGS	6
 
-#define SYSCALL_DEFINEx(x, sname, ...)				\
-	__SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
 
 #define __PROTECT(...) asmlinkage_protect(__VA_ARGS__)
 
@@ -1034,18 +1033,6 @@ asmlinkage long sys_stime32(old_time32_t __user *tptr);
 asmlinkage long sys_sigpending(old_sigset_t __user *uset);
 asmlinkage long sys_sigprocmask(int how, old_sigset_t __user *set,
 				old_sigset_t __user *oset);
-#ifdef CONFIG_OLD_SIGSUSPEND
-asmlinkage long sys_sigsuspend(old_sigset_t mask);
-#endif
-
-#ifdef CONFIG_OLD_SIGSUSPEND3
-asmlinkage long sys_sigsuspend(int unused1, int unused2, old_sigset_t mask);
-#endif
-
-#ifdef CONFIG_OLD_SIGACTION
-asmlinkage long sys_sigaction(int, const struct old_sigaction __user *,
-				struct old_sigaction __user *);
-#endif
 asmlinkage long sys_sgetmask(void);
 asmlinkage long sys_ssetmask(int newmask);
 asmlinkage long sys_signal(int sig, __sighandler_t handler);

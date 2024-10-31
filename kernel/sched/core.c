@@ -4864,41 +4864,6 @@ int can_nice(const struct task_struct *p, const int nice)
 		capable(CAP_SYS_NICE));
 }
 
-#ifdef __ARCH_WANT_SYS_NICE
-
-/*
- * sys_nice - change the priority of the current process.
- * @increment: priority increment
- *
- * sys_setpriority is a more generic, but much slower function that
- * does similar things.
- */
-SYSCALL_DEFINE1(nice, int, increment)
-{
-	long nice, retval;
-
-	/*
-	 * Setpriority might change our priority at the same moment.
-	 * We don't have to worry. Conceptually one call occurs first
-	 * and we have a single winner.
-	 */
-	increment = clamp(increment, -NICE_WIDTH, NICE_WIDTH);
-	nice = task_nice(current) + increment;
-
-	nice = clamp_val(nice, MIN_NICE, MAX_NICE);
-	if (increment < 0 && !can_nice(current, nice))
-		return -EPERM;
-
-	retval = security_task_setnice(current, nice);
-	if (retval)
-		return retval;
-
-	set_user_nice(current, nice);
-	return 0;
-}
-
-#endif
-
 /**
  * task_prio - return the priority value of a given task.
  * @p: the task in question.
@@ -5556,7 +5521,7 @@ SYSCALL_DEFINE3(sched_setattr, pid_t, pid, struct sched_attr __user *, uattr,
  * Return: On success, the policy of the thread. Otherwise, a negative error
  * code.
  */
-SYSCALL_DEFINE1(sched_getscheduler, pid_t, pid)
+static inline long __do_sys_sched_getscheduler(pid_t pid)
 {
 	struct task_struct *p;
 	int retval;
@@ -5575,6 +5540,12 @@ SYSCALL_DEFINE1(sched_getscheduler, pid_t, pid)
 	}
 	rcu_read_unlock();
 	return retval;
+}
+
+long __arm64_sys_sched_getscheduler(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sched_getscheduler((pid_t)regs->regs[0]);
+	return ret;
 }
 
 /**
@@ -6130,7 +6101,7 @@ EXPORT_SYMBOL(io_schedule);
  * rt_priority that can be used by a given scheduling class.
  * On failure, a negative error code is returned.
  */
-SYSCALL_DEFINE1(sched_get_priority_max, int, policy)
+static inline long __do_sys_sched_get_priority_max(int policy)
 {
 	int ret = -EINVAL;
 
@@ -6149,6 +6120,12 @@ SYSCALL_DEFINE1(sched_get_priority_max, int, policy)
 	return ret;
 }
 
+long __arm64_sys_sched_get_priority_max(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sched_get_priority_max((int)regs->regs[0]);
+	return ret;
+}
+
 /**
  * sys_sched_get_priority_min - return minimum RT priority.
  * @policy: scheduling class.
@@ -6157,7 +6134,7 @@ SYSCALL_DEFINE1(sched_get_priority_max, int, policy)
  * rt_priority that can be used by a given scheduling class.
  * On failure, a negative error code is returned.
  */
-SYSCALL_DEFINE1(sched_get_priority_min, int, policy)
+static inline long __do_sys_sched_get_priority_min(int policy)
 {
 	int ret = -EINVAL;
 
@@ -6172,6 +6149,12 @@ SYSCALL_DEFINE1(sched_get_priority_min, int, policy)
 	case SCHED_IDLE:
 		ret = 0;
 	}
+	return ret;
+}
+
+long __arm64_sys_sched_get_priority_min(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sched_get_priority_min((int)regs->regs[0]);
 	return ret;
 }
 
@@ -6246,9 +6229,6 @@ void sched_show_task(struct task_struct *p)
 
 	if (p->state == TASK_RUNNING)
 		pr_cont("  running task    ");
-#ifdef CONFIG_DEBUG_STACK_USAGE
-	free = stack_not_used(p);
-#endif
 	ppid = 0;
 	rcu_read_lock();
 	if (pid_alive(p))

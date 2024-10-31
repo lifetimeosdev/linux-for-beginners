@@ -1610,11 +1610,17 @@ static void copy_seccomp(struct task_struct *p)
 {
 }
 
-SYSCALL_DEFINE1(set_tid_address, int __user *, tidptr)
+static inline long __do_sys_set_tid_address(int *tidptr)
 {
 	current->clear_child_tid = tidptr;
 
 	return task_pid_vnr(current);
+}
+
+long __arm64_sys_set_tid_address(const struct pt_regs *regs)
+{
+	long ret = __do_sys_set_tid_address((int *)regs->regs[0]);
+	return ret;
 }
 
 static void rt_mutex_init_task(struct task_struct *p)
@@ -2961,9 +2967,15 @@ bad_unshare_out:
 	return err;
 }
 
-SYSCALL_DEFINE1(unshare, unsigned long, unshare_flags)
+static inline long __do_sys_unshare(unsigned long unshare_flags)
 {
 	return ksys_unshare(unshare_flags);
+}
+
+long __arm64_sys_unshare(const struct pt_regs *regs)
+{
+	long ret = __do_sys_unshare((unsigned long)regs->regs[0]);
+	return ret;
 }
 
 /*

@@ -819,23 +819,6 @@ SYSCALL_DEFINE6(pselect6_time32, int, n, fd_set __user *, inp, fd_set __user *, 
 
 #endif
 
-#ifdef __ARCH_WANT_SYS_OLD_SELECT
-struct sel_arg_struct {
-	unsigned long n;
-	fd_set __user *inp, *outp, *exp;
-	struct __kernel_old_timeval __user *tvp;
-};
-
-SYSCALL_DEFINE1(old_select, struct sel_arg_struct __user *, arg)
-{
-	struct sel_arg_struct a;
-
-	if (copy_from_user(&a, arg, sizeof(a)))
-		return -EFAULT;
-	return kern_select(a.n, a.inp, a.outp, a.exp, a.tvp);
-}
-#endif
-
 struct poll_list {
 	struct poll_list *next;
 	int len;

@@ -1357,7 +1357,7 @@ out:
  *	implemented.  May fail with -EINVAL if the context pointed to
  *	is invalid.
  */
-SYSCALL_DEFINE1(io_destroy, aio_context_t, ctx)
+static inline long __do_sys_io_destroy(aio_context_t ctx)
 {
 	struct kioctx *ioctx = lookup_ioctx(ctx);
 	if (likely(NULL != ioctx)) {
@@ -1385,6 +1385,12 @@ SYSCALL_DEFINE1(io_destroy, aio_context_t, ctx)
 	}
 	pr_debug("EINVAL: invalid context id\n");
 	return -EINVAL;
+}
+
+long __arm64_sys_io_destroy(const struct pt_regs *regs)
+{
+	long ret = __do_sys_io_destroy((aio_context_t)regs->regs[0]);
+	return ret;
 }
 
 static void aio_remove_iocb(struct aio_kiocb *iocb)

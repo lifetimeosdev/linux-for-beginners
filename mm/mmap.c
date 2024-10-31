@@ -187,7 +187,8 @@ static struct vm_area_struct *remove_vma(struct vm_area_struct *vma)
 
 static int do_brk_flags(unsigned long addr, unsigned long request, unsigned long flags,
 		struct list_head *uf);
-SYSCALL_DEFINE1(brk, unsigned long, brk)
+
+static inline long __do_sys_brk(unsigned long brk)
 {
 	unsigned long retval;
 	unsigned long newbrk, oldbrk, origbrk;
@@ -203,19 +204,7 @@ SYSCALL_DEFINE1(brk, unsigned long, brk)
 
 	origbrk = mm->brk;
 
-#ifdef CONFIG_COMPAT_BRK
-	/*
-	 * CONFIG_COMPAT_BRK can still be overridden by setting
-	 * randomize_va_space to 2, which will still cause mm->start_brk
-	 * to be arbitrarily shifted
-	 */
-	if (current->brk_randomized)
-		min_brk = mm->start_brk;
-	else
-		min_brk = mm->end_data;
-#else
 	min_brk = mm->start_brk;
-#endif
 	if (brk < min_brk)
 		goto out;
 
@@ -284,6 +273,12 @@ out:
 	retval = origbrk;
 	mmap_write_unlock(mm);
 	return retval;
+}
+
+long __arm64_sys_brk(const struct pt_regs *regs)
+{
+	long ret = __do_sys_brk((unsigned long)regs->regs[0]);
+	return ret;
 }
 
 static inline unsigned long vma_compute_gap(struct vm_area_struct *vma)
@@ -1644,30 +1639,6 @@ SYSCALL_DEFINE6(mmap_pgoff, unsigned long, addr, unsigned long, len,
 {
 	return ksys_mmap_pgoff(addr, len, prot, flags, fd, pgoff);
 }
-
-#ifdef __ARCH_WANT_SYS_OLD_MMAP
-struct mmap_arg_struct {
-	unsigned long addr;
-	unsigned long len;
-	unsigned long prot;
-	unsigned long flags;
-	unsigned long fd;
-	unsigned long offset;
-};
-
-SYSCALL_DEFINE1(old_mmap, struct mmap_arg_struct __user *, arg)
-{
-	struct mmap_arg_struct a;
-
-	if (copy_from_user(&a, arg, sizeof(a)))
-		return -EFAULT;
-	if (offset_in_page(a.offset))
-		return -EINVAL;
-
-	return ksys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd,
-			       a.offset >> PAGE_SHIFT);
-}
-#endif /* __ARCH_WANT_SYS_OLD_MMAP */
 
 /*
  * Some shared mappings will want the pages marked read-only

@@ -468,7 +468,7 @@ SYSCALL_DEFINE2(access, const char __user *, filename, int, mode)
 	return do_faccessat(AT_FDCWD, filename, mode, 0);
 }
 
-SYSCALL_DEFINE1(chdir, const char __user *, filename)
+static inline long __do_sys_chdir(const char *filename)
 {
 	struct path path;
 	int error;
@@ -494,7 +494,13 @@ out:
 	return error;
 }
 
-SYSCALL_DEFINE1(fchdir, unsigned int, fd)
+long __arm64_sys_chdir(const struct pt_regs *regs)
+{
+	long ret = __do_sys_chdir((const char *)regs->regs[0]);
+	return ret;
+}
+
+static inline long __do_sys_fchdir(unsigned int fd)
 {
 	struct fd f = fdget_raw(fd);
 	int error;
@@ -516,7 +522,13 @@ out:
 	return error;
 }
 
-SYSCALL_DEFINE1(chroot, const char __user *, filename)
+long __arm64_sys_fchdir(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fchdir((unsigned int)regs->regs[0]);
+	return ret;
+}
+
+static inline long __do_sys_chroot(const char *filename)
 {
 	struct path path;
 	int error;
@@ -547,6 +559,12 @@ dput_and_out:
 	}
 out:
 	return error;
+}
+
+long __arm64_sys_chroot(const struct pt_regs *regs)
+{
+	long ret = __do_sys_chroot((const char *)regs->regs[0]);
+	return ret;
 }
 
 int chmod_common(const struct path *path, umode_t mode)
@@ -1274,7 +1292,7 @@ EXPORT_SYMBOL(filp_close);
  * releasing the fd. This ensures that one clone task can't release
  * an fd while another clone is opening it.
  */
-SYSCALL_DEFINE1(close, unsigned int, fd)
+static inline long __do_sys_close(unsigned int fd)
 {
 	int retval = __close_fd(current->files, fd);
 
@@ -1286,6 +1304,12 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
 		retval = -EINTR;
 
 	return retval;
+}
+
+long __arm64_sys_close(const struct pt_regs *regs)
+{
+	long ret = __do_sys_close((unsigned int)regs->regs[0]);
+	return ret;
 }
 
 /**

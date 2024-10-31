@@ -161,7 +161,7 @@ void emergency_sync(void)
 /*
  * sync a single super
  */
-SYSCALL_DEFINE1(syncfs, int, fd)
+static inline long __do_sys_syncfs(int fd)
 {
 	struct fd f = fdget(fd);
 	struct super_block *sb;
@@ -179,6 +179,12 @@ SYSCALL_DEFINE1(syncfs, int, fd)
 
 	fdput(f);
 	return ret ? ret : ret2;
+}
+
+long __arm64_sys_syncfs(const struct pt_regs *regs)
+{
+	long ret = __do_sys_syncfs((int)regs->regs[0]);
+	return ret;
 }
 
 /**
@@ -230,14 +236,26 @@ static int do_fsync(unsigned int fd, int datasync)
 	return ret;
 }
 
-SYSCALL_DEFINE1(fsync, unsigned int, fd)
+static inline long __do_sys_fsync(unsigned int fd)
 {
 	return do_fsync(fd, 0);
 }
 
-SYSCALL_DEFINE1(fdatasync, unsigned int, fd)
+long __arm64_sys_fsync(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fsync((unsigned int)regs->regs[0]);
+	return ret;
+}
+
+static inline long __do_sys_fdatasync(unsigned int fd)
 {
 	return do_fsync(fd, 1);
+}
+
+long __arm64_sys_fdatasync(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fdatasync((unsigned int)regs->regs[0]);
+	return ret;
 }
 
 int sync_file_range(struct file *file, loff_t offset, loff_t nbytes,

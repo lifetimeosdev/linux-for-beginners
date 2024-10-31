@@ -746,7 +746,7 @@ SYSCALL_DEFINE2(timer_gettime, timer_t, timer_id,
  * the call back to posixtimer_rearm().  So all we need to do is
  * to pick up the frozen overrun.
  */
-SYSCALL_DEFINE1(timer_getoverrun, timer_t, timer_id)
+static inline long __do_sys_timer_getoverrun(timer_t timer_id)
 {
 	struct k_itimer *timr;
 	int overrun;
@@ -760,6 +760,12 @@ SYSCALL_DEFINE1(timer_getoverrun, timer_t, timer_id)
 	unlock_timer(timr, flags);
 
 	return overrun;
+}
+
+long __arm64_sys_timer_getoverrun(const struct pt_regs *regs)
+{
+	long ret = __do_sys_timer_getoverrun((timer_t)regs->regs[0]);
+	return ret;
 }
 
 static void common_hrtimer_arm(struct k_itimer *timr, ktime_t expires,
@@ -954,7 +960,7 @@ static inline int timer_delete_hook(struct k_itimer *timer)
 }
 
 /* Delete a POSIX.1b interval timer. */
-SYSCALL_DEFINE1(timer_delete, timer_t, timer_id)
+static inline long __do_sys_timer_delete(timer_t timer_id)
 {
 	struct k_itimer *timer;
 	unsigned long flags;
@@ -983,6 +989,12 @@ retry_delete:
 	unlock_timer(timer, flags);
 	release_posix_timer(timer, IT_ID_SET);
 	return 0;
+}
+
+long __arm64_sys_timer_delete(const struct pt_regs *regs)
+{
+	long ret = __do_sys_timer_delete((timer_t)regs->regs[0]);
+	return ret;
 }
 
 /*

@@ -801,7 +801,7 @@ out:
 	return 0;
 }
 
-SYSCALL_DEFINE1(mlockall, int, flags)
+static inline long __do_sys_mlockall(int flags)
 {
 	unsigned long lock_limit;
 	int ret;
@@ -827,6 +827,12 @@ SYSCALL_DEFINE1(mlockall, int, flags)
 	if (!ret && (flags & MCL_CURRENT))
 		mm_populate(0, TASK_SIZE);
 
+	return ret;
+}
+
+long __arm64_sys_mlockall(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mlockall((int)regs->regs[0]);
 	return ret;
 }
 

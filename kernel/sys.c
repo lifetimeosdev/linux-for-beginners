@@ -347,7 +347,6 @@ out_unlock:
  * SMP: There are not races, the GIDs are checked only by filesystem
  *      operations (as far as semantic preservation is concerned).
  */
-#ifdef CONFIG_MULTIUSER
 long __sys_setregid(gid_t rgid, gid_t egid)
 {
 	struct user_namespace *ns = current_user_ns();
@@ -450,9 +449,15 @@ error:
 	return retval;
 }
 
-SYSCALL_DEFINE1(setgid, gid_t, gid)
+static inline long __do_sys_setgid(gid_t gid)
 {
 	return __sys_setgid(gid);
+}
+
+long __arm64_sys_setgid(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setgid((gid_t)regs->regs[0]);
+	return ret;
 }
 
 /*
@@ -617,11 +622,16 @@ error:
 	return retval;
 }
 
-SYSCALL_DEFINE1(setuid, uid_t, uid)
+static inline long __do_sys_setuid(uid_t uid)
 {
 	return __sys_setuid(uid);
 }
 
+long __arm64_sys_setuid(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setuid((uid_t)regs->regs[0]);
+	return ret;
+}
 
 /*
  * This function implements a generic ability to update ruid, euid,
@@ -854,9 +864,15 @@ change_okay:
 	return old_fsuid;
 }
 
-SYSCALL_DEFINE1(setfsuid, uid_t, uid)
+static inline long __do_sys_setfsuid(uid_t uid)
 {
 	return __sys_setfsuid(uid);
+}
+
+long __arm64_sys_setfsuid(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setfsuid((uid_t)regs->regs[0]);
+	return ret;
 }
 
 /*
@@ -898,11 +914,16 @@ change_okay:
 	return old_fsgid;
 }
 
-SYSCALL_DEFINE1(setfsgid, gid_t, gid)
+static inline long __do_sys_setfsgid(gid_t gid)
 {
 	return __sys_setfsgid(gid);
 }
-#endif /* CONFIG_MULTIUSER */
+
+long __arm64_sys_setfsgid(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setfsgid((gid_t)regs->regs[0]);
+	return ret;
+}
 
 /**
  * sys_getpid - return the thread group id of the current process
@@ -985,7 +1006,7 @@ static void do_sys_times(struct tms *tms)
 	tms->tms_cstime = nsec_to_clock_t(cstime);
 }
 
-SYSCALL_DEFINE1(times, struct tms __user *, tbuf)
+static inline long __do_sys_times(struct tms * tbuf)
 {
 	if (tbuf) {
 		struct tms tmp;
@@ -996,6 +1017,12 @@ SYSCALL_DEFINE1(times, struct tms __user *, tbuf)
 	}
 	force_successful_syscall_return();
 	return (long) jiffies_64_to_clock_t(get_jiffies_64());
+}
+
+long __arm64_sys_times(const struct pt_regs *regs)
+{
+	long ret = __do_sys_times((struct tms *)regs->regs[0]);
+	return ret;
 }
 
 /*
@@ -1108,12 +1135,18 @@ out:
 	return retval;
 }
 
-SYSCALL_DEFINE1(getpgid, pid_t, pid)
+static inline long __do_sys_getpgid(pid_t pid)
 {
 	return do_getpgid(pid);
 }
 
-SYSCALL_DEFINE1(getsid, pid_t, pid)
+long __arm64_sys_getpgid(const struct pt_regs *regs)
+{
+	long ret = __do_sys_getpgid((pid_t)regs->regs[0]);
+	return ret;
+}
+
+static inline long __do_sys_getsid(pid_t pid)
 {
 	struct task_struct *p;
 	struct pid *sid;
@@ -1139,6 +1172,12 @@ SYSCALL_DEFINE1(getsid, pid_t, pid)
 out:
 	rcu_read_unlock();
 	return retval;
+}
+
+long __arm64_sys_getsid(const struct pt_regs *regs)
+{
+	long ret = __do_sys_getsid((pid_t)regs->regs[0]);
+	return ret;
 }
 
 static void set_special_pids(struct pid *pid)
@@ -1234,7 +1273,7 @@ static int override_release(char __user *release, size_t len)
 	return ret;
 }
 
-SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
+static inline long __do_sys_newuname(struct new_utsname * name)
 {
 	struct new_utsname tmp;
 
@@ -1251,56 +1290,11 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 	return 0;
 }
 
-#ifdef __ARCH_WANT_SYS_OLD_UNAME
-/*
- * Old cruft
- */
-SYSCALL_DEFINE1(uname, struct old_utsname __user *, name)
+long __arm64_sys_newuname(const struct pt_regs *regs)
 {
-	struct old_utsname tmp;
-
-	if (!name)
-		return -EFAULT;
-
-	down_read(&uts_sem);
-	memcpy(&tmp, utsname(), sizeof(tmp));
-	up_read(&uts_sem);
-	if (copy_to_user(name, &tmp, sizeof(tmp)))
-		return -EFAULT;
-
-	if (override_release(name->release, sizeof(name->release)))
-		return -EFAULT;
-	if (override_architecture(name))
-		return -EFAULT;
-	return 0;
+	long ret = __do_sys_newuname((struct new_utsname *)regs->regs[0]);
+	return ret;
 }
-
-SYSCALL_DEFINE1(olduname, struct oldold_utsname __user *, name)
-{
-	struct oldold_utsname tmp;
-
-	if (!name)
-		return -EFAULT;
-
-	memset(&tmp, 0, sizeof(tmp));
-
-	down_read(&uts_sem);
-	memcpy(&tmp.sysname, &utsname()->sysname, __OLD_UTS_LEN);
-	memcpy(&tmp.nodename, &utsname()->nodename, __OLD_UTS_LEN);
-	memcpy(&tmp.release, &utsname()->release, __OLD_UTS_LEN);
-	memcpy(&tmp.version, &utsname()->version, __OLD_UTS_LEN);
-	memcpy(&tmp.machine, &utsname()->machine, __OLD_UTS_LEN);
-	up_read(&uts_sem);
-	if (copy_to_user(name, &tmp, sizeof(tmp)))
-		return -EFAULT;
-
-	if (override_architecture(name))
-		return -EFAULT;
-	if (override_release(name->release, sizeof(name->release)))
-		return -EFAULT;
-	return 0;
-}
-#endif
 
 SYSCALL_DEFINE2(sethostname, char __user *, name, int, len)
 {
@@ -1731,10 +1725,16 @@ SYSCALL_DEFINE2(getrusage, int, who, struct rusage __user *, ru)
 	return copy_to_user(ru, &r, sizeof(r)) ? -EFAULT : 0;
 }
 
-SYSCALL_DEFINE1(umask, int, mask)
+static inline long __do_sys_umask(int mask)
 {
 	mask = xchg(&current->fs->umask, mask & S_IRWXUGO);
 	return mask;
+}
+
+long __arm64_sys_umask(const struct pt_regs *regs)
+{
+	long ret = __do_sys_umask((int)regs->regs[0]);
+	return ret;
 }
 
 static int prctl_set_mm_exe_file(struct mm_struct *mm, unsigned int fd)
@@ -2522,7 +2522,7 @@ out:
 	return 0;
 }
 
-SYSCALL_DEFINE1(sysinfo, struct sysinfo __user *, info)
+static inline long __do_sys_sysinfo(struct sysinfo * info)
 {
 	struct sysinfo val;
 
@@ -2532,4 +2532,10 @@ SYSCALL_DEFINE1(sysinfo, struct sysinfo __user *, info)
 		return -EFAULT;
 
 	return 0;
+}
+
+long __arm64_sys_sysinfo(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sysinfo((struct sysinfo *)regs->regs[0]);
+	return ret;
 }

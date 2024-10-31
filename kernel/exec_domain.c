@@ -35,7 +35,7 @@ static int __init proc_execdomains_init(void)
 module_init(proc_execdomains_init);
 #endif
 
-SYSCALL_DEFINE1(personality, unsigned int, personality)
+static inline long __do_sys_personality(unsigned int personality)
 {
 	unsigned int old = current->personality;
 
@@ -43,4 +43,10 @@ SYSCALL_DEFINE1(personality, unsigned int, personality)
 		set_personality(personality);
 
 	return old;
+}
+
+long __arm64_sys_personality(const struct pt_regs *regs)
+{
+	long ret = __do_sys_personality((unsigned int)regs->regs[0]);
+	return ret;
 }

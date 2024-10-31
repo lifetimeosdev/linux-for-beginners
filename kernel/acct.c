@@ -270,7 +270,7 @@ static DEFINE_MUTEX(acct_on_mutex);
  *
  * Returns: 0 for success or negative errno values for failure.
  */
-SYSCALL_DEFINE1(acct, const char __user *, name)
+static inline long __do_sys_acct(const char *name)
 {
 	int error = 0;
 
@@ -292,6 +292,12 @@ SYSCALL_DEFINE1(acct, const char __user *, name)
 	}
 
 	return error;
+}
+
+long __arm64_sys_acct(const struct pt_regs *regs)
+{
+	long ret = __do_sys_acct((const char *)regs->regs[0]);
+	return ret;
 }
 
 void acct_exit_ns(struct pid_namespace *ns)

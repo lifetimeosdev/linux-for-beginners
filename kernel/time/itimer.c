@@ -219,67 +219,6 @@ again:
 	return 0;
 }
 
-#ifdef CONFIG_SECURITY_SELINUX
-void clear_itimer(void)
-{
-	struct itimerspec64 v = {};
-	int i;
-
-	for (i = 0; i < 3; i++)
-		do_setitimer(i, &v, NULL);
-}
-#endif
-
-#ifdef __ARCH_WANT_SYS_ALARM
-
-/**
- * alarm_setitimer - set alarm in seconds
- *
- * @seconds:	number of seconds until alarm
- *		0 disables the alarm
- *
- * Returns the remaining time in seconds of a pending timer or 0 when
- * the timer is not active.
- *
- * On 32 bit machines the seconds value is limited to (INT_MAX/2) to avoid
- * negative timeval settings which would cause immediate expiry.
- */
-static unsigned int alarm_setitimer(unsigned int seconds)
-{
-	struct itimerspec64 it_new, it_old;
-
-#if BITS_PER_LONG < 64
-	if (seconds > INT_MAX)
-		seconds = INT_MAX;
-#endif
-	it_new.it_value.tv_sec = seconds;
-	it_new.it_value.tv_nsec = 0;
-	it_new.it_interval.tv_sec = it_new.it_interval.tv_nsec = 0;
-
-	do_setitimer(ITIMER_REAL, &it_new, &it_old);
-
-	/*
-	 * We can't return 0 if we have an alarm pending ...  And we'd
-	 * better return too much than too little anyway
-	 */
-	if ((!it_old.it_value.tv_sec && it_old.it_value.tv_nsec) ||
-	      it_old.it_value.tv_nsec >= (NSEC_PER_SEC / 2))
-		it_old.it_value.tv_sec++;
-
-	return it_old.it_value.tv_sec;
-}
-
-/*
- * For backwards compatibility?  This can be done in libc so Alpha
- * and all newer ports shouldn't need it.
- */
-SYSCALL_DEFINE1(alarm, unsigned int, seconds)
-{
-	return alarm_setitimer(seconds);
-}
-
-#endif
-
 static int get_itimerval(struct itimerspec64 *o, const struct __kernel_old_itimerval __user *i)
 {
 	struct __kernel_old_itimerval v;

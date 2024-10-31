@@ -1769,18 +1769,6 @@ SYSCALL_DEFINE2(umount, char __user *, name, int, flags)
 	return ksys_umount(name, flags);
 }
 
-#ifdef __ARCH_WANT_SYS_OLDUMOUNT
-
-/*
- *	The 2.0 compatible umount. No flags.
- */
-SYSCALL_DEFINE1(oldumount, char __user *, name)
-{
-	return ksys_umount(name, 0);
-}
-
-#endif
-
 static bool is_mnt_ns_file(struct dentry *dentry)
 {
 	/* Is this a proxy for a mount namespace? */

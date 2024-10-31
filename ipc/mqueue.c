@@ -949,7 +949,7 @@ SYSCALL_DEFINE4(mq_open, const char __user *, u_name, int, oflag, umode_t, mode,
 	return do_mq_open(u_name, oflag, mode, u_attr ? &attr : NULL);
 }
 
-SYSCALL_DEFINE1(mq_unlink, const char __user *, u_name)
+static inline long __do_sys_mq_unlink(const char *u_name)
 {
 	int err;
 	struct filename *name;
@@ -992,6 +992,12 @@ out_name:
 	putname(name);
 
 	return err;
+}
+
+long __arm64_sys_mq_unlink(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mq_unlink((const char *)regs->regs[0]);
+	return ret;
 }
 
 /* Pipelined send and receive functions.

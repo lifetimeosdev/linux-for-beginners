@@ -683,9 +683,16 @@ static int do_inotify_init(int flags)
 	return ret;
 }
 
-SYSCALL_DEFINE1(inotify_init1, int, flags)
+
+static inline long __do_sys_inotify_init1(int flags)
 {
 	return do_inotify_init(flags);
+}
+
+long __arm64_sys_inotify_init1(const struct pt_regs *regs)
+{
+	long ret = __do_sys_inotify_init1((int)regs->regs[0]);
+	return ret;
 }
 
 long __arm64_sys_inotify_init(const struct pt_regs *__unused);
