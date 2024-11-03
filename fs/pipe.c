@@ -1020,9 +1020,15 @@ static int do_pipe2(int __user *fildes, int flags)
 	return error;
 }
 
-SYSCALL_DEFINE2(pipe2, int __user *, fildes, int, flags)
+static inline long __do_sys_pipe2(int *fildes, int flags)
 {
 	return do_pipe2(fildes, flags);
+}
+
+long __arm64_sys_pipe2(const struct pt_regs *regs)
+{
+	long ret = __do_sys_pipe2((int *)regs->regs[0], (int)regs->regs[1]);
+	return ret;
 }
 
 static inline long __do_sys_pipe(int *fildes)

@@ -3169,7 +3169,7 @@ static bool swap_discardable(struct swap_info_struct *si)
 	return true;
 }
 
-SYSCALL_DEFINE2(swapon, const char __user *, specialfile, int, swap_flags)
+static inline long __do_sys_swapon(const char *specialfile, int swap_flags)
 {
 	struct swap_info_struct *p;
 	struct filename *name;
@@ -3430,6 +3430,12 @@ out:
 	if (!error)
 		enable_swap_slots_cache();
 	return error;
+}
+
+long __arm64_sys_swapon(const struct pt_regs *regs)
+{
+	long ret = __do_sys_swapon((const char *)regs->regs[0], (int)regs->regs[1]);
+	return ret;
 }
 
 void si_swapinfo(struct sysinfo *val)

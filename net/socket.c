@@ -1684,9 +1684,15 @@ int __sys_listen(int fd, int backlog)
 	return err;
 }
 
-SYSCALL_DEFINE2(listen, int, fd, int, backlog)
+static inline long __do_sys_listen(int fd, int backlog)
 {
 	return __sys_listen(fd, backlog);
+}
+
+long __arm64_sys_listen(const struct pt_regs *regs)
+{
+	long ret = __do_sys_listen((int)regs->regs[0], (int)regs->regs[1]);
+	return ret;
 }
 
 struct file *do_accept(struct file *file, unsigned file_flags,
@@ -2214,9 +2220,15 @@ int __sys_shutdown(int fd, int how)
 	return err;
 }
 
-SYSCALL_DEFINE2(shutdown, int, fd, int, how)
+static inline long __do_sys_shutdown(int fd, int how)
 {
 	return __sys_shutdown(fd, how);
+}
+
+long __arm64_sys_shutdown(const struct pt_regs *regs)
+{
+	long ret = __do_sys_shutdown((int)regs->regs[0], (int)regs->regs[1]);
+	return ret;
 }
 
 /* A couple of helpful macros for getting the address of the 32/64 bit
@@ -2816,147 +2828,6 @@ SYSCALL_DEFINE5(recvmmsg, int, fd, struct mmsghdr __user *, mmsg,
 
 	return __sys_recvmmsg(fd, mmsg, vlen, flags, timeout, NULL);
 }
-
-#ifdef __ARCH_WANT_SYS_SOCKETCALL
-/* Argument list sizes for sys_socketcall */
-#define AL(x) ((x) * sizeof(unsigned long))
-static const unsigned char nargs[21] = {
-	AL(0), AL(3), AL(3), AL(3), AL(2), AL(3),
-	AL(3), AL(3), AL(4), AL(4), AL(4), AL(6),
-	AL(6), AL(2), AL(5), AL(5), AL(3), AL(3),
-	AL(4), AL(5), AL(4)
-};
-
-#undef AL
-
-/*
- *	System call vectors.
- *
- *	Argument checking cleaned up. Saved 20% in size.
- *  This function doesn't need to set the kernel lock because
- *  it is set by the callees.
- */
-
-SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
-{
-	unsigned long a[AUDITSC_ARGS];
-	unsigned long a0, a1;
-	int err;
-	unsigned int len;
-
-	if (call < 1 || call > SYS_SENDMMSG)
-		return -EINVAL;
-	call = array_index_nospec(call, SYS_SENDMMSG + 1);
-
-	len = nargs[call];
-	if (len > sizeof(a))
-		return -EINVAL;
-
-	/* copy_from_user should be SMP safe. */
-	if (copy_from_user(a, args, len))
-		return -EFAULT;
-
-	err = audit_socketcall(nargs[call] / sizeof(unsigned long), a);
-	if (err)
-		return err;
-
-	a0 = a[0];
-	a1 = a[1];
-
-	switch (call) {
-	case SYS_SOCKET:
-		err = __sys_socket(a0, a1, a[2]);
-		break;
-	case SYS_BIND:
-		err = __sys_bind(a0, (struct sockaddr __user *)a1, a[2]);
-		break;
-	case SYS_CONNECT:
-		err = __sys_connect(a0, (struct sockaddr __user *)a1, a[2]);
-		break;
-	case SYS_LISTEN:
-		err = __sys_listen(a0, a1);
-		break;
-	case SYS_ACCEPT:
-		err = __sys_accept4(a0, (struct sockaddr __user *)a1,
-				    (int __user *)a[2], 0);
-		break;
-	case SYS_GETSOCKNAME:
-		err =
-		    __sys_getsockname(a0, (struct sockaddr __user *)a1,
-				      (int __user *)a[2]);
-		break;
-	case SYS_GETPEERNAME:
-		err =
-		    __sys_getpeername(a0, (struct sockaddr __user *)a1,
-				      (int __user *)a[2]);
-		break;
-	case SYS_SOCKETPAIR:
-		err = __sys_socketpair(a0, a1, a[2], (int __user *)a[3]);
-		break;
-	case SYS_SEND:
-		err = __sys_sendto(a0, (void __user *)a1, a[2], a[3],
-				   NULL, 0);
-		break;
-	case SYS_SENDTO:
-		err = __sys_sendto(a0, (void __user *)a1, a[2], a[3],
-				   (struct sockaddr __user *)a[4], a[5]);
-		break;
-	case SYS_RECV:
-		err = __sys_recvfrom(a0, (void __user *)a1, a[2], a[3],
-				     NULL, NULL);
-		break;
-	case SYS_RECVFROM:
-		err = __sys_recvfrom(a0, (void __user *)a1, a[2], a[3],
-				     (struct sockaddr __user *)a[4],
-				     (int __user *)a[5]);
-		break;
-	case SYS_SHUTDOWN:
-		err = __sys_shutdown(a0, a1);
-		break;
-	case SYS_SETSOCKOPT:
-		err = __sys_setsockopt(a0, a1, a[2], (char __user *)a[3],
-				       a[4]);
-		break;
-	case SYS_GETSOCKOPT:
-		err =
-		    __sys_getsockopt(a0, a1, a[2], (char __user *)a[3],
-				     (int __user *)a[4]);
-		break;
-	case SYS_SENDMSG:
-		err = __sys_sendmsg(a0, (struct user_msghdr __user *)a1,
-				    a[2], true);
-		break;
-	case SYS_SENDMMSG:
-		err = __sys_sendmmsg(a0, (struct mmsghdr __user *)a1, a[2],
-				     a[3], true);
-		break;
-	case SYS_RECVMSG:
-		err = __sys_recvmsg(a0, (struct user_msghdr __user *)a1,
-				    a[2], true);
-		break;
-	case SYS_RECVMMSG:
-		if (IS_ENABLED(CONFIG_64BIT))
-			err = __sys_recvmmsg(a0, (struct mmsghdr __user *)a1,
-					     a[2], a[3],
-					     (struct __kernel_timespec __user *)a[4],
-					     NULL);
-		else
-			err = __sys_recvmmsg(a0, (struct mmsghdr __user *)a1,
-					     a[2], a[3], NULL,
-					     (struct old_timespec32 __user *)a[4]);
-		break;
-	case SYS_ACCEPT4:
-		err = __sys_accept4(a0, (struct sockaddr __user *)a1,
-				    (int __user *)a[2], a[3]);
-		break;
-	default:
-		err = -EINVAL;
-		break;
-	}
-	return err;
-}
-
-#endif				/* __ARCH_WANT_SYS_SOCKETCALL */
 
 /**
  *	sock_register - add a socket protocol handler

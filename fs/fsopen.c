@@ -112,7 +112,7 @@ static int fscontext_alloc_log(struct fs_context *fc)
  * opened, thereby indicating which namespaces will be used (notably, which
  * network namespace will be used for network filesystems).
  */
-SYSCALL_DEFINE2(fsopen, const char __user *, _fs_name, unsigned int, flags)
+static inline long __do_sys_fsopen(const char *_fs_name, unsigned int flags)
 {
 	struct file_system_type *fs_type;
 	struct fs_context *fc;
@@ -149,6 +149,12 @@ SYSCALL_DEFINE2(fsopen, const char __user *, _fs_name, unsigned int, flags)
 
 err_fc:
 	put_fs_context(fc);
+	return ret;
+}
+
+long __arm64_sys_fsopen(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fsopen((const char *)regs->regs[0], (unsigned int)regs->regs[1]);
 	return ret;
 }
 

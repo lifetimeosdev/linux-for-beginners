@@ -1443,8 +1443,7 @@ free_skb:
 	return ret;
 }
 
-SYSCALL_DEFINE2(mq_notify, mqd_t, mqdes,
-		const struct sigevent __user *, u_notification)
+static inline long __do_sys_mq_notify(mqd_t mqdes, const struct sigevent *u_notification)
 {
 	struct sigevent n, *p = NULL;
 	if (u_notification) {
@@ -1453,6 +1452,12 @@ SYSCALL_DEFINE2(mq_notify, mqd_t, mqdes,
 		p = &n;
 	}
 	return do_mq_notify(mqdes, p);
+}
+
+long __arm64_sys_mq_notify(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mq_notify((mqd_t)regs->regs[0], (const struct sigevent *)regs->regs[1]);
+	return ret;
 }
 
 static int do_mq_getsetattr(int mqdes, struct mq_attr *new, struct mq_attr *old)

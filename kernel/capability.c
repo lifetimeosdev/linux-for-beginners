@@ -145,7 +145,7 @@ static inline int cap_get_target_pid(pid_t pid, kernel_cap_t *pEp,
  *
  * Returns 0 on success and < 0 on error.
  */
-SYSCALL_DEFINE2(capget, cap_user_header_t, header, cap_user_data_t, dataptr)
+static inline long __do_sys_capget(cap_user_header_t header, cap_user_data_t dataptr)
 {
 	int ret = 0;
 	pid_t pid;
@@ -201,6 +201,12 @@ SYSCALL_DEFINE2(capget, cap_user_header_t, header, cap_user_data_t, dataptr)
 	return ret;
 }
 
+long __arm64_sys_capget(const struct pt_regs *regs)
+{
+	long ret = __do_sys_capget((cap_user_header_t)regs->regs[0], (cap_user_data_t)regs->regs[1]);
+	return ret;
+}
+
 /**
  * sys_capset - set capabilities for a process or (*) a group of processes
  * @header: pointer to struct that contains capability version and
@@ -219,7 +225,7 @@ SYSCALL_DEFINE2(capget, cap_user_header_t, header, cap_user_data_t, dataptr)
  *
  * Returns 0 on success and < 0 on error.
  */
-SYSCALL_DEFINE2(capset, cap_user_header_t, header, const cap_user_data_t, data)
+static inline long __do_sys_capset(cap_user_header_t header, const cap_user_data_t data)
 {
 	struct __user_cap_data_struct kdata[_KERNEL_CAPABILITY_U32S];
 	unsigned i, tocopy, copybytes;
@@ -277,6 +283,12 @@ SYSCALL_DEFINE2(capset, cap_user_header_t, header, const cap_user_data_t, data)
 
 error:
 	abort_creds(new);
+	return ret;
+}
+
+long __arm64_sys_capset(const struct pt_regs *regs)
+{
+	long ret = __do_sys_capset((cap_user_header_t)regs->regs[0], (const cap_user_data_t)regs->regs[1]);
 	return ret;
 }
 

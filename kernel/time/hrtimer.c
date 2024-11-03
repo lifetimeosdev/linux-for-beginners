@@ -2006,10 +2006,8 @@ out:
 	return ret;
 }
 
-#ifdef CONFIG_64BIT
-
-SYSCALL_DEFINE2(nanosleep, struct __kernel_timespec __user *, rqtp,
-		struct __kernel_timespec __user *, rmtp)
+static inline long __do_sys_nanosleep(struct __kernel_timespec *rqtp,
+				      struct __kernel_timespec *rmtp)
 {
 	struct timespec64 tu;
 
@@ -2026,7 +2024,12 @@ SYSCALL_DEFINE2(nanosleep, struct __kernel_timespec __user *, rqtp,
 				 CLOCK_MONOTONIC);
 }
 
-#endif
+long __arm64_sys_nanosleep(const struct pt_regs *regs)
+{
+	long ret = __do_sys_nanosleep((struct __kernel_timespec *)regs->regs[0],
+				      (struct __kernel_timespec *)regs->regs[1]);
+	return ret;
+}
 
 /*
  * Functions related to boot-time initialization:

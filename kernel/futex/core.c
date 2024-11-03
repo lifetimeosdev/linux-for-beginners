@@ -3338,8 +3338,7 @@ out:
  * @head:	pointer to the list-head
  * @len:	length of the list-head, as userspace expects
  */
-SYSCALL_DEFINE2(set_robust_list, struct robust_list_head __user *, head,
-		size_t, len)
+static inline long __do_sys_set_robust_list(struct robust_list_head *head, size_t len)
 {
 	if (!futex_cmpxchg_enabled)
 		return -ENOSYS;
@@ -3352,6 +3351,12 @@ SYSCALL_DEFINE2(set_robust_list, struct robust_list_head __user *, head,
 	current->robust_list = head;
 
 	return 0;
+}
+
+long __arm64_sys_set_robust_list(const struct pt_regs *regs)
+{
+	long ret = __do_sys_set_robust_list((struct robust_list_head *)regs->regs[0], (size_t)regs->regs[1]);
+	return ret;
 }
 
 /**

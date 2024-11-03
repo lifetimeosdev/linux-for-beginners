@@ -1764,9 +1764,15 @@ static int ksys_umount(char __user *name, int flags)
 	return path_umount(&path, flags);
 }
 
-SYSCALL_DEFINE2(umount, char __user *, name, int, flags)
+static inline long __do_sys_umount(char *name, int flags)
 {
 	return ksys_umount(name, flags);
+}
+
+long __arm64_sys_umount(const struct pt_regs *regs)
+{
+	long ret = __do_sys_umount((char *)regs->regs[0], (int)regs->regs[1]);
+	return ret;
 }
 
 static bool is_mnt_ns_file(struct dentry *dentry)
@@ -3705,8 +3711,7 @@ EXPORT_SYMBOL(path_is_under);
  *    though, so you may need to say mount --bind /nfs/my_root /nfs/my_root
  *    first.
  */
-SYSCALL_DEFINE2(pivot_root, const char __user *, new_root,
-		const char __user *, put_old)
+static inline long __do_sys_pivot_root(const char *new_root, const char *put_old)
 {
 	struct path new, old, root;
 	struct mount *new_mnt, *root_mnt, *old_mnt, *root_parent, *ex_parent;
@@ -3802,6 +3807,12 @@ out1:
 	path_put(&new);
 out0:
 	return error;
+}
+
+long __arm64_sys_pivot_root(const struct pt_regs *regs)
+{
+	long ret = __do_sys_pivot_root((const char *)regs->regs[0], (const char *)regs->regs[1]);
+	return ret;
 }
 
 static void __init init_mount_tree(void)

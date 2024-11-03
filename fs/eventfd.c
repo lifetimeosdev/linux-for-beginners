@@ -453,9 +453,15 @@ err:
 	return fd;
 }
 
-SYSCALL_DEFINE2(eventfd2, unsigned int, count, int, flags)
+static inline long __do_sys_eventfd2(unsigned int count, int flags)
 {
 	return do_eventfd(count, flags);
+}
+
+long __arm64_sys_eventfd2(const struct pt_regs *regs)
+{
+	long ret = __do_sys_eventfd2((unsigned int)regs->regs[0], (int)regs->regs[1]);
+	return ret;
 }
 
 static inline long __do_sys_eventfd(unsigned int count)

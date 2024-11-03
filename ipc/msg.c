@@ -311,9 +311,15 @@ long ksys_msgget(key_t key, int msgflg)
 	return ipcget(ns, &msg_ids(ns), &msg_ops, &msg_params);
 }
 
-SYSCALL_DEFINE2(msgget, key_t, key, int, msgflg)
+static inline long __do_sys_msgget(key_t key, int msgflg)
 {
 	return ksys_msgget(key, msgflg);
+}
+
+long __arm64_sys_msgget(const struct pt_regs *regs)
+{
+	long ret = __do_sys_msgget((key_t)regs->regs[0], (int)regs->regs[1]);
+	return ret;
 }
 
 static inline unsigned long

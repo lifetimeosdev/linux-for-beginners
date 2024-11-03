@@ -581,7 +581,7 @@ static int pidfd_create(struct pid *pid, unsigned int flags)
  * Return: On success, a cloexec pidfd is returned.
  *         On error, a negative errno number will be returned.
  */
-SYSCALL_DEFINE2(pidfd_open, pid_t, pid, unsigned int, flags)
+static inline long __do_sys_pidfd_open(pid_t pid, unsigned int flags)
 {
 	int fd;
 	struct pid *p;
@@ -603,6 +603,12 @@ SYSCALL_DEFINE2(pidfd_open, pid_t, pid, unsigned int, flags)
 
 	put_pid(p);
 	return fd;
+}
+
+long __arm64_sys_pidfd_open(const struct pt_regs *regs)
+{
+	long ret = __do_sys_pidfd_open((pid_t)regs->regs[0], (unsigned int)regs->regs[1]);
+	return ret;
 }
 
 void __init pid_idr_init(void)

@@ -150,7 +150,7 @@ int set_current_groups(struct group_info *group_info)
 
 EXPORT_SYMBOL(set_current_groups);
 
-SYSCALL_DEFINE2(getgroups, int, gidsetsize, gid_t __user *, grouplist)
+static inline long __do_sys_getgroups(int gidsetsize, gid_t *grouplist)
 {
 	const struct cred *cred = current_cred();
 	int i;
@@ -174,6 +174,12 @@ out:
 	return i;
 }
 
+long __arm64_sys_getgroups(const struct pt_regs *regs)
+{
+	long ret = __do_sys_getgroups((int)regs->regs[0], (gid_t *)regs->regs[1]);
+	return ret;
+}
+
 bool may_setgroups(void)
 {
 	struct user_namespace *user_ns = current_user_ns();
@@ -186,8 +192,7 @@ bool may_setgroups(void)
  *	SMP: Our groups are copy-on-write. We can set them safely
  *	without another task interfering.
  */
-
-SYSCALL_DEFINE2(setgroups, int, gidsetsize, gid_t __user *, grouplist)
+static inline long __do_sys_setgroups(int gidsetsize, gid_t *grouplist)
 {
 	struct group_info *group_info;
 	int retval;
@@ -211,6 +216,12 @@ SYSCALL_DEFINE2(setgroups, int, gidsetsize, gid_t __user *, grouplist)
 	put_group_info(group_info);
 
 	return retval;
+}
+
+long __arm64_sys_setgroups(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setgroups((int)regs->regs[0], (gid_t *)regs->regs[1]);
+	return ret;
 }
 
 /*

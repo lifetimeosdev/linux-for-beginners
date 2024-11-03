@@ -216,90 +216,6 @@ int vfs_fstatat(int dfd, const char __user *filename,
 			 stat, STATX_BASIC_STATS);
 }
 
-#ifdef __ARCH_WANT_OLD_STAT
-
-/*
- * For backward compatibility?  Maybe this should be moved
- * into arch/i386 instead?
- */
-static int cp_old_stat(struct kstat *stat, struct __old_kernel_stat __user * statbuf)
-{
-	static int warncount = 5;
-	struct __old_kernel_stat tmp;
-
-	if (warncount > 0) {
-		warncount--;
-		printk(KERN_WARNING "VFS: Warning: %s using old stat() call. Recompile your binary.\n",
-			current->comm);
-	} else if (warncount < 0) {
-		/* it's laughable, but... */
-		warncount = 0;
-	}
-
-	memset(&tmp, 0, sizeof(struct __old_kernel_stat));
-	tmp.st_dev = old_encode_dev(stat->dev);
-	tmp.st_ino = stat->ino;
-	if (sizeof(tmp.st_ino) < sizeof(stat->ino) && tmp.st_ino != stat->ino)
-		return -EOVERFLOW;
-	tmp.st_mode = stat->mode;
-	tmp.st_nlink = stat->nlink;
-	if (tmp.st_nlink != stat->nlink)
-		return -EOVERFLOW;
-	SET_UID(tmp.st_uid, from_kuid_munged(current_user_ns(), stat->uid));
-	SET_GID(tmp.st_gid, from_kgid_munged(current_user_ns(), stat->gid));
-	tmp.st_rdev = old_encode_dev(stat->rdev);
-#if BITS_PER_LONG == 32
-	if (stat->size > MAX_NON_LFS)
-		return -EOVERFLOW;
-#endif
-	tmp.st_size = stat->size;
-	tmp.st_atime = stat->atime.tv_sec;
-	tmp.st_mtime = stat->mtime.tv_sec;
-	tmp.st_ctime = stat->ctime.tv_sec;
-	return copy_to_user(statbuf,&tmp,sizeof(tmp)) ? -EFAULT : 0;
-}
-
-SYSCALL_DEFINE2(stat, const char __user *, filename,
-		struct __old_kernel_stat __user *, statbuf)
-{
-	struct kstat stat;
-	int error;
-
-	error = vfs_stat(filename, &stat);
-	if (error)
-		return error;
-
-	return cp_old_stat(&stat, statbuf);
-}
-
-SYSCALL_DEFINE2(lstat, const char __user *, filename,
-		struct __old_kernel_stat __user *, statbuf)
-{
-	struct kstat stat;
-	int error;
-
-	error = vfs_lstat(filename, &stat);
-	if (error)
-		return error;
-
-	return cp_old_stat(&stat, statbuf);
-}
-
-SYSCALL_DEFINE2(fstat, unsigned int, fd, struct __old_kernel_stat __user *, statbuf)
-{
-	struct kstat stat;
-	int error = vfs_fstat(fd, &stat);
-
-	if (!error)
-		error = cp_old_stat(&stat, statbuf);
-
-	return error;
-}
-
-#endif /* __ARCH_WANT_OLD_STAT */
-
-#ifdef __ARCH_WANT_NEW_STAT
-
 #if BITS_PER_LONG == 32
 #  define choose_32_64(a,b) a
 #else
@@ -349,8 +265,7 @@ static int cp_new_stat(struct kstat *stat, struct stat __user *statbuf)
 	return copy_to_user(statbuf,&tmp,sizeof(tmp)) ? -EFAULT : 0;
 }
 
-SYSCALL_DEFINE2(newstat, const char __user *, filename,
-		struct stat __user *, statbuf)
+static inline long __do_sys_newstat(const char *filename, struct stat *statbuf)
 {
 	struct kstat stat;
 	int error = vfs_stat(filename, &stat);
@@ -360,8 +275,13 @@ SYSCALL_DEFINE2(newstat, const char __user *, filename,
 	return cp_new_stat(&stat, statbuf);
 }
 
-SYSCALL_DEFINE2(newlstat, const char __user *, filename,
-		struct stat __user *, statbuf)
+long __arm64_sys_newstat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_newstat((const char *)regs->regs[0], (struct stat *)regs->regs[1]);
+	return ret;
+}
+
+static inline long __do_sys_newlstat(const char *filename, struct stat *statbuf)
 {
 	struct kstat stat;
 	int error;
@@ -371,6 +291,12 @@ SYSCALL_DEFINE2(newlstat, const char __user *, filename,
 		return error;
 
 	return cp_new_stat(&stat, statbuf);
+}
+
+long __arm64_sys_newlstat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_newlstat((const char *)regs->regs[0], (struct stat *)regs->regs[1]);
+	return ret;
 }
 
 #if !defined(__ARCH_WANT_STAT64) || defined(__ARCH_WANT_SYS_NEWFSTATAT)
@@ -387,7 +313,7 @@ SYSCALL_DEFINE4(newfstatat, int, dfd, const char __user *, filename,
 }
 #endif
 
-SYSCALL_DEFINE2(newfstat, unsigned int, fd, struct stat __user *, statbuf)
+static inline long __do_sys_newfstat(unsigned int fd, struct stat *statbuf)
 {
 	struct kstat stat;
 	int error = vfs_fstat(fd, &stat);
@@ -397,7 +323,12 @@ SYSCALL_DEFINE2(newfstat, unsigned int, fd, struct stat __user *, statbuf)
 
 	return error;
 }
-#endif
+
+long __arm64_sys_newfstat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_newfstat((unsigned int)regs->regs[0], (struct stat *)regs->regs[1]);
+	return ret;
+}
 
 static int do_readlinkat(int dfd, const char __user *pathname,
 			 char __user *buf, int bufsiz)
@@ -449,94 +380,6 @@ SYSCALL_DEFINE3(readlink, const char __user *, path, char __user *, buf,
 
 
 /* ---------- LFS-64 ----------- */
-#if defined(__ARCH_WANT_STAT64) || defined(__ARCH_WANT_COMPAT_STAT64)
-
-#ifndef INIT_STRUCT_STAT64_PADDING
-#  define INIT_STRUCT_STAT64_PADDING(st) memset(&st, 0, sizeof(st))
-#endif
-
-static long cp_new_stat64(struct kstat *stat, struct stat64 __user *statbuf)
-{
-	struct stat64 tmp;
-
-	INIT_STRUCT_STAT64_PADDING(tmp);
-#ifdef CONFIG_MIPS
-	/* mips has weird padding, so we don't get 64 bits there */
-	tmp.st_dev = new_encode_dev(stat->dev);
-	tmp.st_rdev = new_encode_dev(stat->rdev);
-#else
-	tmp.st_dev = huge_encode_dev(stat->dev);
-	tmp.st_rdev = huge_encode_dev(stat->rdev);
-#endif
-	tmp.st_ino = stat->ino;
-	if (sizeof(tmp.st_ino) < sizeof(stat->ino) && tmp.st_ino != stat->ino)
-		return -EOVERFLOW;
-#ifdef STAT64_HAS_BROKEN_ST_INO
-	tmp.__st_ino = stat->ino;
-#endif
-	tmp.st_mode = stat->mode;
-	tmp.st_nlink = stat->nlink;
-	tmp.st_uid = from_kuid_munged(current_user_ns(), stat->uid);
-	tmp.st_gid = from_kgid_munged(current_user_ns(), stat->gid);
-	tmp.st_atime = stat->atime.tv_sec;
-	tmp.st_atime_nsec = stat->atime.tv_nsec;
-	tmp.st_mtime = stat->mtime.tv_sec;
-	tmp.st_mtime_nsec = stat->mtime.tv_nsec;
-	tmp.st_ctime = stat->ctime.tv_sec;
-	tmp.st_ctime_nsec = stat->ctime.tv_nsec;
-	tmp.st_size = stat->size;
-	tmp.st_blocks = stat->blocks;
-	tmp.st_blksize = stat->blksize;
-	return copy_to_user(statbuf,&tmp,sizeof(tmp)) ? -EFAULT : 0;
-}
-
-SYSCALL_DEFINE2(stat64, const char __user *, filename,
-		struct stat64 __user *, statbuf)
-{
-	struct kstat stat;
-	int error = vfs_stat(filename, &stat);
-
-	if (!error)
-		error = cp_new_stat64(&stat, statbuf);
-
-	return error;
-}
-
-SYSCALL_DEFINE2(lstat64, const char __user *, filename,
-		struct stat64 __user *, statbuf)
-{
-	struct kstat stat;
-	int error = vfs_lstat(filename, &stat);
-
-	if (!error)
-		error = cp_new_stat64(&stat, statbuf);
-
-	return error;
-}
-
-SYSCALL_DEFINE2(fstat64, unsigned long, fd, struct stat64 __user *, statbuf)
-{
-	struct kstat stat;
-	int error = vfs_fstat(fd, &stat);
-
-	if (!error)
-		error = cp_new_stat64(&stat, statbuf);
-
-	return error;
-}
-
-SYSCALL_DEFINE4(fstatat64, int, dfd, const char __user *, filename,
-		struct stat64 __user *, statbuf, int, flag)
-{
-	struct kstat stat;
-	int error;
-
-	error = vfs_fstatat(dfd, filename, &stat, flag);
-	if (error)
-		return error;
-	return cp_new_stat64(&stat, statbuf);
-}
-#endif /* __ARCH_WANT_STAT64 || __ARCH_WANT_COMPAT_STAT64 */
 
 static noinline_for_stack int
 cp_statx(const struct kstat *stat, struct statx __user *buffer)

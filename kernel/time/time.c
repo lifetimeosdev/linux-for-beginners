@@ -51,8 +51,7 @@ struct timezone sys_tz;
 
 EXPORT_SYMBOL(sys_tz);
 
-SYSCALL_DEFINE2(gettimeofday, struct __kernel_old_timeval __user *, tv,
-		struct timezone __user *, tz)
+static inline long __do_sys_gettimeofday(struct __kernel_old_timeval *tv, struct timezone *tz)
 {
 	if (likely(tv != NULL)) {
 		struct timespec64 ts;
@@ -67,6 +66,12 @@ SYSCALL_DEFINE2(gettimeofday, struct __kernel_old_timeval __user *, tv,
 			return -EFAULT;
 	}
 	return 0;
+}
+
+long __arm64_sys_gettimeofday(const struct pt_regs *regs)
+{
+	long ret = __do_sys_gettimeofday((struct __kernel_old_timeval *)regs->regs[0], (struct timezone *)regs->regs[1]);
+	return ret;
 }
 
 /*
@@ -110,8 +115,7 @@ int do_sys_settimeofday64(const struct timespec64 *tv, const struct timezone *tz
 	return 0;
 }
 
-SYSCALL_DEFINE2(settimeofday, struct __kernel_old_timeval __user *, tv,
-		struct timezone __user *, tz)
+static inline long __do_sys_settimeofday(struct __kernel_old_timeval *tv, struct timezone *tz)
 {
 	struct timespec64 new_ts;
 	struct timezone new_tz;
@@ -132,6 +136,12 @@ SYSCALL_DEFINE2(settimeofday, struct __kernel_old_timeval __user *, tv,
 	}
 
 	return do_sys_settimeofday64(tv ? &new_ts : NULL, tz ? &new_tz : NULL);
+}
+
+long __arm64_sys_settimeofday(const struct pt_regs *regs)
+{
+	long ret = __do_sys_settimeofday((struct __kernel_old_timeval *)regs->regs[0], (struct timezone *)regs->regs[1]);
+	return ret;
 }
 
 static inline long __do_sys_adjtimex(struct __kernel_timex *txc_p)

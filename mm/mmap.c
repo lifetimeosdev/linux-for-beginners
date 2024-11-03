@@ -2912,13 +2912,18 @@ int vm_munmap(unsigned long start, size_t len)
 }
 EXPORT_SYMBOL(vm_munmap);
 
-SYSCALL_DEFINE2(munmap, unsigned long, addr, size_t, len)
+static inline long __do_sys_munmap(unsigned long addr, size_t len)
 {
 	addr = untagged_addr(addr);
 	profile_munmap(addr);
 	return __vm_munmap(addr, len, true);
 }
 
+long __arm64_sys_munmap(const struct pt_regs *regs)
+{
+	long ret = __do_sys_munmap((unsigned long)regs->regs[0], (size_t)regs->regs[1]);
+	return ret;
+}
 
 /*
  * Emulation of deprecated remap_file_pages() syscall.

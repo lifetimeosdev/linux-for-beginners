@@ -140,9 +140,15 @@ retry:
 	return error;
 }
 
-SYSCALL_DEFINE2(truncate, const char __user *, path, long, length)
+static inline long __do_sys_truncate(const char *path, long length)
 {
 	return do_sys_truncate(path, length);
+}
+
+long __arm64_sys_truncate(const struct pt_regs *regs)
+{
+	long ret = __do_sys_truncate((const char *)regs->regs[0], (long)regs->regs[1]);
+	return ret;
 }
 
 long do_sys_ftruncate(unsigned int fd, loff_t length, int small)
@@ -193,24 +199,16 @@ out:
 	return error;
 }
 
-SYSCALL_DEFINE2(ftruncate, unsigned int, fd, unsigned long, length)
+static inline long __do_sys_ftruncate(unsigned int fd, unsigned long length)
 {
 	return do_sys_ftruncate(fd, length, 1);
 }
 
-/* LFS versions of truncate are only needed on 32 bit machines */
-#if BITS_PER_LONG == 32
-SYSCALL_DEFINE2(truncate64, const char __user *, path, loff_t, length)
+long __arm64_sys_ftruncate(const struct pt_regs *regs)
 {
-	return do_sys_truncate(path, length);
+	long ret = __do_sys_ftruncate((unsigned int)regs->regs[0], (unsigned long)regs->regs[1]);
+	return ret;
 }
-
-SYSCALL_DEFINE2(ftruncate64, unsigned int, fd, loff_t, length)
-{
-	return do_sys_ftruncate(fd, length, 0);
-}
-#endif /* BITS_PER_LONG == 32 */
-
 
 int vfs_fallocate(struct file *file, int mode, loff_t offset, loff_t len)
 {
@@ -463,9 +461,15 @@ SYSCALL_DEFINE4(faccessat2, int, dfd, const char __user *, filename, int, mode,
 	return do_faccessat(dfd, filename, mode, flags);
 }
 
-SYSCALL_DEFINE2(access, const char __user *, filename, int, mode)
+static inline long __do_sys_access(const char *filename, int mode)
 {
 	return do_faccessat(AT_FDCWD, filename, mode, 0);
+}
+
+long __arm64_sys_access(const struct pt_regs *regs)
+{
+	long ret = __do_sys_access((const char *)regs->regs[0], (int)regs->regs[1]);
+	return ret;
 }
 
 static inline long __do_sys_chdir(const char *filename)
@@ -602,7 +606,7 @@ int vfs_fchmod(struct file *file, umode_t mode)
 	return chmod_common(&file->f_path, mode);
 }
 
-SYSCALL_DEFINE2(fchmod, unsigned int, fd, umode_t, mode)
+static inline long __do_sys_fchmod(unsigned int fd, umode_t mode)
 {
 	struct fd f = fdget(fd);
 	int err = -EBADF;
@@ -612,6 +616,12 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd, umode_t, mode)
 		fdput(f);
 	}
 	return err;
+}
+
+long __arm64_sys_fchmod(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fchmod((unsigned int)regs->regs[0], (umode_t)regs->regs[1]);
+	return ret;
 }
 
 static int do_fchmodat(int dfd, const char __user *filename, umode_t mode)
@@ -638,9 +648,15 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, const char __user *, filename,
 	return do_fchmodat(dfd, filename, mode);
 }
 
-SYSCALL_DEFINE2(chmod, const char __user *, filename, umode_t, mode)
+static inline long __do_sys_chmod(const char *filename, umode_t mode)
 {
 	return do_fchmodat(AT_FDCWD, filename, mode);
+}
+
+long __arm64_sys_chmod(const struct pt_regs *regs)
+{
+	long ret = __do_sys_chmod((const char *)regs->regs[0], (umode_t)regs->regs[1]);
+	return ret;
 }
 
 int chown_common(const struct path *path, uid_t user, gid_t group)
@@ -1245,13 +1261,11 @@ SYSCALL_DEFINE4(openat2, int, dfd, const char __user *, filename,
 	return do_sys_openat2(dfd, filename, &tmp);
 }
 
-#ifndef __alpha__
-
 /*
  * For backward compatibility?  Maybe this should be moved
  * into arch/i386 instead?
  */
-SYSCALL_DEFINE2(creat, const char __user *, pathname, umode_t, mode)
+static inline long __do_sys_creat(const char *pathname, umode_t mode)
 {
 	int flags = O_CREAT | O_WRONLY | O_TRUNC;
 
@@ -1259,7 +1273,12 @@ SYSCALL_DEFINE2(creat, const char __user *, pathname, umode_t, mode)
 		flags |= O_LARGEFILE;
 	return do_sys_open(AT_FDCWD, pathname, flags, mode);
 }
-#endif
+
+long __arm64_sys_creat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_creat((const char *)regs->regs[0], (umode_t)regs->regs[1]);
+	return ret;
+}
 
 /*
  * "id" is the POSIX thread ID. We use the

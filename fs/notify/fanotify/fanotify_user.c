@@ -920,7 +920,7 @@ static struct fsnotify_event *fanotify_alloc_overflow_event(void)
 }
 
 /* fanotify syscalls */
-SYSCALL_DEFINE2(fanotify_init, unsigned int, flags, unsigned int, event_f_flags)
+static inline long __do_sys_fanotify_init(unsigned int flags, unsigned int event_f_flags)
 {
 	struct fsnotify_group *group;
 	int f_flags, fd;
@@ -1046,6 +1046,12 @@ SYSCALL_DEFINE2(fanotify_init, unsigned int, flags, unsigned int, event_f_flags)
 out_destroy_group:
 	fsnotify_destroy_group(group);
 	return fd;
+}
+
+long __arm64_sys_fanotify_init(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fanotify_init((unsigned int)regs->regs[0], (unsigned int)regs->regs[1]);
+	return ret;
 }
 
 /* Check if filesystem can encode a unique fid */

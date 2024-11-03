@@ -529,7 +529,7 @@ static void commit_nsset(struct nsset *nsset)
 	nsset->nsproxy = NULL;
 }
 
-SYSCALL_DEFINE2(setns, int, fd, int, flags)
+static inline long __do_sys_setns(int fd, int flags)
 {
 	struct file *file;
 	struct ns_common *ns = NULL;
@@ -569,6 +569,12 @@ SYSCALL_DEFINE2(setns, int, fd, int, flags)
 out:
 	fput(file);
 	return err;
+}
+
+long __arm64_sys_setns(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setns((int)regs->regs[0], (int)regs->regs[1]);
+	return ret;
 }
 
 int __init nsproxy_cache_init(void)

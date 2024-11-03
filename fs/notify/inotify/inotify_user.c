@@ -765,7 +765,7 @@ fput_and_out:
 	return ret;
 }
 
-SYSCALL_DEFINE2(inotify_rm_watch, int, fd, __s32, wd)
+static inline long __do_sys_inotify_rm_watch(int fd, __s32 wd)
 {
 	struct fsnotify_group *group;
 	struct inotify_inode_mark *i_mark;
@@ -795,6 +795,12 @@ SYSCALL_DEFINE2(inotify_rm_watch, int, fd, __s32, wd)
 
 out:
 	fdput(f);
+	return ret;
+}
+
+long __arm64_sys_inotify_rm_watch(const struct pt_regs *regs)
+{
+	long ret = __do_sys_inotify_rm_watch((int)regs->regs[0], (__s32)regs->regs[1]);
 	return ret;
 }
 

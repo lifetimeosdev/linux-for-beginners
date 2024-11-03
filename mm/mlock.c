@@ -720,9 +720,15 @@ static __must_check int do_mlock(unsigned long start, size_t len, vm_flags_t fla
 	return 0;
 }
 
-SYSCALL_DEFINE2(mlock, unsigned long, start, size_t, len)
+static inline long __do_sys_mlock(unsigned long start, size_t len)
 {
 	return do_mlock(start, len, VM_LOCKED);
+}
+
+long __arm64_sys_mlock(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mlock((unsigned long)regs->regs[0], (size_t)regs->regs[1]);
+	return ret;
 }
 
 SYSCALL_DEFINE3(mlock2, unsigned long, start, size_t, len, int, flags)
@@ -738,7 +744,7 @@ SYSCALL_DEFINE3(mlock2, unsigned long, start, size_t, len, int, flags)
 	return do_mlock(start, len, vm_flags);
 }
 
-SYSCALL_DEFINE2(munlock, unsigned long, start, size_t, len)
+static inline long __do_sys_munlock(unsigned long start, size_t len)
 {
 	int ret;
 
@@ -752,6 +758,12 @@ SYSCALL_DEFINE2(munlock, unsigned long, start, size_t, len)
 	ret = apply_vma_lock_flags(start, len, 0);
 	mmap_write_unlock(current->mm);
 
+	return ret;
+}
+
+long __arm64_sys_munlock(const struct pt_regs *regs)
+{
+	long ret = __do_sys_munlock((unsigned long)regs->regs[0], (size_t)regs->regs[1]);
 	return ret;
 }
 

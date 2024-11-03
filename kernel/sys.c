@@ -264,7 +264,7 @@ out:
  * has been offset by 20 (ie it returns 40..1 instead of -20..19)
  * to stay compatible.
  */
-SYSCALL_DEFINE2(getpriority, int, which, int, who)
+static inline long __do_sys_getpriority(int which, int who)
 {
 	struct task_struct *g, *p;
 	struct user_struct *user;
@@ -327,6 +327,12 @@ out_unlock:
 	rcu_read_unlock();
 
 	return retval;
+}
+
+long __arm64_sys_getpriority(const struct pt_regs *regs)
+{
+	long ret = __do_sys_getpriority((int)regs->regs[0], (int)regs->regs[1]);
+	return ret;
 }
 
 /*
@@ -403,9 +409,15 @@ error:
 	return retval;
 }
 
-SYSCALL_DEFINE2(setregid, gid_t, rgid, gid_t, egid)
+static inline long __do_sys_setregid(gid_t rgid, gid_t egid)
 {
 	return __sys_setregid(rgid, egid);
+}
+
+long __arm64_sys_setregid(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setregid((gid_t)regs->regs[0], (gid_t)regs->regs[1]);
+	return ret;
 }
 
 /*
@@ -564,9 +576,15 @@ error:
 	return retval;
 }
 
-SYSCALL_DEFINE2(setreuid, uid_t, ruid, uid_t, euid)
+static inline long __do_sys_setreuid(uid_t ruid, uid_t euid)
 {
 	return __sys_setreuid(ruid, euid);
+}
+
+long __arm64_sys_setreuid(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setreuid((uid_t)regs->regs[0], (uid_t)regs->regs[1]);
+	return ret;
 }
 
 /*
@@ -1036,7 +1054,7 @@ long __arm64_sys_times(const struct pt_regs *regs)
  *
  * !PF_FORKNOEXEC check to conform completely to POSIX.
  */
-SYSCALL_DEFINE2(setpgid, pid_t, pid, pid_t, pgid)
+static inline long __do_sys_setpgid(pid_t pid, pid_t pgid)
 {
 	struct task_struct *p;
 	struct task_struct *group_leader = current->group_leader;
@@ -1105,6 +1123,12 @@ out:
 	write_unlock_irq(&tasklist_lock);
 	rcu_read_unlock();
 	return err;
+}
+
+long __arm64_sys_setpgid(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setpgid((pid_t)regs->regs[0], (pid_t)regs->regs[1]);
+	return ret;
 }
 
 static int do_getpgid(pid_t pid)
@@ -1296,7 +1320,7 @@ long __arm64_sys_newuname(const struct pt_regs *regs)
 	return ret;
 }
 
-SYSCALL_DEFINE2(sethostname, char __user *, name, int, len)
+static inline long __do_sys_sethostname(char * name, int len)
 {
 	int errno;
 	char tmp[__NEW_UTS_LEN];
@@ -1321,35 +1345,17 @@ SYSCALL_DEFINE2(sethostname, char __user *, name, int, len)
 	return errno;
 }
 
-#ifdef __ARCH_WANT_SYS_GETHOSTNAME
-
-SYSCALL_DEFINE2(gethostname, char __user *, name, int, len)
+long __arm64_sys_sethostname(const struct pt_regs *regs)
 {
-	int i;
-	struct new_utsname *u;
-	char tmp[__NEW_UTS_LEN + 1];
-
-	if (len < 0)
-		return -EINVAL;
-	down_read(&uts_sem);
-	u = utsname();
-	i = 1 + strlen(u->nodename);
-	if (i > len)
-		i = len;
-	memcpy(tmp, u->nodename, i);
-	up_read(&uts_sem);
-	if (copy_to_user(name, tmp, i))
-		return -EFAULT;
-	return 0;
+	long ret = __do_sys_sethostname((char *)regs->regs[0], (int)regs->regs[1]);
+	return ret;
 }
-
-#endif
 
 /*
  * Only setdomainname; getdomainname can be implemented by calling
  * uname()
  */
-SYSCALL_DEFINE2(setdomainname, char __user *, name, int, len)
+static inline long __do_sys_setdomainname(char *name, int len)
 {
 	int errno;
 	char tmp[__NEW_UTS_LEN];
@@ -1374,7 +1380,13 @@ SYSCALL_DEFINE2(setdomainname, char __user *, name, int, len)
 	return errno;
 }
 
-SYSCALL_DEFINE2(getrlimit, unsigned int, resource, struct rlimit __user *, rlim)
+long __arm64_sys_setdomainname(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setdomainname((char *)regs->regs[0], (int)regs->regs[1]);
+	return ret;
+}
+
+static inline long __do_sys_getrlimit(unsigned int resource, struct rlimit * rlim)
 {
 	struct rlimit value;
 	int ret;
@@ -1385,31 +1397,11 @@ SYSCALL_DEFINE2(getrlimit, unsigned int, resource, struct rlimit __user *, rlim)
 
 	return ret;
 }
-
-#ifdef __ARCH_WANT_SYS_OLD_GETRLIMIT
-
-/*
- *	Back compatibility for getrlimit. Needed for some apps.
- */
-SYSCALL_DEFINE2(old_getrlimit, unsigned int, resource,
-		struct rlimit __user *, rlim)
+long __arm64_sys_getrlimit(const struct pt_regs *regs)
 {
-	struct rlimit x;
-	if (resource >= RLIM_NLIMITS)
-		return -EINVAL;
-
-	resource = array_index_nospec(resource, RLIM_NLIMITS);
-	task_lock(current->group_leader);
-	x = current->signal->rlim[resource];
-	task_unlock(current->group_leader);
-	if (x.rlim_cur > 0x7FFFFFFF)
-		x.rlim_cur = 0x7FFFFFFF;
-	if (x.rlim_max > 0x7FFFFFFF)
-		x.rlim_max = 0x7FFFFFFF;
-	return copy_to_user(rlim, &x, sizeof(x)) ? -EFAULT : 0;
+	long ret = __do_sys_getrlimit((unsigned int)regs->regs[0], (struct rlimit *)regs->regs[1]);
+	return ret;
 }
-
-#endif
 
 static inline bool rlim64_is_infinity(__u64 rlim64)
 {
@@ -1573,13 +1565,19 @@ SYSCALL_DEFINE4(prlimit64, pid_t, pid, unsigned int, resource,
 	return ret;
 }
 
-SYSCALL_DEFINE2(setrlimit, unsigned int, resource, struct rlimit __user *, rlim)
+static inline long __do_sys_setrlimit(unsigned int resource, struct rlimit * rlim)
 {
 	struct rlimit new_rlim;
 
 	if (copy_from_user(&new_rlim, rlim, sizeof(*rlim)))
 		return -EFAULT;
 	return do_prlimit(current, resource, &new_rlim, NULL);
+}
+
+long __arm64_sys_setrlimit(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setrlimit((unsigned int)regs->regs[1], (struct rlimit *)regs->regs[1]);
+	return ret;
 }
 
 /*
@@ -1713,7 +1711,7 @@ out_children:
 	r->ru_stime = ns_to_kernel_old_timeval(stime);
 }
 
-SYSCALL_DEFINE2(getrusage, int, who, struct rusage __user *, ru)
+static inline long __do_sys_getrusage(int who, struct rusage * ru)
 {
 	struct rusage r;
 
@@ -1723,6 +1721,12 @@ SYSCALL_DEFINE2(getrusage, int, who, struct rusage __user *, ru)
 
 	getrusage(current, who, &r);
 	return copy_to_user(ru, &r, sizeof(r)) ? -EFAULT : 0;
+}
+
+long __arm64_sys_getrusage(const struct pt_regs *regs)
+{
+	long ret = __do_sys_getrusage((int)regs->regs[0], (struct rusage *)regs->regs[1]);
+	return ret;
 }
 
 static inline long __do_sys_umask(int mask)

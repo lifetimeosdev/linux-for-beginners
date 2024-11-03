@@ -190,7 +190,7 @@ int ioprio_best(unsigned short aprio, unsigned short bprio)
 	return min(aprio, bprio);
 }
 
-SYSCALL_DEFINE2(ioprio_get, int, which, int, who)
+static inline long __do_sys_ioprio_get(int which, int who)
 {
 	struct task_struct *g, *p;
 	struct user_struct *user;
@@ -258,5 +258,11 @@ SYSCALL_DEFINE2(ioprio_get, int, which, int, who)
 	}
 
 	rcu_read_unlock();
+	return ret;
+}
+
+long __arm64_sys_ioprio_get(const struct pt_regs *regs)
+{
+	long ret = __do_sys_ioprio_get((int)regs->regs[0], (int)regs->regs[1]);
 	return ret;
 }

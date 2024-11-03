@@ -263,9 +263,7 @@ long memfd_fcntl(struct file *file, unsigned int cmd, unsigned long arg)
 
 #define MFD_ALL_FLAGS (MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_HUGETLB)
 
-SYSCALL_DEFINE2(memfd_create,
-		const char __user *, uname,
-		unsigned int, flags)
+static inline long __do_sys_memfd_create(const char *uname, unsigned int flags)
 {
 	unsigned int *file_seals;
 	struct file *file;
@@ -343,4 +341,10 @@ err_fd:
 err_name:
 	kfree(name);
 	return error;
+}
+
+long __arm64_sys_memfd_create(const struct pt_regs *regs)
+{
+	long ret = __do_sys_memfd_create((const char *)regs->regs[0], (unsigned int)regs->regs[1]);
+	return ret;
 }

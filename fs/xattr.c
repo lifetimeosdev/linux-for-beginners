@@ -810,19 +810,29 @@ retry:
 	return error;
 }
 
-SYSCALL_DEFINE2(removexattr, const char __user *, pathname,
-		const char __user *, name)
+static inline long __do_sys_removexattr(const char *pathname, const char *name)
 {
 	return path_removexattr(pathname, name, LOOKUP_FOLLOW);
 }
 
-SYSCALL_DEFINE2(lremovexattr, const char __user *, pathname,
-		const char __user *, name)
+long __arm64_sys_removexattr(const struct pt_regs *regs)
+{
+	long ret = __do_sys_removexattr((const char *)regs->regs[0], (const char *)regs->regs[1]);
+	return ret;
+}
+
+static inline long __do_sys_lremovexattr(const char *pathname, const char *name)
 {
 	return path_removexattr(pathname, name, 0);
 }
 
-SYSCALL_DEFINE2(fremovexattr, int, fd, const char __user *, name)
+long __arm64_sys_lremovexattr(const struct pt_regs *regs)
+{
+	long ret = __do_sys_lremovexattr((const char *)regs->regs[0], (const char *)regs->regs[1]);
+	return ret;
+}
+
+static inline long __do_sys_fremovexattr(int fd, const char *name)
 {
 	struct fd f = fdget(fd);
 	int error = -EBADF;
@@ -837,6 +847,12 @@ SYSCALL_DEFINE2(fremovexattr, int, fd, const char __user *, name)
 	}
 	fdput(f);
 	return error;
+}
+
+long __arm64_sys_fremovexattr(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fremovexattr((int)regs->regs[0], (const char *)regs->regs[1]);
+	return ret;
 }
 
 /*

@@ -426,7 +426,7 @@ static void get_fs_root_and_pwd_rcu(struct fs_struct *fs, struct path *root,
  *		return NULL;
  *	}
  */
-SYSCALL_DEFINE2(getcwd, char __user *, buf, unsigned long, size)
+static inline long __do_sys_getcwd(char *buf, unsigned long size)
 {
 	int error;
 	struct path pwd, root;
@@ -472,4 +472,10 @@ SYSCALL_DEFINE2(getcwd, char __user *, buf, unsigned long, size)
 out:
 	__putname(page);
 	return error;
+}
+
+long __arm64_sys_getcwd(const struct pt_regs *regs)
+{
+	long ret = __do_sys_getcwd((char *)regs->regs[0], (unsigned long)regs->regs[1]);
+	return ret;
 }

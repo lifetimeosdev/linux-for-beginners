@@ -3051,7 +3051,7 @@ static void do_sigpending(sigset_t *set)
  *  @uset: stores pending signals
  *  @sigsetsize: size of sigset_t type or larger
  */
-SYSCALL_DEFINE2(rt_sigpending, sigset_t __user *, uset, size_t, sigsetsize)
+static inline long __do_sys_rt_sigpending(sigset_t *uset, size_t sigsetsize)
 {
 	sigset_t set;
 
@@ -3064,6 +3064,12 @@ SYSCALL_DEFINE2(rt_sigpending, sigset_t __user *, uset, size_t, sigsetsize)
 		return -EFAULT;
 
 	return 0;
+}
+
+long __arm64_sys_rt_sigpending(const struct pt_regs *regs)
+{
+	long ret = __do_sys_rt_sigpending((sigset_t *)regs->regs[0], (size_t)regs->regs[1]);
+	return ret;
 }
 
 static const struct {
@@ -3297,13 +3303,19 @@ static inline void prepare_kill_siginfo(int sig, struct kernel_siginfo *info)
  *  @pid: the PID of the process
  *  @sig: signal to be sent
  */
-SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
+static inline long __do_sys_kill(pid_t pid, int sig)
 {
 	struct kernel_siginfo info;
 
 	prepare_kill_siginfo(sig, &info);
 
 	return kill_something_info(sig, &info, pid);
+}
+
+long __arm64_sys_kill(const struct pt_regs *regs)
+{
+	long ret = __do_sys_kill((pid_t)regs->regs[0], (int)regs->regs[1]);
+	return ret;
 }
 
 /*
@@ -3483,13 +3495,19 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid_t, pid, int, sig)
  *
  *  Send a signal to only one task, even if it's a CLONE_THREAD task.
  */
-SYSCALL_DEFINE2(tkill, pid_t, pid, int, sig)
+static inline long __do_sys_tkill(pid_t pid, int sig)
 {
 	/* This is only valid for single tasks */
 	if (pid <= 0)
 		return -EINVAL;
 
 	return do_tkill(0, pid, sig);
+}
+
+long __arm64_sys_tkill(const struct pt_regs *regs)
+{
+	long ret = __do_sys_tkill((pid_t)regs->regs[0], (int)regs->regs[1]);
+	return ret;
 }
 
 static int do_rt_sigqueueinfo(pid_t pid, int sig, kernel_siginfo_t *info)
@@ -3661,7 +3679,7 @@ do_sigaltstack (const stack_t *ss, stack_t *oss, unsigned long sp,
 	return 0;
 }
 
-SYSCALL_DEFINE2(sigaltstack,const stack_t __user *,uss, stack_t __user *,uoss)
+static inline long __do_sys_sigaltstack(const stack_t *uss, stack_t *uoss)
 {
 	stack_t new, old;
 	int err;
@@ -3673,6 +3691,12 @@ SYSCALL_DEFINE2(sigaltstack,const stack_t __user *,uss, stack_t __user *,uoss)
 	if (!err && uoss && copy_to_user(uoss, &old, sizeof(stack_t)))
 		err = -EFAULT;
 	return err;
+}
+
+long __arm64_sys_sigaltstack(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sigaltstack((const stack_t *)regs->regs[0], (stack_t *)regs->regs[1]);
+	return ret;
 }
 
 int restore_altstack(const stack_t __user *uss)
@@ -3753,7 +3777,7 @@ static int sigsuspend(sigset_t *set)
  *  @unewset: new signal mask value
  *  @sigsetsize: size of sigset_t type
  */
-SYSCALL_DEFINE2(rt_sigsuspend, sigset_t __user *, unewset, size_t, sigsetsize)
+static inline long __do_sys_rt_sigsuspend(sigset_t *unewset, size_t sigsetsize)
 {
 	sigset_t newset;
 
@@ -3764,6 +3788,12 @@ SYSCALL_DEFINE2(rt_sigsuspend, sigset_t __user *, unewset, size_t, sigsetsize)
 	if (copy_from_user(&newset, unewset, sizeof(newset)))
 		return -EFAULT;
 	return sigsuspend(&newset);
+}
+
+long __arm64_sys_rt_sigsuspend(const struct pt_regs *regs)
+{
+	long ret = __do_sys_rt_sigsuspend((sigset_t *)regs->regs[0], (size_t)regs->regs[1]);
+	return ret;
 }
  
 __weak const char *arch_vma_name(struct vm_area_struct *vma)

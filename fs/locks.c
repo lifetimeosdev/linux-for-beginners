@@ -2216,7 +2216,7 @@ EXPORT_SYMBOL(locks_lock_inode_wait);
  *	%LOCK_MAND can be combined with %LOCK_READ or %LOCK_WRITE to allow other
  *	processes read and write access respectively.
  */
-SYSCALL_DEFINE2(flock, unsigned int, fd, unsigned int, cmd)
+static inline long __do_sys_flock(unsigned int fd, unsigned int cmd)
 {
 	struct fd f = fdget(fd);
 	struct file_lock *lock;
@@ -2262,6 +2262,12 @@ SYSCALL_DEFINE2(flock, unsigned int, fd, unsigned int, cmd)
 	fdput(f);
  out:
 	return error;
+}
+
+long __arm64_sys_flock(const struct pt_regs *regs)
+{
+	long ret = __do_sys_flock((unsigned int)regs->regs[0], (unsigned int)regs->regs[1]);
+	return ret;
 }
 
 /**

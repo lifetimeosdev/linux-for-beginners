@@ -189,13 +189,19 @@ static int do_statfs64(struct kstatfs *st, struct statfs64 __user *p)
 	return 0;
 }
 
-SYSCALL_DEFINE2(statfs, const char __user *, pathname, struct statfs __user *, buf)
+static inline long __do_sys_statfs(const char *pathname, struct statfs *buf)
 {
 	struct kstatfs st;
 	int error = user_statfs(pathname, &st);
 	if (!error)
 		error = do_statfs_native(&st, buf);
 	return error;
+}
+
+long __arm64_sys_statfs(const struct pt_regs *regs)
+{
+	long ret = __do_sys_statfs((const char *)regs->regs[0], (struct statfs *)regs->regs[1]);
+	return ret;
 }
 
 SYSCALL_DEFINE3(statfs64, const char __user *, pathname, size_t, sz, struct statfs64 __user *, buf)
@@ -210,13 +216,19 @@ SYSCALL_DEFINE3(statfs64, const char __user *, pathname, size_t, sz, struct stat
 	return error;
 }
 
-SYSCALL_DEFINE2(fstatfs, unsigned int, fd, struct statfs __user *, buf)
+static inline long __do_sys_fstatfs(unsigned int fd, struct statfs *buf)
 {
 	struct kstatfs st;
 	int error = fd_statfs(fd, &st);
 	if (!error)
 		error = do_statfs_native(&st, buf);
 	return error;
+}
+
+long __arm64_sys_fstatfs(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fstatfs((unsigned int)regs->regs[0], (struct statfs *)regs->regs[1]);
+	return ret;
 }
 
 SYSCALL_DEFINE3(fstatfs64, unsigned int, fd, size_t, sz, struct statfs64 __user *, buf)
@@ -245,7 +257,7 @@ static int vfs_ustat(dev_t dev, struct kstatfs *sbuf)
 	return err;
 }
 
-SYSCALL_DEFINE2(ustat, unsigned, dev, struct ustat __user *, ubuf)
+static inline long __do_sys_ustat(unsigned dev, struct ustat *ubuf)
 {
 	struct ustat tmp;
 	struct kstatfs sbuf;
@@ -258,4 +270,10 @@ SYSCALL_DEFINE2(ustat, unsigned, dev, struct ustat __user *, ubuf)
 	tmp.f_tinode = sbuf.f_ffree;
 
 	return copy_to_user(ubuf, &tmp, sizeof(struct ustat)) ? -EFAULT : 0;
+}
+
+long __arm64_sys_ustat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_ustat((unsigned)regs->regs[0], (struct ustat *)regs->regs[1]);
+	return ret;
 }

@@ -3278,7 +3278,7 @@ EXPORT_SYMBOL(try_to_free_buffers);
  * Use of bdflush() is deprecated and will be removed in a future kernel.
  * The `flush-X' kernel threads fully replace bdflush daemons and this call.
  */
-SYSCALL_DEFINE2(bdflush, int, func, long, data)
+static inline long __do_sys_bdflush(int func, long data)
 {
 	static int msg_count;
 
@@ -3296,6 +3296,12 @@ SYSCALL_DEFINE2(bdflush, int, func, long, data)
 	if (func == 1)
 		do_exit(0);
 	return 0;
+}
+
+long __arm64_sys_bdflush(const struct pt_regs *regs)
+{
+	long ret = __do_sys_bdflush((int)regs->regs[0], (long)regs->regs[1]);
+	return ret;
 }
 
 /*

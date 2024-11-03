@@ -3739,9 +3739,15 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const char __user *, pathname, umode_t, mode)
 	return do_mkdirat(dfd, pathname, mode);
 }
 
-SYSCALL_DEFINE2(mkdir, const char __user *, pathname, umode_t, mode)
+static inline long __do_sys_mkdir(const char *pathname, umode_t mode)
 {
 	return do_mkdirat(AT_FDCWD, pathname, mode);
+}
+
+long __arm64_sys_mkdir(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mkdir((const char *)regs->regs[0], (umode_t)regs->regs[1]);
+	return ret;
 }
 
 int vfs_rmdir(struct inode *dir, struct dentry *dentry)
@@ -4068,9 +4074,15 @@ SYSCALL_DEFINE3(symlinkat, const char __user *, oldname,
 	return do_symlinkat(oldname, newdfd, newname);
 }
 
-SYSCALL_DEFINE2(symlink, const char __user *, oldname, const char __user *, newname)
+static inline long __do_sys_symlink(const char *oldname, const char *newname)
 {
 	return do_symlinkat(oldname, AT_FDCWD, newname);
+}
+
+long __arm64_sys_symlink(const struct pt_regs *regs)
+{
+	long ret = __do_sys_symlink((const char *)regs->regs[0], (const char *)regs->regs[1]);
+	return ret;
 }
 
 /**
@@ -4233,9 +4245,15 @@ SYSCALL_DEFINE5(linkat, int, olddfd, const char __user *, oldname,
 	return do_linkat(olddfd, oldname, newdfd, newname, flags);
 }
 
-SYSCALL_DEFINE2(link, const char __user *, oldname, const char __user *, newname)
+static inline long __do_sys_link(const char *oldname, const char *newname)
 {
 	return do_linkat(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
+}
+
+long __arm64_sys_link(const struct pt_regs *regs)
+{
+	long ret = __do_sys_link((const char *)regs->regs[0], (const char *)regs->regs[1]);
+	return ret;
 }
 
 /**
@@ -4593,10 +4611,16 @@ SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
 				0);
 }
 
-SYSCALL_DEFINE2(rename, const char __user *, oldname, const char __user *, newname)
+static inline long __do_sys_rename(const char *oldname, const char *newname)
 {
 	return do_renameat2(AT_FDCWD, getname(oldname), AT_FDCWD,
 				getname(newname), 0);
+}
+
+long __arm64_sys_rename(const struct pt_regs *regs)
+{
+	long ret = __do_sys_rename((const char *)regs->regs[0], (const char *)regs->regs[1]);
+	return ret;
 }
 
 int readlink_copy(char __user *buffer, int buflen, const char *link)

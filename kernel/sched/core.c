@@ -5469,9 +5469,15 @@ SYSCALL_DEFINE3(sched_setscheduler, pid_t, pid, int, policy, struct sched_param 
  *
  * Return: 0 on success. An error code otherwise.
  */
-SYSCALL_DEFINE2(sched_setparam, pid_t, pid, struct sched_param __user *, param)
+static inline long __do_sys_sched_setparam(pid_t pid, struct sched_param *param)
 {
 	return do_sched_setscheduler(pid, SETPARAM_POLICY, param);
+}
+
+long __arm64_sys_sched_setparam(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sched_setparam((pid_t)regs->regs[0], (struct sched_param *)regs->regs[1]);
+	return ret;
 }
 
 /**
@@ -5556,7 +5562,7 @@ long __arm64_sys_sched_getscheduler(const struct pt_regs *regs)
  * Return: On success, 0 and the RT priority is in @param. Otherwise, an error
  * code.
  */
-SYSCALL_DEFINE2(sched_getparam, pid_t, pid, struct sched_param __user *, param)
+static inline long __do_sys_sched_getparam(pid_t pid, struct sched_param *param)
 {
 	struct sched_param lp = { .sched_priority = 0 };
 	struct task_struct *p;
@@ -5589,6 +5595,12 @@ SYSCALL_DEFINE2(sched_getparam, pid_t, pid, struct sched_param __user *, param)
 out_unlock:
 	rcu_read_unlock();
 	return retval;
+}
+
+long __arm64_sys_sched_getparam(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sched_getparam((pid_t)regs->regs[0], (struct sched_param *)regs->regs[1]);
+	return ret;
 }
 
 /*
@@ -6205,8 +6217,7 @@ out_unlock:
  * Return: On success, 0 and the timeslice is in @interval. Otherwise,
  * an error code.
  */
-SYSCALL_DEFINE2(sched_rr_get_interval, pid_t, pid,
-		struct __kernel_timespec __user *, interval)
+static inline long __do_sys_sched_rr_get_interval(pid_t pid, struct __kernel_timespec *interval)
 {
 	struct timespec64 t;
 	int retval = sched_rr_get_interval(pid, &t);
@@ -6215,6 +6226,12 @@ SYSCALL_DEFINE2(sched_rr_get_interval, pid_t, pid,
 		retval = put_timespec64(&t, interval);
 
 	return retval;
+}
+
+long __arm64_sys_sched_rr_get_interval(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sched_rr_get_interval((pid_t)regs->regs[0], (struct __kernel_timespec *)regs->regs[1]);
+	return ret;
 }
 
 void sched_show_task(struct task_struct *p)

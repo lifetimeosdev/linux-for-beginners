@@ -10411,10 +10411,15 @@ static long io_uring_setup(u32 entries, struct io_uring_params __user *params)
 	return  io_uring_create(entries, &p, params);
 }
 
-SYSCALL_DEFINE2(io_uring_setup, u32, entries,
-		struct io_uring_params __user *, params)
+static inline long __do_sys_io_uring_setup(u32 entries, struct io_uring_params *params)
 {
 	return io_uring_setup(entries, params);
+}
+
+long __arm64_sys_io_uring_setup(const struct pt_regs *regs)
+{
+	long ret = __do_sys_io_uring_setup((u32)regs->regs[0], (struct io_uring_params *)regs->regs[1]);
+	return ret;
 }
 
 static int io_probe(struct io_ring_ctx *ctx, void __user *arg, unsigned nr_args)

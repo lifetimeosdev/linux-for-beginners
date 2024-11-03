@@ -1321,7 +1321,7 @@ static long read_events(struct kioctx *ctx, long min_nr, long nr,
  *	pointer is passed for ctxp.  Will fail with -ENOSYS if not
  *	implemented.
  */
-SYSCALL_DEFINE2(io_setup, unsigned, nr_events, aio_context_t __user *, ctxp)
+static inline long __do_sys_io_setup(unsigned nr_events, aio_context_t *ctxp)
 {
 	struct kioctx *ioctx = NULL;
 	unsigned long ctx;
@@ -1348,6 +1348,12 @@ SYSCALL_DEFINE2(io_setup, unsigned, nr_events, aio_context_t __user *, ctxp)
 	}
 
 out:
+	return ret;
+}
+
+long __arm64_sys_io_setup(const struct pt_regs *regs)
+{
+	long ret = __do_sys_io_setup((unsigned)regs->regs[0], (aio_context_t *)regs->regs[1]);
 	return ret;
 }
 
