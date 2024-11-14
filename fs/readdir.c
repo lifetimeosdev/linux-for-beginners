@@ -117,90 +117,6 @@ static int verify_dirent_name(const char *name, int len)
 }
 
 /*
- * Traditional linux readdir() handling..
- *
- * "count=1" is a special case, meaning that the buffer is one
- * dirent-structure in size and that the code can't handle more
- * anyway. Thus the special "fillonedir()" function for that
- * case (the low-level handlers don't need to care about this).
- */
-
-#ifdef __ARCH_WANT_OLD_READDIR
-
-struct old_linux_dirent {
-	unsigned long	d_ino;
-	unsigned long	d_offset;
-	unsigned short	d_namlen;
-	char		d_name[1];
-};
-
-struct readdir_callback {
-	struct dir_context ctx;
-	struct old_linux_dirent __user * dirent;
-	int result;
-};
-
-static int fillonedir(struct dir_context *ctx, const char *name, int namlen,
-		      loff_t offset, u64 ino, unsigned int d_type)
-{
-	struct readdir_callback *buf =
-		container_of(ctx, struct readdir_callback, ctx);
-	struct old_linux_dirent __user * dirent;
-	unsigned long d_ino;
-
-	if (buf->result)
-		return -EINVAL;
-	buf->result = verify_dirent_name(name, namlen);
-	if (buf->result < 0)
-		return buf->result;
-	d_ino = ino;
-	if (sizeof(d_ino) < sizeof(ino) && d_ino != ino) {
-		buf->result = -EOVERFLOW;
-		return -EOVERFLOW;
-	}
-	buf->result++;
-	dirent = buf->dirent;
-	if (!user_write_access_begin(dirent,
-			(unsigned long)(dirent->d_name + namlen + 1) -
-				(unsigned long)dirent))
-		goto efault;
-	unsafe_put_user(d_ino, &dirent->d_ino, efault_end);
-	unsafe_put_user(offset, &dirent->d_offset, efault_end);
-	unsafe_put_user(namlen, &dirent->d_namlen, efault_end);
-	unsafe_copy_dirent_name(dirent->d_name, name, namlen, efault_end);
-	user_write_access_end();
-	return 0;
-efault_end:
-	user_write_access_end();
-efault:
-	buf->result = -EFAULT;
-	return -EFAULT;
-}
-
-SYSCALL_DEFINE3(old_readdir, unsigned int, fd,
-		struct old_linux_dirent __user *, dirent, unsigned int, count)
-{
-	int error;
-	struct fd f = fdget_pos(fd);
-	struct readdir_callback buf = {
-		.ctx.actor = fillonedir,
-		.dirent = dirent
-	};
-
-	if (!f.file)
-		return -EBADF;
-
-	error = iterate_dir(f.file, &buf.ctx);
-	if (buf.result)
-		error = buf.result;
-
-	fdput_pos(f);
-	return error;
-}
-
-#endif /* __ARCH_WANT_OLD_READDIR */
-
-/*
  * New, all-improved, singing, dancing, iBCS2-compliant getdents()
  * interface. 
  */
@@ -268,8 +184,8 @@ efault:
 	return -EFAULT;
 }
 
-SYSCALL_DEFINE3(getdents, unsigned int, fd,
-		struct linux_dirent __user *, dirent, unsigned int, count)
+static inline long __do_sys_getdents(unsigned int fd, struct linux_dirent *dirent,
+				     unsigned int count)
 {
 	struct fd f;
 	struct getdents_callback buf = {
@@ -297,6 +213,13 @@ SYSCALL_DEFINE3(getdents, unsigned int, fd,
 	}
 	fdput_pos(f);
 	return error;
+}
+
+long __arm64_sys_getdents(const struct pt_regs *regs)
+{
+	long ret = __do_sys_getdents((unsigned int)regs->regs[0], (struct linux_dirent *)regs->regs[1],
+				     (unsigned int)regs->regs[2]);
+	return ret;
 }
 
 struct getdents_callback64 {
@@ -351,8 +274,8 @@ efault:
 	return -EFAULT;
 }
 
-SYSCALL_DEFINE3(getdents64, unsigned int, fd,
-		struct linux_dirent64 __user *, dirent, unsigned int, count)
+static inline long __do_sys_getdents64(unsigned int fd, struct linux_dirent64 *dirent,
+				       unsigned int count)
 {
 	struct fd f;
 	struct getdents_callback64 buf = {
@@ -381,4 +304,11 @@ SYSCALL_DEFINE3(getdents64, unsigned int, fd,
 	}
 	fdput_pos(f);
 	return error;
+}
+
+long __arm64_sys_getdents64(const struct pt_regs *regs)
+{
+	long ret = __do_sys_getdents64((unsigned int)regs->regs[0], (struct linux_dirent64 *)regs->regs[1],
+				       (unsigned int)regs->regs[2]);
+	return ret;
 }

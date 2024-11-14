@@ -1504,9 +1504,8 @@ static int do_mq_getsetattr(int mqdes, struct mq_attr *new, struct mq_attr *old)
 	return 0;
 }
 
-SYSCALL_DEFINE3(mq_getsetattr, mqd_t, mqdes,
-		const struct mq_attr __user *, u_mqstat,
-		struct mq_attr __user *, u_omqstat)
+static inline long __do_sys_mq_getsetattr(mqd_t mqdes, const struct mq_attr *u_mqstat,
+					  struct mq_attr *u_omqstat)
 {
 	int ret;
 	struct mq_attr mqstat, omqstat;
@@ -1527,6 +1526,13 @@ SYSCALL_DEFINE3(mq_getsetattr, mqd_t, mqdes,
 	if (copy_to_user(u_omqstat, old, sizeof(struct mq_attr)))
 		return -EFAULT;
 	return 0;
+}
+
+long __arm64_sys_mq_getsetattr(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mq_getsetattr((mqd_t)regs->regs[0], (const struct mq_attr *)regs->regs[1],
+					  (struct mq_attr *)regs->regs[2]);
+	return ret;
 }
 
 static const struct inode_operations mqueue_dir_inode_operations = {

@@ -2011,16 +2011,9 @@ struct net_device {
 #ifdef CONFIG_SYSFS
 	struct kset		*queues_kset;
 #endif
-#ifdef CONFIG_LOCKDEP
-	struct list_head	unlink_list;
-#endif
 	unsigned int		promiscuity;
 	unsigned int		allmulti;
 	bool			uc_promisc;
-#ifdef CONFIG_LOCKDEP
-	unsigned char		nested_level;
-#endif
-
 
 	/* Protocol-specific pointers */
 
@@ -4392,9 +4385,6 @@ static inline void netif_addr_lock(struct net_device *dev)
 {
 	unsigned char nest_level = 0;
 
-#ifdef CONFIG_LOCKDEP
-	nest_level = dev->nested_level;
-#endif
 	spin_lock_nested(&dev->addr_list_lock, nest_level);
 }
 
@@ -4402,9 +4392,6 @@ static inline void netif_addr_lock_bh(struct net_device *dev)
 {
 	unsigned char nest_level = 0;
 
-#ifdef CONFIG_LOCKDEP
-	nest_level = dev->nested_level;
-#endif
 	local_bh_disable();
 	spin_lock_nested(&dev->addr_list_lock, nest_level);
 }
@@ -4632,16 +4619,6 @@ struct net_device *netdev_upper_get_next_dev_rcu(struct net_device *dev,
 						     struct list_head **iter);
 struct net_device *netdev_all_upper_get_next_dev_rcu(struct net_device *dev,
 						     struct list_head **iter);
-
-#ifdef CONFIG_LOCKDEP
-static LIST_HEAD(net_unlink_list);
-
-static inline void net_unlink_todo(struct net_device *dev)
-{
-	if (list_empty(&dev->unlink_list))
-		list_add_tail(&dev->unlink_list, &net_unlink_list);
-}
-#endif
 
 /* iterate through upper list, must be called under RCU read lock */
 #define netdev_for_each_upper_dev_rcu(dev, updev, iter) \

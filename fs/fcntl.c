@@ -453,7 +453,7 @@ static int check_fcntl_cmd(unsigned cmd)
 	return 0;
 }
 
-SYSCALL_DEFINE3(fcntl, unsigned int, fd, unsigned int, cmd, unsigned long, arg)
+static inline long __do_sys_fcntl(unsigned int fd, unsigned int cmd, unsigned long arg)
 {	
 	struct fd f = fdget_raw(fd);
 	long err = -EBADF;
@@ -476,56 +476,11 @@ out:
 	return err;
 }
 
-#if BITS_PER_LONG == 32
-SYSCALL_DEFINE3(fcntl64, unsigned int, fd, unsigned int, cmd,
-		unsigned long, arg)
-{	
-	void __user *argp = (void __user *)arg;
-	struct fd f = fdget_raw(fd);
-	struct flock64 flock;
-	long err = -EBADF;
-
-	if (!f.file)
-		goto out;
-
-	if (unlikely(f.file->f_mode & FMODE_PATH)) {
-		if (!check_fcntl_cmd(cmd))
-			goto out1;
-	}
-
-	err = security_file_fcntl(f.file, cmd, arg);
-	if (err)
-		goto out1;
-	
-	switch (cmd) {
-	case F_GETLK64:
-	case F_OFD_GETLK:
-		err = -EFAULT;
-		if (copy_from_user(&flock, argp, sizeof(flock)))
-			break;
-		err = fcntl_getlk64(f.file, cmd, &flock);
-		if (!err && copy_to_user(argp, &flock, sizeof(flock)))
-			err = -EFAULT;
-		break;
-	case F_SETLK64:
-	case F_SETLKW64:
-	case F_OFD_SETLK:
-	case F_OFD_SETLKW:
-		err = -EFAULT;
-		if (copy_from_user(&flock, argp, sizeof(flock)))
-			break;
-		err = fcntl_setlk64(fd, f.file, cmd, &flock);
-		break;
-	default:
-		err = do_fcntl(fd, cmd, arg, f.file);
-		break;
-	}
-out1:
-	fdput(f);
-out:
-	return err;
+long __arm64_sys_fcntl(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fcntl((unsigned int)regs->regs[0], (unsigned int)regs->regs[1], (unsigned long)regs->regs[2]);
+	return ret;
 }
-#endif
 
 /* Table to convert sigio signal codes into poll band bitmaps */
 

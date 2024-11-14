@@ -3479,13 +3479,19 @@ static int do_tkill(pid_t tgid, pid_t pid, int sig)
  *  exists but it's not belonging to the target process anymore. This
  *  method solves the problem of threads exiting and PIDs getting reused.
  */
-SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid_t, pid, int, sig)
+static inline long __do_sys_tgkill(pid_t tgid, pid_t pid, int sig)
 {
 	/* This is only valid for single tasks */
 	if (pid <= 0 || tgid <= 0)
 		return -EINVAL;
 
 	return do_tkill(tgid, pid, sig);
+}
+
+long __arm64_sys_tgkill(const struct pt_regs *regs)
+{
+	long ret = __do_sys_tgkill((pid_t)regs->regs[0], (pid_t)regs->regs[1], (int)regs->regs[2]);
+	return ret;
 }
 
 /**
@@ -3529,14 +3535,19 @@ static int do_rt_sigqueueinfo(pid_t pid, int sig, kernel_siginfo_t *info)
  *  @sig: signal to be sent
  *  @uinfo: signal info to be sent
  */
-SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, pid, int, sig,
-		siginfo_t __user *, uinfo)
+static inline long __do_sys_rt_sigqueueinfo(pid_t pid, int sig, siginfo_t *uinfo)
 {
 	kernel_siginfo_t info;
 	int ret = __copy_siginfo_from_user(sig, &info, uinfo);
 	if (unlikely(ret))
 		return ret;
 	return do_rt_sigqueueinfo(pid, sig, &info);
+}
+
+long __arm64_sys_rt_sigqueueinfo(const struct pt_regs *regs)
+{
+	long ret = __do_sys_rt_sigqueueinfo((pid_t)regs->regs[0], (int)regs->regs[1], (siginfo_t *)regs->regs[2]);
+	return ret;
 }
 
 static int do_rt_tgsigqueueinfo(pid_t tgid, pid_t pid, int sig, kernel_siginfo_t *info)

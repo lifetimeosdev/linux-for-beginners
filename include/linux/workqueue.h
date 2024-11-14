@@ -104,9 +104,6 @@ struct work_struct {
 	atomic_long_t data;
 	struct list_head entry;
 	work_func_t func;
-#ifdef CONFIG_LOCKDEP
-	struct lockdep_map lockdep_map;
-#endif
 };
 
 #define WORK_DATA_INIT()	ATOMIC_LONG_INIT((unsigned long)WORK_STRUCT_NO_POOL)
@@ -170,17 +167,7 @@ struct execute_work {
 	struct work_struct work;
 };
 
-#ifdef CONFIG_LOCKDEP
-/*
- * NB: because we have to copy the lockdep_map, setting _key
- * here is required, otherwise it could get initialised to the
- * copy of the lockdep_map!
- */
-#define __WORK_INIT_LOCKDEP_MAP(n, k) \
-	.lockdep_map = STATIC_LOCKDEP_MAP_INIT(n, k),
-#else
 #define __WORK_INIT_LOCKDEP_MAP(n, k)
-#endif
 
 #define __WORK_INITIALIZER(n, f) {					\
 	.data = WORK_DATA_STATIC_INIT(),				\
@@ -226,18 +213,6 @@ static inline unsigned int work_static(struct work_struct *work) { return 0; }
  * assignment of the work data initializer allows the compiler
  * to generate better code.
  */
-#ifdef CONFIG_LOCKDEP
-#define __INIT_WORK(_work, _func, _onstack)				\
-	do {								\
-		static struct lock_class_key __key;			\
-									\
-		__init_work((_work), _onstack);				\
-		(_work)->data = (atomic_long_t) WORK_DATA_INIT();	\
-		lockdep_init_map(&(_work)->lockdep_map, "(work_completion)"#_work, &__key, 0); \
-		INIT_LIST_HEAD(&(_work)->entry);			\
-		(_work)->func = (_func);				\
-	} while (0)
-#else
 #define __INIT_WORK(_work, _func, _onstack)				\
 	do {								\
 		__init_work((_work), _onstack);				\
@@ -245,7 +220,6 @@ static inline unsigned int work_static(struct work_struct *work) { return 0; }
 		INIT_LIST_HEAD(&(_work)->entry);			\
 		(_work)->func = (_func);				\
 	} while (0)
-#endif
 
 #define INIT_WORK(_work, _func)						\
 	__INIT_WORK((_work), (_func), 0)

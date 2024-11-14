@@ -204,7 +204,7 @@ long __arm64_sys_statfs(const struct pt_regs *regs)
 	return ret;
 }
 
-SYSCALL_DEFINE3(statfs64, const char __user *, pathname, size_t, sz, struct statfs64 __user *, buf)
+static inline long __do_sys_statfs64(const char *pathname, size_t sz, struct statfs64 *buf)
 {
 	struct kstatfs st;
 	int error;
@@ -214,6 +214,12 @@ SYSCALL_DEFINE3(statfs64, const char __user *, pathname, size_t, sz, struct stat
 	if (!error)
 		error = do_statfs64(&st, buf);
 	return error;
+}
+
+long __arm64_sys_statfs64(const struct pt_regs *regs)
+{
+	long ret = __do_sys_statfs64((const char *)regs->regs[0], (size_t)regs->regs[1], (struct statfs64 *)regs->regs[2]);
+	return ret;
 }
 
 static inline long __do_sys_fstatfs(unsigned int fd, struct statfs *buf)
@@ -231,7 +237,7 @@ long __arm64_sys_fstatfs(const struct pt_regs *regs)
 	return ret;
 }
 
-SYSCALL_DEFINE3(fstatfs64, unsigned int, fd, size_t, sz, struct statfs64 __user *, buf)
+static inline long __do_sys_fstatfs64(unsigned int fd, size_t sz, struct statfs64 *buf)
 {
 	struct kstatfs st;
 	int error;
@@ -243,6 +249,12 @@ SYSCALL_DEFINE3(fstatfs64, unsigned int, fd, size_t, sz, struct statfs64 __user 
 	if (!error)
 		error = do_statfs64(&st, buf);
 	return error;
+}
+
+long __arm64_sys_fstatfs64(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fstatfs64((unsigned int)regs->regs[0], (size_t)regs->regs[1], (struct statfs64 *)regs->regs[2]);
+	return ret;
 }
 
 static int vfs_ustat(dev_t dev, struct kstatfs *sbuf)

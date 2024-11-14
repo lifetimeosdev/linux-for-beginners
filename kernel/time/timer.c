@@ -1353,18 +1353,6 @@ int del_timer_sync(struct timer_list *timer)
 {
 	int ret;
 
-#ifdef CONFIG_LOCKDEP
-	unsigned long flags;
-
-	/*
-	 * If lockdep gives a backtrace here, please reference
-	 * the synchronization rules above.
-	 */
-	local_irq_save(flags);
-	lock_map_acquire(&timer->lockdep_map);
-	lock_map_release(&timer->lockdep_map);
-	local_irq_restore(flags);
-#endif
 	/*
 	 * don't use it in hardirq context, because it
 	 * could lead to deadlock.
@@ -1391,18 +1379,6 @@ static void call_timer_fn(struct timer_list *timer,
 {
 	int count = preempt_count();
 
-#ifdef CONFIG_LOCKDEP
-	/*
-	 * It is permissible to free the timer from inside the
-	 * function that is called from it, this we need to take into
-	 * account for lockdep too. To avoid bogus "held lock freed"
-	 * warnings as well as problems when looking into
-	 * timer->lockdep_map, make a copy and use that here.
-	 */
-	struct lockdep_map lockdep_map;
-
-	lockdep_copy_map(&lockdep_map, &timer->lockdep_map);
-#endif
 	/*
 	 * Couple the lock chain with the lock chain at
 	 * del_timer_sync() by acquiring the lock_map around the fn()

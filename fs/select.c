@@ -1047,8 +1047,7 @@ static long do_restart_poll(struct restart_block *restart_block)
 	return ret;
 }
 
-SYSCALL_DEFINE3(poll, struct pollfd __user *, ufds, unsigned int, nfds,
-		int, timeout_msecs)
+static inline long __do_sys_poll(struct pollfd *ufds, unsigned int nfds, int timeout_msecs)
 {
 	struct timespec64 end_time, *to = NULL;
 	int ret;
@@ -1077,6 +1076,12 @@ SYSCALL_DEFINE3(poll, struct pollfd __user *, ufds, unsigned int, nfds,
 
 		ret = set_restart_fn(restart_block, do_restart_poll);
 	}
+	return ret;
+}
+
+long __arm64_sys_poll(const struct pt_regs *regs)
+{
+	long ret = __do_sys_poll((struct pollfd *)regs->regs[0], (unsigned int)regs->regs[1], (int)regs->regs[2]);
 	return ret;
 }
 

@@ -707,7 +707,7 @@ static int do_vfs_ioctl(struct file *filp, unsigned int fd,
 	return -ENOIOCTLCMD;
 }
 
-SYSCALL_DEFINE3(ioctl, unsigned int, fd, unsigned int, cmd, unsigned long, arg)
+static inline long __do_sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg)
 {
 	struct fd f = fdget(fd);
 	int error;
@@ -726,4 +726,10 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd, unsigned int, cmd, unsigned long, arg)
 out:
 	fdput(f);
 	return error;
+}
+
+long __arm64_sys_ioctl(const struct pt_regs *regs)
+{
+	long ret = __do_sys_ioctl((unsigned int)regs->regs[0], (unsigned int)regs->regs[1], (unsigned long)regs->regs[2]);
+	return ret;
 }

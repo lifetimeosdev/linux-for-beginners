@@ -226,8 +226,7 @@ static long do_mincore(unsigned long addr, unsigned long pages, unsigned char *v
  *		mapped
  *  -EAGAIN - A kernel resource was temporarily unavailable.
  */
-SYSCALL_DEFINE3(mincore, unsigned long, start, size_t, len,
-		unsigned char __user *, vec)
+static inline long __do_sys_mincore(unsigned long start, size_t len, unsigned char *vec)
 {
 	long retval;
 	unsigned long pages;
@@ -277,4 +276,10 @@ SYSCALL_DEFINE3(mincore, unsigned long, start, size_t, len,
 	}
 	free_page((unsigned long) tmp);
 	return retval;
+}
+
+long __arm64_sys_mincore(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mincore((unsigned long)regs->regs[0], (size_t)regs->regs[1], (unsigned char *)regs->regs[2]);
+	return ret;
 }

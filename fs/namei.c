@@ -3679,9 +3679,15 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
 	return do_mknodat(dfd, filename, mode, dev);
 }
 
-SYSCALL_DEFINE3(mknod, const char __user *, filename, umode_t, mode, unsigned, dev)
+static inline long __do_sys_mknod(const char *filename, umode_t mode, unsigned dev)
 {
 	return do_mknodat(AT_FDCWD, filename, mode, dev);
+}
+
+long __arm64_sys_mknod(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mknod((const char *)regs->regs[0], (umode_t)regs->regs[1], (unsigned)regs->regs[2]);
+	return ret;
 }
 
 int vfs_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
@@ -3734,9 +3740,15 @@ retry:
 	return error;
 }
 
-SYSCALL_DEFINE3(mkdirat, int, dfd, const char __user *, pathname, umode_t, mode)
+static inline long __do_sys_mkdirat(int dfd, const char *pathname, umode_t mode)
 {
 	return do_mkdirat(dfd, pathname, mode);
+}
+
+long __arm64_sys_mkdirat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mkdirat((int)regs->regs[0], (const char *)regs->regs[1], (umode_t)regs->regs[2]);
+	return ret;
 }
 
 static inline long __do_sys_mkdir(const char *pathname, umode_t mode)
@@ -3995,7 +4007,7 @@ slashes:
 	goto exit2;
 }
 
-SYSCALL_DEFINE3(unlinkat, int, dfd, const char __user *, pathname, int, flag)
+static inline long __do_sys_unlinkat(int dfd, const char *pathname, int flag)
 {
 	if ((flag & ~AT_REMOVEDIR) != 0)
 		return -EINVAL;
@@ -4003,6 +4015,12 @@ SYSCALL_DEFINE3(unlinkat, int, dfd, const char __user *, pathname, int, flag)
 	if (flag & AT_REMOVEDIR)
 		return do_rmdir(dfd, getname(pathname));
 	return do_unlinkat(dfd, getname(pathname));
+}
+
+long __arm64_sys_unlinkat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_unlinkat((int)regs->regs[0], (const char *)regs->regs[1], (int)regs->regs[2]);
+	return ret;
 }
 
 static inline long __do_sys_unlink(const char *pathname)
@@ -4068,10 +4086,15 @@ out_putname:
 	return error;
 }
 
-SYSCALL_DEFINE3(symlinkat, const char __user *, oldname,
-		int, newdfd, const char __user *, newname)
+static inline long __do_sys_symlinkat(const char *oldname, int newdfd, const char *newname)
 {
 	return do_symlinkat(oldname, newdfd, newname);
+}
+
+long __arm64_sys_symlinkat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_symlinkat((const char *)regs->regs[0], (int)regs->regs[1], (const char *)regs->regs[2]);
+	return ret;
 }
 
 static inline long __do_sys_symlink(const char *oldname, const char *newname)

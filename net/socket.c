@@ -1514,9 +1514,15 @@ int __sys_socket(int family, int type, int protocol)
 	return sock_map_fd(sock, flags & (O_CLOEXEC | O_NONBLOCK));
 }
 
-SYSCALL_DEFINE3(socket, int, family, int, type, int, protocol)
+static inline long __do_sys_socket(int family, int type, int protocol)
 {
 	return __sys_socket(family, type, protocol);
+}
+
+long __arm64_sys_socket(const struct pt_regs *regs)
+{
+	long ret = __do_sys_socket((int)regs->regs[0], (int)regs->regs[1], (int)regs->regs[2]);
+	return ret;
 }
 
 /*
@@ -1652,9 +1658,15 @@ int __sys_bind(int fd, struct sockaddr __user *umyaddr, int addrlen)
 	return err;
 }
 
-SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
+static inline long __do_sys_bind(int fd, struct sockaddr *umyaddr, int addrlen)
 {
 	return __sys_bind(fd, umyaddr, addrlen);
+}
+
+long __arm64_sys_bind(const struct pt_regs *regs)
+{
+	long ret = __do_sys_bind((int)regs->regs[0], (struct sockaddr *)regs->regs[1], (int)regs->regs[2]);
+	return ret;
 }
 
 /*
@@ -1817,10 +1829,15 @@ SYSCALL_DEFINE4(accept4, int, fd, struct sockaddr __user *, upeer_sockaddr,
 	return __sys_accept4(fd, upeer_sockaddr, upeer_addrlen, flags);
 }
 
-SYSCALL_DEFINE3(accept, int, fd, struct sockaddr __user *, upeer_sockaddr,
-		int __user *, upeer_addrlen)
+static inline long __do_sys_accept(int fd, struct sockaddr *upeer_sockaddr, int *upeer_addrlen)
 {
 	return __sys_accept4(fd, upeer_sockaddr, upeer_addrlen, 0);
+}
+
+long __arm64_sys_accept(const struct pt_regs *regs)
+{
+	long ret = __do_sys_accept((int)regs->regs[0], (struct sockaddr *)regs->regs[1], (int *)regs->regs[2]);
+	return ret;
 }
 
 /*
@@ -1874,10 +1891,15 @@ int __sys_connect(int fd, struct sockaddr __user *uservaddr, int addrlen)
 	return ret;
 }
 
-SYSCALL_DEFINE3(connect, int, fd, struct sockaddr __user *, uservaddr,
-		int, addrlen)
+static inline long __do_sys_connect(int fd, struct sockaddr *uservaddr, int addrlen)
 {
 	return __sys_connect(fd, uservaddr, addrlen);
+}
+
+long __arm64_sys_connect(const struct pt_regs *regs)
+{
+	long ret = __do_sys_connect((int)regs->regs[0], (struct sockaddr *)regs->regs[1], (int)regs->regs[2]);
+	return ret;
 }
 
 /*
@@ -1912,10 +1934,15 @@ out:
 	return err;
 }
 
-SYSCALL_DEFINE3(getsockname, int, fd, struct sockaddr __user *, usockaddr,
-		int __user *, usockaddr_len)
+static inline long __do_sys_getsockname(int fd, struct sockaddr *usockaddr, int *usockaddr_len)
 {
 	return __sys_getsockname(fd, usockaddr, usockaddr_len);
+}
+
+long __arm64_sys_getsockname(const struct pt_regs *regs)
+{
+	long ret = __do_sys_getsockname((int)regs->regs[0], (struct sockaddr *)regs->regs[1], (int *)regs->regs[2]);
+	return ret;
 }
 
 /*
@@ -1948,10 +1975,15 @@ int __sys_getpeername(int fd, struct sockaddr __user *usockaddr,
 	return err;
 }
 
-SYSCALL_DEFINE3(getpeername, int, fd, struct sockaddr __user *, usockaddr,
-		int __user *, usockaddr_len)
+static inline long __do_sys_getpeername(int fd, struct sockaddr *usockaddr, int *usockaddr_len)
 {
 	return __sys_getpeername(fd, usockaddr, usockaddr_len);
+}
+
+long __arm64_sys_getpeername(const struct pt_regs *regs)
+{
+	long ret = __do_sys_getpeername((int)regs->regs[0], (struct sockaddr *)regs->regs[1], (int *)regs->regs[2]);
+	return ret;
 }
 
 /*
@@ -2459,9 +2491,15 @@ out:
 	return err;
 }
 
-SYSCALL_DEFINE3(sendmsg, int, fd, struct user_msghdr __user *, msg, unsigned int, flags)
+static inline long __do_sys_sendmsg(int fd, struct user_msghdr *msg, unsigned int flags)
 {
 	return __sys_sendmsg(fd, msg, flags, true);
+}
+
+long __arm64_sys_sendmsg(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sendmsg((int)regs->regs[0], (struct user_msghdr *)regs->regs[1], (unsigned int)regs->regs[2]);
+	return ret;
 }
 
 /*
@@ -2667,10 +2705,15 @@ out:
 	return err;
 }
 
-SYSCALL_DEFINE3(recvmsg, int, fd, struct user_msghdr __user *, msg,
-		unsigned int, flags)
+static inline long __do_sys_recvmsg(int fd, struct user_msghdr *msg, unsigned int flags)
 {
 	return __sys_recvmsg(fd, msg, flags, true);
+}
+
+long __arm64_sys_recvmsg(const struct pt_regs *regs)
+{
+	long ret = __do_sys_recvmsg((int)regs->regs[0], (struct user_msghdr *)regs->regs[1], (unsigned int)regs->regs[2]);
+	return ret;
 }
 
 /*

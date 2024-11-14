@@ -712,29 +712,6 @@ err:
 	return ERR_PTR(err);
 }
 
-#ifdef CONFIG_ARCH_WANT_IPC_PARSE_VERSION
-
-
-/**
- * ipc_parse_version - ipc call version
- * @cmd: pointer to command
- *
- * Return IPC_64 for new style IPC and IPC_OLD for old style IPC.
- * The @cmd value is turned from an encoding command and version into
- * just the command code.
- */
-int ipc_parse_version(int *cmd)
-{
-	if (*cmd & IPC_64) {
-		*cmd ^= IPC_64;
-		return IPC_64;
-	} else {
-		return IPC_OLD;
-	}
-}
-
-#endif /* CONFIG_ARCH_WANT_IPC_PARSE_VERSION */
-
 #ifdef CONFIG_PROC_FS
 struct ipc_proc_iter {
 	struct ipc_namespace *ns;

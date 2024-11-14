@@ -260,11 +260,6 @@ struct workqueue_struct {
 #ifdef CONFIG_SYSFS
 	struct wq_device	*wq_dev;	/* I: for sysfs interface */
 #endif
-#ifdef CONFIG_LOCKDEP
-	char			*lock_name;
-	struct lock_class_key	key;
-	struct lockdep_map	lockdep_map;
-#endif
 	char			name[WQ_NAME_LEN]; /* I: workqueue name */
 
 	/*
@@ -2181,18 +2176,6 @@ __acquires(&pool->lock)
 	bool cpu_intensive = pwq->wq->flags & WQ_CPU_INTENSIVE;
 	int work_color;
 	struct worker *collision;
-#ifdef CONFIG_LOCKDEP
-	/*
-	 * It is permissible to free the struct work_struct from
-	 * inside the function that is called from it, this we need to
-	 * take into account for lockdep too.  To avoid bogus "held
-	 * lock freed" warnings as well as problems when looking into
-	 * work->lockdep_map, make a copy and use that here.
-	 */
-	struct lockdep_map lockdep_map;
-
-	lockdep_copy_map(&lockdep_map, &work->lockdep_map);
-#endif
 	/* ensure we're on the correct CPU */
 	WARN_ON_ONCE(!(pool->flags & POOL_DISASSOCIATED) &&
 		     raw_smp_processor_id() != pool->cpu);
@@ -3462,31 +3445,6 @@ static int init_worker_pool(struct worker_pool *pool)
 	return 0;
 }
 
-#ifdef CONFIG_LOCKDEP
-static void wq_init_lockdep(struct workqueue_struct *wq)
-{
-	char *lock_name;
-
-	lockdep_register_key(&wq->key);
-	lock_name = kasprintf(GFP_KERNEL, "%s%s", "(wq_completion)", wq->name);
-	if (!lock_name)
-		lock_name = wq->name;
-
-	wq->lock_name = lock_name;
-	lockdep_init_map(&wq->lockdep_map, lock_name, &wq->key, 0);
-}
-
-static void wq_unregister_lockdep(struct workqueue_struct *wq)
-{
-	lockdep_unregister_key(&wq->key);
-}
-
-static void wq_free_lockdep(struct workqueue_struct *wq)
-{
-	if (wq->lock_name != wq->name)
-		kfree(wq->lock_name);
-}
-#else
 static void wq_init_lockdep(struct workqueue_struct *wq)
 {
 }
@@ -3498,7 +3456,6 @@ static void wq_unregister_lockdep(struct workqueue_struct *wq)
 static void wq_free_lockdep(struct workqueue_struct *wq)
 {
 }
-#endif
 
 static void rcu_free_wq(struct rcu_head *rcu)
 {

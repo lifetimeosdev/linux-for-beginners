@@ -208,20 +208,7 @@ static const struct sysrq_key_op sysrq_mountro_op = {
 	.enable_mask	= SYSRQ_ENABLE_REMOUNT,
 };
 
-#ifdef CONFIG_LOCKDEP
-static void sysrq_handle_showlocks(int key)
-{
-	debug_show_all_locks();
-}
-
-static const struct sysrq_key_op sysrq_showlocks_op = {
-	.handler	= sysrq_handle_showlocks,
-	.help_msg	= "show-all-locks(d)",
-	.action_msg	= "Show Locks Held",
-};
-#else
 #define sysrq_showlocks_op (*(const struct sysrq_key_op *)NULL)
-#endif
 
 #ifdef CONFIG_SMP
 static DEFINE_RAW_SPINLOCK(show_lock);

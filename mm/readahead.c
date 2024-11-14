@@ -635,7 +635,13 @@ out:
 	return ret;
 }
 
-SYSCALL_DEFINE3(readahead, int, fd, loff_t, offset, size_t, count)
+static inline long __do_sys_readahead(int fd, loff_t offset, size_t count)
 {
 	return ksys_readahead(fd, offset, count);
+}
+
+long __arm64_sys_readahead(const struct pt_regs *regs)
+{
+	long ret = __do_sys_readahead((int)regs->regs[0], (loff_t)regs->regs[1], (size_t)regs->regs[2]);
+	return ret;
 }

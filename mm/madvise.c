@@ -1087,9 +1087,15 @@ out:
 	return error;
 }
 
-SYSCALL_DEFINE3(madvise, unsigned long, start, size_t, len_in, int, behavior)
+static inline long __do_sys_madvise(unsigned long start, size_t len_in, int behavior)
 {
 	return do_madvise(current->mm, start, len_in, behavior);
+}
+
+long __arm64_sys_madvise(const struct pt_regs *regs)
+{
+	long ret = __do_sys_madvise((unsigned long)regs->regs[0], (size_t)regs->regs[1], (int)regs->regs[2]);
+	return ret;
 }
 
 SYSCALL_DEFINE5(process_madvise, int, pidfd, const struct iovec __user *, vec,

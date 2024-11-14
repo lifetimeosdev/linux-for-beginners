@@ -83,28 +83,8 @@ static DEFINE_PER_CPU(struct cpuhp_cpu_state, cpuhp_state) = {
 cpumask_t cpus_booted_once_mask;
 #endif
 
-#if defined(CONFIG_LOCKDEP) && defined(CONFIG_SMP)
-static struct lockdep_map cpuhp_state_up_map =
-	STATIC_LOCKDEP_MAP_INIT("cpuhp_state-up", &cpuhp_state_up_map);
-static struct lockdep_map cpuhp_state_down_map =
-	STATIC_LOCKDEP_MAP_INIT("cpuhp_state-down", &cpuhp_state_down_map);
-
-
-static inline void cpuhp_lock_acquire(bool bringup)
-{
-	lock_map_acquire(bringup ? &cpuhp_state_up_map : &cpuhp_state_down_map);
-}
-
-static inline void cpuhp_lock_release(bool bringup)
-{
-	lock_map_release(bringup ? &cpuhp_state_up_map : &cpuhp_state_down_map);
-}
-#else
-
 static inline void cpuhp_lock_acquire(bool bringup) { }
 static inline void cpuhp_lock_release(bool bringup) { }
-
-#endif
 
 /**
  * cpuhp_step - Hotplug state machine step

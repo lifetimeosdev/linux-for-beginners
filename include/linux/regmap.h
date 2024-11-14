@@ -657,20 +657,7 @@ struct regmap *__devm_regmap_init_spi_avmm(struct spi_device *spi,
  * @fn: Real function to call (in the form __[*_]regmap_init[_*])
  * @name: Config variable name (#config in the calling macro)
  **/
-#ifdef CONFIG_LOCKDEP
-#define __regmap_lockdep_wrapper(fn, name, ...)				\
-(									\
-	({								\
-		static struct lock_class_key _key;			\
-		fn(__VA_ARGS__, &_key,					\
-			KBUILD_BASENAME ":"				\
-			__stringify(__LINE__) ":"			\
-			"(" name ")->lock");				\
-	})								\
-)
-#else
 #define __regmap_lockdep_wrapper(fn, name, ...) fn(__VA_ARGS__, NULL, NULL)
-#endif
 
 /**
  * regmap_init() - Initialise register map

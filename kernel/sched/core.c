@@ -1984,20 +1984,6 @@ void set_task_cpu(struct task_struct *p, unsigned int new_cpu)
 		     p->sched_class == &fair_sched_class &&
 		     (p->on_rq && !task_on_rq_migrating(p)));
 
-#ifdef CONFIG_LOCKDEP
-	/*
-	 * The caller should hold either p->pi_lock or rq->lock, when changing
-	 * a task's CPU. ->pi_lock for waking tasks, rq->lock for runnable tasks.
-	 *
-	 * sched_move_task() holds both and thus holding either pins the cgroup,
-	 * see task_group().
-	 *
-	 * Furthermore, all task_rq users should acquire both locks, see
-	 * task_rq_lock().
-	 */
-	WARN_ON_ONCE(debug_locks && !(lockdep_is_held(&p->pi_lock) ||
-				      lockdep_is_held(&task_rq(p)->lock)));
-#endif
 	/*
 	 * Clearly, migrating tasks to offline CPUs is a fairly daft thing.
 	 */
@@ -5454,12 +5440,18 @@ err_size:
  *
  * Return: 0 on success. An error code otherwise.
  */
-SYSCALL_DEFINE3(sched_setscheduler, pid_t, pid, int, policy, struct sched_param __user *, param)
+static inline long __do_sys_sched_setscheduler(pid_t pid, int policy, struct sched_param *param)
 {
 	if (policy < 0)
 		return -EINVAL;
 
 	return do_sched_setscheduler(pid, policy, param);
+}
+
+long __arm64_sys_sched_setscheduler(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sched_setscheduler((pid_t)regs->regs[0], (int)regs->regs[1], (struct sched_param *)regs->regs[2]);
+	return ret;
 }
 
 /**
@@ -5486,8 +5478,7 @@ long __arm64_sys_sched_setparam(const struct pt_regs *regs)
  * @uattr: structure containing the extended parameters.
  * @flags: for future extension.
  */
-SYSCALL_DEFINE3(sched_setattr, pid_t, pid, struct sched_attr __user *, uattr,
-			       unsigned int, flags)
+static inline long __do_sys_sched_setattr(pid_t pid, struct sched_attr *uattr, unsigned int flags)
 {
 	struct sched_attr attr;
 	struct task_struct *p;
@@ -5518,6 +5509,12 @@ SYSCALL_DEFINE3(sched_setattr, pid_t, pid, struct sched_attr __user *, uattr,
 	}
 
 	return retval;
+}
+
+long __arm64_sys_sched_setattr(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sched_setattr((pid_t)regs->regs[0], (struct sched_attr *)regs->regs[1], (unsigned int)regs->regs[2]);
+	return ret;
 }
 
 /**
@@ -5807,8 +5804,8 @@ static int get_user_cpu_mask(unsigned long __user *user_mask_ptr, unsigned len,
  *
  * Return: 0 on success. An error code otherwise.
  */
-SYSCALL_DEFINE3(sched_setaffinity, pid_t, pid, unsigned int, len,
-		unsigned long __user *, user_mask_ptr)
+static inline long __do_sys_sched_setaffinity(pid_t pid, unsigned int len,
+					      unsigned long *user_mask_ptr)
 {
 	cpumask_var_t new_mask;
 	int retval;
@@ -5821,6 +5818,13 @@ SYSCALL_DEFINE3(sched_setaffinity, pid_t, pid, unsigned int, len,
 		retval = sched_setaffinity(pid, new_mask);
 	free_cpumask_var(new_mask);
 	return retval;
+}
+
+long __arm64_sys_sched_setaffinity(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sched_setaffinity((pid_t)regs->regs[0], (unsigned int)regs->regs[1],
+					      (unsigned long *)regs->regs[2]);
+	return ret;
 }
 
 long sched_getaffinity(pid_t pid, struct cpumask *mask)
@@ -5859,8 +5863,8 @@ out_unlock:
  * Return: size of CPU mask copied to user_mask_ptr on success. An
  * error code otherwise.
  */
-SYSCALL_DEFINE3(sched_getaffinity, pid_t, pid, unsigned int, len,
-		unsigned long __user *, user_mask_ptr)
+static inline long __do_sys_sched_getaffinity(pid_t pid, unsigned int len,
+					      unsigned long *user_mask_ptr)
 {
 	int ret;
 	cpumask_var_t mask;
@@ -5884,6 +5888,13 @@ SYSCALL_DEFINE3(sched_getaffinity, pid_t, pid, unsigned int, len,
 	}
 	free_cpumask_var(mask);
 
+	return ret;
+}
+
+long __arm64_sys_sched_getaffinity(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sched_getaffinity((pid_t)regs->regs[0], (unsigned int)regs->regs[1],
+					      (unsigned long *)regs->regs[2]);
 	return ret;
 }
 

@@ -50,12 +50,6 @@ extern int debug_locks_off(void);
 
 struct task_struct;
 
-#ifdef CONFIG_LOCKDEP
-extern void debug_show_all_locks(void);
-extern void debug_show_held_locks(struct task_struct *task);
-extern void debug_check_no_locks_freed(const void *from, unsigned long len);
-extern void debug_check_no_locks_held(void);
-#else
 static inline void debug_show_all_locks(void)
 {
 }
@@ -73,6 +67,4 @@ static inline void
 debug_check_no_locks_held(void)
 {
 }
-#endif
-
 #endif

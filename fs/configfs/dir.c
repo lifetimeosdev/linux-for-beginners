@@ -72,71 +72,6 @@ const struct dentry_operations configfs_dentry_ops = {
 	.d_delete	= always_delete_dentry,
 };
 
-#ifdef CONFIG_LOCKDEP
-
-/*
- * Helpers to make lockdep happy with our recursive locking of default groups'
- * inodes (see configfs_attach_group() and configfs_detach_group()).
- * We put default groups i_mutexes in separate classes according to their depth
- * from the youngest non-default group ancestor.
- *
- * For a non-default group A having default groups A/B, A/C, and A/C/D, default
- * groups A/B and A/C will have their inode's mutex in class
- * default_group_class[0], and default group A/C/D will be in
- * default_group_class[1].
- *
- * The lock classes are declared and assigned in inode.c, according to the
- * s_depth value.
- * The s_depth value is initialized to -1, adjusted to >= 0 when attaching
- * default groups, and reset to -1 when all default groups are attached. During
- * attachment, if configfs_create() sees s_depth > 0, the lock class of the new
- * inode's mutex is set to default_group_class[s_depth - 1].
- */
-
-static void configfs_init_dirent_depth(struct configfs_dirent *sd)
-{
-	sd->s_depth = -1;
-}
-
-static void configfs_set_dir_dirent_depth(struct configfs_dirent *parent_sd,
-					  struct configfs_dirent *sd)
-{
-	int parent_depth = parent_sd->s_depth;
-
-	if (parent_depth >= 0)
-		sd->s_depth = parent_depth + 1;
-}
-
-static void
-configfs_adjust_dir_dirent_depth_before_populate(struct configfs_dirent *sd)
-{
-	/*
-	 * item's i_mutex class is already setup, so s_depth is now only
-	 * used to set new sub-directories s_depth, which is always done
-	 * with item's i_mutex locked.
-	 */
-	/*
-	 *  sd->s_depth == -1 iff we are a non default group.
-	 *  else (we are a default group) sd->s_depth > 0 (see
-	 *  create_dir()).
-	 */
-	if (sd->s_depth == -1)
-		/*
-		 * We are a non default group and we are going to create
-		 * default groups.
-		 */
-		sd->s_depth = 0;
-}
-
-static void
-configfs_adjust_dir_dirent_depth_after_populate(struct configfs_dirent *sd)
-{
-	/* We will not create default groups anymore. */
-	sd->s_depth = -1;
-}
-
-#else /* CONFIG_LOCKDEP */
-
 static void configfs_init_dirent_depth(struct configfs_dirent *sd)
 {
 }
@@ -155,8 +90,6 @@ static void
 configfs_adjust_dir_dirent_depth_after_populate(struct configfs_dirent *sd)
 {
 }
-
-#endif /* CONFIG_LOCKDEP */
 
 static struct configfs_fragment *new_fragment(void)
 {

@@ -243,8 +243,8 @@ static int get_itimerval(struct itimerspec64 *o, const struct __kernel_old_itime
 	return 0;
 }
 
-SYSCALL_DEFINE3(setitimer, int, which, struct __kernel_old_itimerval __user *, value,
-		struct __kernel_old_itimerval __user *, ovalue)
+static inline long __do_sys_setitimer(int which, struct __kernel_old_itimerval *value,
+				      struct __kernel_old_itimerval *ovalue)
 {
 	struct itimerspec64 set_buffer, get_buffer;
 	int error;
@@ -267,4 +267,11 @@ SYSCALL_DEFINE3(setitimer, int, which, struct __kernel_old_itimerval __user *, v
 	if (put_itimerval(ovalue, &get_buffer))
 		return -EFAULT;
 	return 0;
+}
+
+long __arm64_sys_setitimer(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setitimer((int)regs->regs[0], (struct __kernel_old_itimerval *)regs->regs[1],
+				      (struct __kernel_old_itimerval *)regs->regs[2]);
+	return ret;
 }

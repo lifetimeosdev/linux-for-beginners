@@ -26,10 +26,6 @@
 #include <linux/configfs.h>
 #include "configfs_internal.h"
 
-#ifdef CONFIG_LOCKDEP
-static struct lock_class_key default_group_class[MAX_LOCK_DEPTH];
-#endif
-
 static const struct address_space_operations configfs_aops = {
 	.readpage	= simple_readpage,
 	.write_begin	= simple_write_begin,
@@ -130,36 +126,10 @@ struct inode *configfs_new_inode(umode_t mode, struct configfs_dirent *sd,
 	return inode;
 }
 
-#ifdef CONFIG_LOCKDEP
-
-static void configfs_set_inode_lock_class(struct configfs_dirent *sd,
-					  struct inode *inode)
-{
-	int depth = sd->s_depth;
-
-	if (depth > 0) {
-		if (depth <= ARRAY_SIZE(default_group_class)) {
-			lockdep_set_class(&inode->i_rwsem,
-					  &default_group_class[depth - 1]);
-		} else {
-			/*
-			 * In practice the maximum level of locking depth is
-			 * already reached. Just inform about possible reasons.
-			 */
-			pr_info("Too many levels of inodes for the locking correctness validator.\n");
-			pr_info("Spurious warnings may appear.\n");
-		}
-	}
-}
-
-#else /* CONFIG_LOCKDEP */
-
 static void configfs_set_inode_lock_class(struct configfs_dirent *sd,
 					  struct inode *inode)
 {
 }
-
-#endif /* CONFIG_LOCKDEP */
 
 struct inode *configfs_create(struct dentry *dentry, umode_t mode)
 {

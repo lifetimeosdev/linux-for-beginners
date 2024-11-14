@@ -204,9 +204,15 @@ out:
 	return err;
 }
 
-SYSCALL_DEFINE3(lookup_dcookie, u64, cookie64, char __user *, buf, size_t, len)
+static inline long __do_sys_lookup_dcookie(u64 cookie64, char *buf, size_t len)
 {
 	return do_lookup_dcookie(cookie64, buf, len);
+}
+
+long __arm64_sys_lookup_dcookie(const struct pt_regs *regs)
+{
+	long ret = __do_sys_lookup_dcookie((u64)regs->regs[0], (char *)regs->regs[1], (size_t)regs->regs[2]);
+	return ret;
 }
 
 static int dcookie_init(void)

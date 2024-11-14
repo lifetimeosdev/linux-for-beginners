@@ -809,9 +809,15 @@ long ksys_shmget(key_t key, size_t size, int shmflg)
 	return ipcget(ns, &shm_ids(ns), &shm_ops, &shm_params);
 }
 
-SYSCALL_DEFINE3(shmget, key_t, key, size_t, size, int, shmflg)
+static inline long __do_sys_shmget(key_t key, size_t size, int shmflg)
 {
 	return ksys_shmget(key, size, shmflg);
+}
+
+long __arm64_sys_shmget(const struct pt_regs *regs)
+{
+	long ret = __do_sys_shmget((key_t)regs->regs[0], (size_t)regs->regs[1], (int)regs->regs[2]);
+	return ret;
 }
 
 static inline unsigned long copy_shmid_to_user(void __user *buf, struct shmid64_ds *in, int version)
@@ -1258,24 +1264,16 @@ static long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf, int ver
 	}
 }
 
-SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, struct shmid_ds __user *, buf)
+static inline long __do_sys_shmctl(int shmid, int cmd, struct shmid_ds *buf)
 {
 	return ksys_shmctl(shmid, cmd, buf, IPC_64);
 }
 
-#ifdef CONFIG_ARCH_WANT_IPC_PARSE_VERSION
-long ksys_old_shmctl(int shmid, int cmd, struct shmid_ds __user *buf)
+long __arm64_sys_shmctl(const struct pt_regs *regs)
 {
-	int version = ipc_parse_version(&cmd);
-
-	return ksys_shmctl(shmid, cmd, buf, version);
+	long ret = __do_sys_shmctl((int)regs->regs[0], (int)regs->regs[1], (struct shmid_ds *)regs->regs[2]);
+	return ret;
 }
-
-SYSCALL_DEFINE3(old_shmctl, int, shmid, int, cmd, struct shmid_ds __user *, buf)
-{
-	return ksys_old_shmctl(shmid, cmd, buf);
-}
-#endif
 
 /*
  * Fix shmaddr, allocate descriptor, map shm, add attach descriptor to lists.
@@ -1458,7 +1456,7 @@ out:
 	return err;
 }
 
-SYSCALL_DEFINE3(shmat, int, shmid, char __user *, shmaddr, int, shmflg)
+static inline long __do_sys_shmat(int shmid, char *shmaddr, int shmflg)
 {
 	unsigned long ret;
 	long err;
@@ -1468,6 +1466,12 @@ SYSCALL_DEFINE3(shmat, int, shmid, char __user *, shmaddr, int, shmflg)
 		return err;
 	force_successful_syscall_return();
 	return (long)ret;
+}
+
+long __arm64_sys_shmat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_shmat((int)regs->regs[0], (char *)regs->regs[1], (int)regs->regs[2]);
+	return ret;
 }
 
 /*

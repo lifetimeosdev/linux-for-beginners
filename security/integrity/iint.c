@@ -77,16 +77,6 @@ struct integrity_iint_cache *integrity_iint_find(struct inode *inode)
 static inline void iint_lockdep_annotate(struct integrity_iint_cache *iint,
 					 struct inode *inode)
 {
-#ifdef CONFIG_LOCKDEP
-	static struct lock_class_key iint_mutex_key[IMA_MAX_NESTING];
-
-	int depth = inode->i_sb->s_stack_depth;
-
-	if (WARN_ON_ONCE(depth < 0 || depth >= IMA_MAX_NESTING))
-		depth = 0;
-
-	lockdep_set_class(&iint->mutex, &iint_mutex_key[depth]);
-#endif
 }
 
 static void iint_init_always(struct integrity_iint_cache *iint,

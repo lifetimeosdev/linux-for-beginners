@@ -618,9 +618,15 @@ long ksys_semget(key_t key, int nsems, int semflg)
 	return ipcget(ns, &sem_ids(ns), &sem_ops, &sem_params);
 }
 
-SYSCALL_DEFINE3(semget, key_t, key, int, nsems, int, semflg)
+static inline long __do_sys_semget(key_t key, int nsems, int semflg)
 {
 	return ksys_semget(key, nsems, semflg);
+}
+
+long __arm64_sys_semget(const struct pt_regs *regs)
+{
+	long ret = __do_sys_semget((key_t)regs->regs[0], (int)regs->regs[1], (int)regs->regs[2]);
+	return ret;
 }
 
 /**
@@ -1706,20 +1712,6 @@ SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
 	return ksys_semctl(semid, semnum, cmd, arg, IPC_64);
 }
 
-#ifdef CONFIG_ARCH_WANT_IPC_PARSE_VERSION
-long ksys_old_semctl(int semid, int semnum, int cmd, unsigned long arg)
-{
-	int version = ipc_parse_version(&cmd);
-
-	return ksys_semctl(semid, semnum, cmd, arg, version);
-}
-
-SYSCALL_DEFINE4(old_semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
-{
-	return ksys_old_semctl(semid, semnum, cmd, arg);
-}
-#endif
-
 /* If the task doesn't already have a undo_list, then allocate one
  * here.  We guarantee there is only one thread using this undo list,
  * and current is THE ONE
@@ -2137,10 +2129,15 @@ SYSCALL_DEFINE4(semtimedop, int, semid, struct sembuf __user *, tsops,
 	return ksys_semtimedop(semid, tsops, nsops, timeout);
 }
 
-SYSCALL_DEFINE3(semop, int, semid, struct sembuf __user *, tsops,
-		unsigned, nsops)
+static inline long __do_sys_semop(int semid, struct sembuf *tsops, unsigned nsops)
 {
 	return do_semtimedop(semid, tsops, nsops, NULL);
+}
+
+long __arm64_sys_semop(const struct pt_regs *regs)
+{
+	long ret = __do_sys_semop((int)regs->regs[0], (struct sembuf *)regs->regs[1], (unsigned)regs->regs[2]);
+	return ret;
 }
 
 /* If CLONE_SYSVSEM is set, establish sharing of SEM_UNDO state between

@@ -637,24 +637,16 @@ static long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf, int ver
 	}
 }
 
-SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
+static inline long __do_sys_msgctl(int msqid, int cmd, struct msqid_ds *buf)
 {
 	return ksys_msgctl(msqid, cmd, buf, IPC_64);
 }
 
-#ifdef CONFIG_ARCH_WANT_IPC_PARSE_VERSION
-long ksys_old_msgctl(int msqid, int cmd, struct msqid_ds __user *buf)
+long __arm64_sys_msgctl(const struct pt_regs *regs)
 {
-	int version = ipc_parse_version(&cmd);
-
-	return ksys_msgctl(msqid, cmd, buf, version);
+	long ret = __do_sys_msgctl((int)regs->regs[0], (int)regs->regs[1], (struct msqid_ds *)regs->regs[2]);
+	return ret;
 }
-
-SYSCALL_DEFINE3(old_msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
-{
-	return ksys_old_msgctl(msqid, cmd, buf);
-}
-#endif
 
 static int testmsg(struct msg_msg *msg, long type, int mode)
 {

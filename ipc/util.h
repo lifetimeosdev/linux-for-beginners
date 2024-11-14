@@ -189,10 +189,6 @@ static inline void ipc_update_pid(struct pid **pos, struct pid *pid)
 	}
 }
 
-#ifdef CONFIG_ARCH_WANT_IPC_PARSE_VERSION
-int ipc_parse_version(int *cmd);
-#endif
-
 extern void free_msg(struct msg_msg *msg);
 extern struct msg_msg *load_msg(const void __user *src, size_t len);
 extern struct msg_msg *copy_msg(struct msg_msg *src, struct msg_msg *dst);

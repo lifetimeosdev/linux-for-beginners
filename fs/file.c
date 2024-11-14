@@ -1227,9 +1227,15 @@ out_unlock:
 	return err;
 }
 
-SYSCALL_DEFINE3(dup3, unsigned int, oldfd, unsigned int, newfd, int, flags)
+static inline long __do_sys_dup3(unsigned int oldfd, unsigned int newfd, int flags)
 {
 	return ksys_dup3(oldfd, newfd, flags);
+}
+
+long __arm64_sys_dup3(const struct pt_regs *regs)
+{
+	long ret = __do_sys_dup3((unsigned int)regs->regs[0], (unsigned int)regs->regs[1], (int)regs->regs[2]);
+	return ret;
 }
 
 static inline long __do_sys_dup2(unsigned int oldfd, unsigned int newfd)

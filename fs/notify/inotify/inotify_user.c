@@ -701,8 +701,7 @@ long __arm64_sys_inotify_init(const struct pt_regs *__unused)
 	return do_inotify_init(0);
 }
 
-SYSCALL_DEFINE3(inotify_add_watch, int, fd, const char __user *, pathname,
-		u32, mask)
+static inline long __do_sys_inotify_add_watch(int fd, const char *pathname, u32 mask)
 {
 	struct fsnotify_group *group;
 	struct inode *inode;
@@ -762,6 +761,12 @@ SYSCALL_DEFINE3(inotify_add_watch, int, fd, const char __user *, pathname,
 	path_put(&path);
 fput_and_out:
 	fdput(f);
+	return ret;
+}
+
+long __arm64_sys_inotify_add_watch(const struct pt_regs *regs)
+{
+	long ret = __do_sys_inotify_add_watch((int)regs->regs[0], (const char *)regs->regs[1], (u32)regs->regs[2]);
 	return ret;
 }
 

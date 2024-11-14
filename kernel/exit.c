@@ -1712,19 +1712,6 @@ SYSCALL_DEFINE4(wait4, pid_t, upid, int __user *, stat_addr,
 	return err;
 }
 
-#ifdef __ARCH_WANT_SYS_WAITPID
-
-/*
- * sys_waitpid() remains for compatibility. waitpid() should be
- * implemented by calling sys_wait4() from libc.a.
- */
-SYSCALL_DEFINE3(waitpid, pid_t, pid, int __user *, stat_addr, int, options)
-{
-	return kernel_wait4(pid, stat_addr, options, NULL);
-}
-
-#endif
-
 /**
  * thread_group_exited - check that a thread group has exited
  * @pid: tgid of thread group to be checked.

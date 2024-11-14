@@ -1614,14 +1614,6 @@ do {									\
 	lockdep_init_map(&(sk)->sk_lock.dep_map, (name), (key), 0);	\
 } while (0)
 
-#ifdef CONFIG_LOCKDEP
-static inline bool lockdep_sock_is_held(const struct sock *sk)
-{
-	return lockdep_is_held(&sk->sk_lock) ||
-	       lockdep_is_held(&sk->sk_lock.slock);
-}
-#endif
-
 void lock_sock_nested(struct sock *sk, int subclass);
 
 static inline void lock_sock(struct sock *sk)
@@ -1672,9 +1664,6 @@ static inline void unlock_sock_fast(struct sock *sk, bool slow)
 
 static inline void sock_owned_by_me(const struct sock *sk)
 {
-#ifdef CONFIG_LOCKDEP
-	WARN_ON_ONCE(!lockdep_sock_is_held(sk) && debug_locks);
-#endif
 }
 
 static inline bool sock_owned_by_user(const struct sock *sk)

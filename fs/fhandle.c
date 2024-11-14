@@ -253,9 +253,7 @@ static long do_handle_open(int mountdirfd, struct file_handle __user *ufh,
  * to the vfsmount pointed by the @mountdirfd. @flags
  * value is same as the open(2) flags.
  */
-SYSCALL_DEFINE3(open_by_handle_at, int, mountdirfd,
-		struct file_handle __user *, handle,
-		int, flags)
+static inline long __do_sys_open_by_handle_at(int mountdirfd, struct file_handle *handle, int flags)
 {
 	long ret;
 
@@ -263,5 +261,12 @@ SYSCALL_DEFINE3(open_by_handle_at, int, mountdirfd,
 		flags |= O_LARGEFILE;
 
 	ret = do_handle_open(mountdirfd, handle, flags);
+	return ret;
+}
+
+long __arm64_sys_open_by_handle_at(const struct pt_regs *regs)
+{
+	long ret = __do_sys_open_by_handle_at((int)regs->regs[0], (struct file_handle *)regs->regs[1],
+					      (int)regs->regs[2]);
 	return ret;
 }

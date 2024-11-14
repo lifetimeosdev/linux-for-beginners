@@ -128,7 +128,6 @@ int unregister_filesystem(struct file_system_type * fs)
 
 EXPORT_SYMBOL(unregister_filesystem);
 
-#ifdef CONFIG_SYSFS_SYSCALL
 static int fs_index(const char __user * __name)
 {
 	struct file_system_type * tmp;
@@ -188,7 +187,7 @@ static int fs_maxindex(void)
 /*
  * Whee.. Weird sysv syscall. 
  */
-SYSCALL_DEFINE3(sysfs, int, option, unsigned long, arg1, unsigned long, arg2)
+static inline long __do_sys_sysfs(int option, unsigned long arg1, unsigned long arg2)
 {
 	int retval = -EINVAL;
 
@@ -207,7 +206,12 @@ SYSCALL_DEFINE3(sysfs, int, option, unsigned long, arg1, unsigned long, arg2)
 	}
 	return retval;
 }
-#endif
+
+long __arm64_sys_sysfs(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sysfs((int)regs->regs[0], (unsigned long)regs->regs[1], (unsigned long)regs->regs[2]);
+	return ret;
+}
 
 int __init get_filesystem_list(char *buf)
 {

@@ -161,7 +161,7 @@ long __arm64_sys_fsopen(const struct pt_regs *regs)
 /*
  * Pick a superblock into a context for reconfiguration.
  */
-SYSCALL_DEFINE3(fspick, int, dfd, const char __user *, path, unsigned int, flags)
+static inline long __do_sys_fspick(int dfd, const char *path, unsigned int flags)
 {
 	struct fs_context *fc;
 	struct path target;
@@ -212,6 +212,12 @@ err_fc:
 err_path:
 	path_put(&target);
 err:
+	return ret;
+}
+
+long __arm64_sys_fspick(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fspick((int)regs->regs[0], (const char *)regs->regs[1], (unsigned int)regs->regs[2]);
 	return ret;
 }
 

@@ -2015,8 +2015,7 @@ static int io_submit_one(struct kioctx *ctx, struct iocb __user *user_iocb,
  *	are available to queue any iocbs.  Will return 0 if nr is 0.  Will
  *	fail with -ENOSYS if not implemented.
  */
-SYSCALL_DEFINE3(io_submit, aio_context_t, ctx_id, long, nr,
-		struct iocb __user * __user *, iocbpp)
+static inline long __do_sys_io_submit(aio_context_t ctx_id, long nr, struct iocb **iocbpp)
 {
 	struct kioctx *ctx;
 	long ret = 0;
@@ -2056,6 +2055,12 @@ SYSCALL_DEFINE3(io_submit, aio_context_t, ctx_id, long, nr,
 	return i ? i : ret;
 }
 
+long __arm64_sys_io_submit(const struct pt_regs *regs)
+{
+	long ret = __do_sys_io_submit((aio_context_t)regs->regs[0], (long)regs->regs[1], (struct iocb **)regs->regs[2]);
+	return ret;
+}
+
 /* sys_io_cancel:
  *	Attempts to cancel an iocb previously passed to io_submit.  If
  *	the operation is successfully cancelled, the resulting event is
@@ -2066,8 +2071,8 @@ SYSCALL_DEFINE3(io_submit, aio_context_t, ctx_id, long, nr,
  *	invalid.  May fail with -EAGAIN if the iocb specified was not
  *	cancelled.  Will fail with -ENOSYS if not implemented.
  */
-SYSCALL_DEFINE3(io_cancel, aio_context_t, ctx_id, struct iocb __user *, iocb,
-		struct io_event __user *, result)
+static inline long __do_sys_io_cancel(aio_context_t ctx_id, struct iocb *iocb,
+				      struct io_event *result)
 {
 	struct kioctx *ctx;
 	struct aio_kiocb *kiocb;
@@ -2106,6 +2111,13 @@ SYSCALL_DEFINE3(io_cancel, aio_context_t, ctx_id, struct iocb __user *, iocb,
 
 	percpu_ref_put(&ctx->users);
 
+	return ret;
+}
+
+long __arm64_sys_io_cancel(const struct pt_regs *regs)
+{
+	long ret = __do_sys_io_cancel((aio_context_t)regs->regs[0], (struct iocb *)regs->regs[1],
+				      (struct io_event *)regs->regs[2]);
 	return ret;
 }
 

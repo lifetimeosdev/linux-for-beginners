@@ -98,7 +98,7 @@ int ioprio_check_cap(int ioprio)
 	return 0;
 }
 
-SYSCALL_DEFINE3(ioprio_set, int, which, int, who, int, ioprio)
+static inline long __do_sys_ioprio_set(int which, int who, int ioprio)
 {
 	struct task_struct *p, *g;
 	struct user_struct *user;
@@ -161,6 +161,12 @@ free_uid:
 	}
 
 	rcu_read_unlock();
+	return ret;
+}
+
+long __arm64_sys_ioprio_set(const struct pt_regs *regs)
+{
+	long ret = __do_sys_ioprio_set((int)regs->regs[0], (int)regs->regs[1], (int)regs->regs[2]);
 	return ret;
 }
 

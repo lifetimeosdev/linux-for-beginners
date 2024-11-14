@@ -20,319 +20,6 @@ struct task_struct;
 extern int prove_locking;
 extern int lock_stat;
 
-#ifdef CONFIG_LOCKDEP
-
-#include <linux/linkage.h>
-#include <linux/list.h>
-#include <linux/debug_locks.h>
-#include <linux/stacktrace.h>
-
-static inline void lockdep_copy_map(struct lockdep_map *to,
-				    struct lockdep_map *from)
-{
-	int i;
-
-	*to = *from;
-	/*
-	 * Since the class cache can be modified concurrently we could observe
-	 * half pointers (64bit arch using 32bit copy insns). Therefore clear
-	 * the caches and take the performance hit.
-	 *
-	 * XXX it doesn't work well with lockdep_set_class_and_subclass(), since
-	 *     that relies on cache abuse.
-	 */
-	for (i = 0; i < NR_LOCKDEP_CACHING_CLASSES; i++)
-		to->class_cache[i] = NULL;
-}
-
-/*
- * Every lock has a list of other locks that were taken after it.
- * We only grow the list, never remove from it:
- */
-struct lock_list {
-	struct list_head		entry;
-	struct lock_class		*class;
-	struct lock_class		*links_to;
-	const struct lock_trace		*trace;
-	u16				distance;
-	/* bitmap of different dependencies from head to this */
-	u8				dep;
-	/* used by BFS to record whether "prev -> this" only has -(*R)-> */
-	u8				only_xr;
-
-	/*
-	 * The parent field is used to implement breadth-first search, and the
-	 * bit 0 is reused to indicate if the lock has been accessed in BFS.
-	 */
-	struct lock_list		*parent;
-};
-
-/**
- * struct lock_chain - lock dependency chain record
- *
- * @irq_context: the same as irq_context in held_lock below
- * @depth:       the number of held locks in this chain
- * @base:        the index in chain_hlocks for this chain
- * @entry:       the collided lock chains in lock_chain hash list
- * @chain_key:   the hash key of this lock_chain
- */
-struct lock_chain {
-	/* see BUILD_BUG_ON()s in add_chain_cache() */
-	unsigned int			irq_context :  2,
-					depth       :  6,
-					base	    : 24;
-	/* 4 byte hole */
-	struct hlist_node		entry;
-	u64				chain_key;
-};
-
-#define MAX_LOCKDEP_KEYS_BITS		13
-#define MAX_LOCKDEP_KEYS		(1UL << MAX_LOCKDEP_KEYS_BITS)
-#define INITIAL_CHAIN_KEY		-1
-
-struct held_lock {
-	/*
-	 * One-way hash of the dependency chain up to this point. We
-	 * hash the hashes step by step as the dependency chain grows.
-	 *
-	 * We use it for dependency-caching and we skip detection
-	 * passes and dependency-updates if there is a cache-hit, so
-	 * it is absolutely critical for 100% coverage of the validator
-	 * to have a unique key value for every unique dependency path
-	 * that can occur in the system, to make a unique hash value
-	 * as likely as possible - hence the 64-bit width.
-	 *
-	 * The task struct holds the current hash value (initialized
-	 * with zero), here we store the previous hash value:
-	 */
-	u64				prev_chain_key;
-	unsigned long			acquire_ip;
-	struct lockdep_map		*instance;
-	struct lockdep_map		*nest_lock;
-#ifdef CONFIG_LOCK_STAT
-	u64 				waittime_stamp;
-	u64				holdtime_stamp;
-#endif
-	/*
-	 * class_idx is zero-indexed; it points to the element in
-	 * lock_classes this held lock instance belongs to. class_idx is in
-	 * the range from 0 to (MAX_LOCKDEP_KEYS-1) inclusive.
-	 */
-	unsigned int			class_idx:MAX_LOCKDEP_KEYS_BITS;
-	/*
-	 * The lock-stack is unified in that the lock chains of interrupt
-	 * contexts nest ontop of process context chains, but we 'separate'
-	 * the hashes by starting with 0 if we cross into an interrupt
-	 * context, and we also keep do not add cross-context lock
-	 * dependencies - the lock usage graph walking covers that area
-	 * anyway, and we'd just unnecessarily increase the number of
-	 * dependencies otherwise. [Note: hardirq and softirq contexts
-	 * are separated from each other too.]
-	 *
-	 * The following field is used to detect when we cross into an
-	 * interrupt context:
-	 */
-	unsigned int irq_context:2; /* bit 0 - soft, bit 1 - hard */
-	unsigned int trylock:1;						/* 16 bits */
-
-	unsigned int read:2;        /* see lock_acquire() comment */
-	unsigned int check:1;       /* see lock_acquire() comment */
-	unsigned int hardirqs_off:1;
-	unsigned int references:12;					/* 32 bits */
-	unsigned int pin_count;
-};
-
-/*
- * Initialization, self-test and debugging-output methods:
- */
-extern void lockdep_init(void);
-extern void lockdep_reset(void);
-extern void lockdep_reset_lock(struct lockdep_map *lock);
-extern void lockdep_free_key_range(void *start, unsigned long size);
-extern asmlinkage void lockdep_sys_exit(void);
-extern void lockdep_set_selftest_task(struct task_struct *task);
-
-extern void lockdep_init_task(struct task_struct *task);
-
-/*
- * Split the recrursion counter in two to readily detect 'off' vs recursion.
- */
-#define LOCKDEP_RECURSION_BITS	16
-#define LOCKDEP_OFF		(1U << LOCKDEP_RECURSION_BITS)
-#define LOCKDEP_RECURSION_MASK	(LOCKDEP_OFF - 1)
-
-/*
- * lockdep_{off,on}() are macros to avoid tracing and kprobes; not inlines due
- * to header dependencies.
- */
-
-#define lockdep_off()					\
-do {							\
-	current->lockdep_recursion += LOCKDEP_OFF;	\
-} while (0)
-
-#define lockdep_on()					\
-do {							\
-	current->lockdep_recursion -= LOCKDEP_OFF;	\
-} while (0)
-
-extern void lockdep_register_key(struct lock_class_key *key);
-extern void lockdep_unregister_key(struct lock_class_key *key);
-
-/*
- * These methods are used by specific locking variants (spinlocks,
- * rwlocks, mutexes and rwsems) to pass init/acquire/release events
- * to lockdep:
- */
-
-extern void lockdep_init_map_type(struct lockdep_map *lock, const char *name,
-	struct lock_class_key *key, int subclass, u8 inner, u8 outer, u8 lock_type);
-
-static inline void
-lockdep_init_map_waits(struct lockdep_map *lock, const char *name,
-		       struct lock_class_key *key, int subclass, u8 inner, u8 outer)
-{
-	lockdep_init_map_type(lock, name, key, subclass, inner, outer, LD_LOCK_NORMAL);
-}
-
-static inline void
-lockdep_init_map_wait(struct lockdep_map *lock, const char *name,
-		      struct lock_class_key *key, int subclass, u8 inner)
-{
-	lockdep_init_map_waits(lock, name, key, subclass, inner, LD_WAIT_INV);
-}
-
-static inline void lockdep_init_map(struct lockdep_map *lock, const char *name,
-			     struct lock_class_key *key, int subclass)
-{
-	lockdep_init_map_wait(lock, name, key, subclass, LD_WAIT_INV);
-}
-
-/*
- * Reinitialize a lock key - for cases where there is special locking or
- * special initialization of locks so that the validator gets the scope
- * of dependencies wrong: they are either too broad (they need a class-split)
- * or they are too narrow (they suffer from a false class-split):
- */
-#define lockdep_set_class(lock, key)				\
-	lockdep_init_map_type(&(lock)->dep_map, #key, key, 0,	\
-			      (lock)->dep_map.wait_type_inner,	\
-			      (lock)->dep_map.wait_type_outer,	\
-			      (lock)->dep_map.lock_type)
-
-#define lockdep_set_class_and_name(lock, key, name)		\
-	lockdep_init_map_type(&(lock)->dep_map, name, key, 0,	\
-			      (lock)->dep_map.wait_type_inner,	\
-			      (lock)->dep_map.wait_type_outer,	\
-			      (lock)->dep_map.lock_type)
-
-#define lockdep_set_class_and_subclass(lock, key, sub)		\
-	lockdep_init_map_type(&(lock)->dep_map, #key, key, sub,	\
-			      (lock)->dep_map.wait_type_inner,	\
-			      (lock)->dep_map.wait_type_outer,	\
-			      (lock)->dep_map.lock_type)
-
-#define lockdep_set_subclass(lock, sub)					\
-	lockdep_init_map_type(&(lock)->dep_map, #lock, (lock)->dep_map.key, sub,\
-			      (lock)->dep_map.wait_type_inner,		\
-			      (lock)->dep_map.wait_type_outer,		\
-			      (lock)->dep_map.lock_type)
-
-#define lockdep_set_novalidate_class(lock) \
-	lockdep_set_class_and_name(lock, &__lockdep_no_validate__, #lock)
-
-/*
- * Compare locking classes
- */
-#define lockdep_match_class(lock, key) lockdep_match_key(&(lock)->dep_map, key)
-
-static inline int lockdep_match_key(struct lockdep_map *lock,
-				    struct lock_class_key *key)
-{
-	return lock->key == key;
-}
-
-/*
- * Acquire a lock.
- *
- * Values for "read":
- *
- *   0: exclusive (write) acquire
- *   1: read-acquire (no recursion allowed)
- *   2: read-acquire with same-instance recursion allowed
- *
- * Values for check:
- *
- *   0: simple checks (freeing, held-at-exit-time, etc.)
- *   1: full validation
- */
-extern void lock_acquire(struct lockdep_map *lock, unsigned int subclass,
-			 int trylock, int read, int check,
-			 struct lockdep_map *nest_lock, unsigned long ip);
-
-extern void lock_release(struct lockdep_map *lock, unsigned long ip);
-
-/*
- * Same "read" as for lock_acquire(), except -1 means any.
- */
-extern int lock_is_held_type(const struct lockdep_map *lock, int read);
-
-static inline int lock_is_held(const struct lockdep_map *lock)
-{
-	return lock_is_held_type(lock, -1);
-}
-
-#define lockdep_is_held(lock)		lock_is_held(&(lock)->dep_map)
-#define lockdep_is_held_type(lock, r)	lock_is_held_type(&(lock)->dep_map, (r))
-
-extern void lock_set_class(struct lockdep_map *lock, const char *name,
-			   struct lock_class_key *key, unsigned int subclass,
-			   unsigned long ip);
-
-static inline void lock_set_subclass(struct lockdep_map *lock,
-		unsigned int subclass, unsigned long ip)
-{
-	lock_set_class(lock, lock->name, lock->key, subclass, ip);
-}
-
-extern void lock_downgrade(struct lockdep_map *lock, unsigned long ip);
-
-#define NIL_COOKIE (struct pin_cookie){ .val = 0U, }
-
-extern struct pin_cookie lock_pin_lock(struct lockdep_map *lock);
-extern void lock_repin_lock(struct lockdep_map *lock, struct pin_cookie);
-extern void lock_unpin_lock(struct lockdep_map *lock, struct pin_cookie);
-
-#define lockdep_depth(tsk)	(debug_locks ? (tsk)->lockdep_depth : 0)
-
-#define lockdep_assert_held(l)	do {				\
-		WARN_ON(debug_locks && !lockdep_is_held(l));	\
-	} while (0)
-
-#define lockdep_assert_held_write(l)	do {			\
-		WARN_ON(debug_locks && !lockdep_is_held_type(l, 0));	\
-	} while (0)
-
-#define lockdep_assert_held_read(l)	do {				\
-		WARN_ON(debug_locks && !lockdep_is_held_type(l, 1));	\
-	} while (0)
-
-#define lockdep_assert_held_once(l)	do {				\
-		WARN_ON_ONCE(debug_locks && !lockdep_is_held(l));	\
-	} while (0)
-
-#define lockdep_assert_none_held_once()	do {				\
-		WARN_ON_ONCE(debug_locks && current->lockdep_depth);	\
-	} while (0)
-
-#define lockdep_recursing(tsk)	((tsk)->lockdep_recursion)
-
-#define lockdep_pin_lock(l)	lock_pin_lock(&(l)->dep_map)
-#define lockdep_repin_lock(l,c)	lock_repin_lock(&(l)->dep_map, (c))
-#define lockdep_unpin_lock(l,c)	lock_unpin_lock(&(l)->dep_map, (c))
-
-#else /* !CONFIG_LOCKDEP */
-
 static inline void lockdep_init_task(struct task_struct *task)
 {
 }
@@ -408,8 +95,6 @@ static inline void lockdep_unregister_key(struct lock_class_key *key)
 #define lockdep_repin_lock(l, c)		do { (void)(l); (void)(c); } while (0)
 #define lockdep_unpin_lock(l, c)		do { (void)(l); (void)(c); } while (0)
 
-#endif /* !LOCKDEP */
-
 enum xhlock_context_t {
 	XHLOCK_HARD,
 	XHLOCK_SOFT,
@@ -466,22 +151,8 @@ do {								\
 
 #endif /* CONFIG_LOCK_STAT */
 
-#ifdef CONFIG_LOCKDEP
-
-/*
- * On lockdep we dont want the hand-coded irq-enable of
- * _raw_*_lock_flags() code, because lockdep assumes
- * that interrupts are not re-enabled during lock-acquire:
- */
-#define LOCK_CONTENDED_FLAGS(_lock, try, lock, lockfl, flags) \
-	LOCK_CONTENDED((_lock), (try), (lock))
-
-#else /* CONFIG_LOCKDEP */
-
 #define LOCK_CONTENDED_FLAGS(_lock, try, lock, lockfl, flags) \
 	lockfl((_lock), (flags))
-
-#endif /* CONFIG_LOCKDEP */
 
 #ifdef CONFIG_PROVE_LOCKING
 extern void print_irqtrace_events(struct task_struct *curr);
@@ -498,12 +169,8 @@ extern unsigned int force_read_lock_recursive;
 #define force_read_lock_recursive 0
 #endif /* CONFIG_DEBUG_LOCKING_API_SELFTESTS */
 
-#ifdef CONFIG_LOCKDEP
-extern bool read_lock_is_recursive(void);
-#else /* CONFIG_LOCKDEP */
 /* If !LOCKDEP, the value is meaningless */
 #define read_lock_is_recursive() 0
-#endif
 
 /*
  * For trivial one-depth nesting of a lock-class, the following
@@ -640,13 +307,9 @@ do {									\
 
 #endif
 
-#ifdef CONFIG_LOCKDEP
-void lockdep_rcu_suspicious(const char *file, const int line, const char *s);
-#else
 static inline void
 lockdep_rcu_suspicious(const char *file, const int line, const char *s)
 {
 }
-#endif
 
 #endif /* __LINUX_LOCKDEP_H */

@@ -635,8 +635,13 @@ out:
 	return error;
 }
 
-SYSCALL_DEFINE3(mprotect, unsigned long, start, size_t, len,
-		unsigned long, prot)
+static inline long __do_sys_mprotect(unsigned long start, size_t len, unsigned long prot)
 {
 	return do_mprotect_pkey(start, len, prot, -1);
+}
+
+long __arm64_sys_mprotect(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mprotect((unsigned long)regs->regs[0], (size_t)regs->regs[1], (unsigned long)regs->regs[2]);
+	return ret;
 }

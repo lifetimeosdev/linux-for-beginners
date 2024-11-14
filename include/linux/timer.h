@@ -18,23 +18,9 @@ struct timer_list {
 	void			(*function)(struct timer_list *);
 	u32			flags;
 
-#ifdef CONFIG_LOCKDEP
-	struct lockdep_map	lockdep_map;
-#endif
 };
 
-#ifdef CONFIG_LOCKDEP
-/*
- * NB: because we have to copy the lockdep_map, setting the lockdep_map key
- * (second argument) here is required, otherwise it could be initialised to
- * the copy of the lockdep_map later! We use the pointer to and the string
- * "<file>:<line>" as the key resp. the name of the lockdep_map.
- */
-#define __TIMER_LOCKDEP_MAP_INITIALIZER(_kn)				\
-	.lockdep_map = STATIC_LOCKDEP_MAP_INIT(_kn, &_kn),
-#else
 #define __TIMER_LOCKDEP_MAP_INITIALIZER(_kn)
-#endif
 
 /**
  * @TIMER_DEFERRABLE: A deferrable timer will work normally when the
@@ -108,25 +94,10 @@ static inline void init_timer_on_stack_key(struct timer_list *timer,
 }
 #endif
 
-#ifdef CONFIG_LOCKDEP
-#define __init_timer(_timer, _fn, _flags)				\
-	do {								\
-		static struct lock_class_key __key;			\
-		init_timer_key((_timer), (_fn), (_flags), #_timer, &__key);\
-	} while (0)
-
-#define __init_timer_on_stack(_timer, _fn, _flags)			\
-	do {								\
-		static struct lock_class_key __key;			\
-		init_timer_on_stack_key((_timer), (_fn), (_flags),	\
-					#_timer, &__key);		 \
-	} while (0)
-#else
 #define __init_timer(_timer, _fn, _flags)				\
 	init_timer_key((_timer), (_fn), (_flags), NULL, NULL)
 #define __init_timer_on_stack(_timer, _fn, _flags)			\
 	init_timer_on_stack_key((_timer), (_fn), (_flags), NULL, NULL)
-#endif
 
 /**
  * timer_setup - prepare a timer for first use

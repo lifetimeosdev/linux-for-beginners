@@ -29,7 +29,7 @@
  * So by _not_ starting I/O in MS_ASYNC we provide complete flexibility to
  * applications.
  */
-SYSCALL_DEFINE3(msync, unsigned long, start, size_t, len, int, flags)
+static inline long __do_sys_msync(unsigned long start, size_t len, int flags)
 {
 	unsigned long end;
 	struct mm_struct *mm = current->mm;
@@ -107,4 +107,10 @@ out_unlock:
 	mmap_read_unlock(mm);
 out:
 	return error ? : unmapped_error;
+}
+
+long __arm64_sys_msync(const struct pt_regs *regs)
+{
+	long ret = __do_sys_msync((unsigned long)regs->regs[0], (size_t)regs->regs[1], (int)regs->regs[2]);
+	return ret;
 }

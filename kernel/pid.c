@@ -685,8 +685,7 @@ static int pidfd_getfd(struct pid *pid, int fd)
  * Return: On success, a cloexec file descriptor is returned.
  *         On error, a negative errno number will be returned.
  */
-SYSCALL_DEFINE3(pidfd_getfd, int, pidfd, int, fd,
-		unsigned int, flags)
+static inline long __do_sys_pidfd_getfd(int pidfd, int fd, unsigned int flags)
 {
 	struct pid *pid;
 	struct fd f;
@@ -707,5 +706,11 @@ SYSCALL_DEFINE3(pidfd_getfd, int, pidfd, int, fd,
 		ret = pidfd_getfd(pid, fd);
 
 	fdput(f);
+	return ret;
+}
+
+long __arm64_sys_pidfd_getfd(const struct pt_regs *regs)
+{
+	long ret = __do_sys_pidfd_getfd((int)regs->regs[0], (int)regs->regs[1], (unsigned int)regs->regs[2]);
 	return ret;
 }

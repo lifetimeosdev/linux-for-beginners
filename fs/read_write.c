@@ -319,9 +319,15 @@ static off_t ksys_lseek(unsigned int fd, off_t offset, unsigned int whence)
 	return retval;
 }
 
-SYSCALL_DEFINE3(lseek, unsigned int, fd, off_t, offset, unsigned int, whence)
+static inline long __do_sys_lseek(unsigned int fd, off_t offset, unsigned int whence)
 {
 	return ksys_lseek(fd, offset, whence);
+}
+
+long __arm64_sys_lseek(const struct pt_regs *regs)
+{
+	long ret = __do_sys_lseek((unsigned int)regs->regs[0], (off_t)regs->regs[1], (unsigned int)regs->regs[2]);
+	return ret;
 }
 
 #if !defined(CONFIG_64BIT) || defined(CONFIG_COMPAT) || \
@@ -632,9 +638,15 @@ ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count)
 	return ret;
 }
 
-SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count)
+static inline long __do_sys_read(unsigned int fd, char *buf, size_t count)
 {
 	return ksys_read(fd, buf, count);
+}
+
+long __arm64_sys_read(const struct pt_regs *regs)
+{
+	long ret = __do_sys_read((unsigned int)regs->regs[0], (char *)regs->regs[1], (size_t)regs->regs[2]);
+	return ret;
 }
 
 ssize_t ksys_write(unsigned int fd, const char __user *buf, size_t count)
@@ -657,10 +669,15 @@ ssize_t ksys_write(unsigned int fd, const char __user *buf, size_t count)
 	return ret;
 }
 
-SYSCALL_DEFINE3(write, unsigned int, fd, const char __user *, buf,
-		size_t, count)
+static inline long __do_sys_write(unsigned int fd, const char *buf, size_t count)
 {
 	return ksys_write(fd, buf, count);
+}
+
+long __arm64_sys_write(const struct pt_regs *regs)
+{
+	long ret = __do_sys_write((unsigned int)regs->regs[0], (const char *)regs->regs[1], (size_t)regs->regs[2]);
+	return ret;
 }
 
 ssize_t ksys_pread64(unsigned int fd, char __user *buf, size_t count,
@@ -1036,16 +1053,26 @@ static ssize_t do_pwritev(unsigned long fd, const struct iovec __user *vec,
 	return ret;
 }
 
-SYSCALL_DEFINE3(readv, unsigned long, fd, const struct iovec __user *, vec,
-		unsigned long, vlen)
+static inline long __do_sys_readv(unsigned long fd, const struct iovec *vec, unsigned long vlen)
 {
 	return do_readv(fd, vec, vlen, 0);
 }
 
-SYSCALL_DEFINE3(writev, unsigned long, fd, const struct iovec __user *, vec,
-		unsigned long, vlen)
+long __arm64_sys_readv(const struct pt_regs *regs)
+{
+	long ret = __do_sys_readv((unsigned long)regs->regs[0], (const struct iovec *)regs->regs[1], (unsigned long)regs->regs[2]);
+	return ret;
+}
+
+static inline long __do_sys_writev(unsigned long fd, const struct iovec *vec, unsigned long vlen)
 {
 	return do_writev(fd, vec, vlen, 0);
+}
+
+long __arm64_sys_writev(const struct pt_regs *regs)
+{
+	long ret = __do_sys_writev((unsigned long)regs->regs[0], (const struct iovec *)regs->regs[1], (unsigned long)regs->regs[2]);
+	return ret;
 }
 
 SYSCALL_DEFINE5(preadv, unsigned long, fd, const struct iovec __user *, vec,

@@ -745,19 +745,29 @@ retry:
 	return error;
 }
 
-SYSCALL_DEFINE3(listxattr, const char __user *, pathname, char __user *, list,
-		size_t, size)
+static inline long __do_sys_listxattr(const char *pathname, char *list, size_t size)
 {
 	return path_listxattr(pathname, list, size, LOOKUP_FOLLOW);
 }
 
-SYSCALL_DEFINE3(llistxattr, const char __user *, pathname, char __user *, list,
-		size_t, size)
+long __arm64_sys_listxattr(const struct pt_regs *regs)
+{
+	long ret = __do_sys_listxattr((const char *)regs->regs[0], (char *)regs->regs[1], (size_t)regs->regs[2]);
+	return ret;
+}
+
+static inline long __do_sys_llistxattr(const char *pathname, char *list, size_t size)
 {
 	return path_listxattr(pathname, list, size, 0);
 }
 
-SYSCALL_DEFINE3(flistxattr, int, fd, char __user *, list, size_t, size)
+long __arm64_sys_llistxattr(const struct pt_regs *regs)
+{
+	long ret = __do_sys_llistxattr((const char *)regs->regs[0], (char *)regs->regs[1], (size_t)regs->regs[2]);
+	return ret;
+}
+
+static inline long __do_sys_flistxattr(int fd, char *list, size_t size)
 {
 	struct fd f = fdget(fd);
 	ssize_t error = -EBADF;
@@ -768,6 +778,12 @@ SYSCALL_DEFINE3(flistxattr, int, fd, char __user *, list, size_t, size)
 	error = listxattr(f.file->f_path.dentry, list, size);
 	fdput(f);
 	return error;
+}
+
+long __arm64_sys_flistxattr(const struct pt_regs *regs)
+{
+	long ret = __do_sys_flistxattr((int)regs->regs[0], (char *)regs->regs[1], (size_t)regs->regs[2]);
+	return ret;
 }
 
 /*

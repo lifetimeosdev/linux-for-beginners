@@ -1932,12 +1932,17 @@ void set_dumpable(struct mm_struct *mm, int value)
 	set_mask_bits(&mm->flags, MMF_DUMPABLE_MASK, value);
 }
 
-SYSCALL_DEFINE3(execve,
-		const char __user *, filename,
-		const char __user *const __user *, argv,
-		const char __user *const __user *, envp)
+static inline long __do_sys_execve(const char *filename, const char *const *argv,
+				   const char *const *envp)
 {
 	return do_execve(getname(filename), argv, envp);
+}
+
+long __arm64_sys_execve(const struct pt_regs *regs)
+{
+	long ret = __do_sys_execve((const char *)regs->regs[0], (const char *const *)regs->regs[1],
+				   (const char *const *)regs->regs[2]);
+	return ret;
 }
 
 SYSCALL_DEFINE5(execveat,

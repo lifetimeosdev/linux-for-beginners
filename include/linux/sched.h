@@ -1034,14 +1034,6 @@ struct task_struct {
 	int				irq_config;
 #endif
 
-#ifdef CONFIG_LOCKDEP
-# define MAX_LOCK_DEPTH			48UL
-	u64				curr_chain_key;
-	int				lockdep_depth;
-	unsigned int			lockdep_recursion;
-	struct held_lock		held_locks[MAX_LOCK_DEPTH];
-#endif
-
 #if defined(CONFIG_UBSAN) && !defined(CONFIG_UBSAN_TRAP)
 	unsigned int			in_ubsan;
 #endif

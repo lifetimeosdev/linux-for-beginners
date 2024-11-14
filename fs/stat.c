@@ -372,12 +372,16 @@ SYSCALL_DEFINE4(readlinkat, int, dfd, const char __user *, pathname,
 	return do_readlinkat(dfd, pathname, buf, bufsiz);
 }
 
-SYSCALL_DEFINE3(readlink, const char __user *, path, char __user *, buf,
-		int, bufsiz)
+static inline long __do_sys_readlink(const char *path, char *buf, int bufsiz)
 {
 	return do_readlinkat(AT_FDCWD, path, buf, bufsiz);
 }
 
+long __arm64_sys_readlink(const struct pt_regs *regs)
+{
+	long ret = __do_sys_readlink((const char *)regs->regs[0], (char *)regs->regs[1], (int)regs->regs[2]);
+	return ret;
+}
 
 /* ---------- LFS-64 ----------- */
 

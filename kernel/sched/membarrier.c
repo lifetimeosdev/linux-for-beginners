@@ -447,7 +447,7 @@ static int membarrier_register_private_expedited(int flags)
  *        smp_mb()           X           O            O
  *        sys_membarrier()   O           O            O
  */
-SYSCALL_DEFINE3(membarrier, int, cmd, unsigned int, flags, int, cpu_id)
+static inline long __do_sys_membarrier(int cmd, unsigned int flags, int cpu_id)
 {
 	switch (cmd) {
 	case MEMBARRIER_CMD_PRIVATE_EXPEDITED_RSEQ:
@@ -497,4 +497,10 @@ SYSCALL_DEFINE3(membarrier, int, cmd, unsigned int, flags, int, cpu_id)
 	default:
 		return -EINVAL;
 	}
+}
+
+long __arm64_sys_membarrier(const struct pt_regs *regs)
+{
+	long ret = __do_sys_membarrier((int)regs->regs[0], (unsigned int)regs->regs[1], (int)regs->regs[2]);
+	return ret;
 }

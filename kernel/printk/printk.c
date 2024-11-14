@@ -93,12 +93,6 @@ EXPORT_SYMBOL_GPL(console_drivers);
  */
 int __read_mostly suppress_printk;
 
-#ifdef CONFIG_LOCKDEP
-static struct lockdep_map console_lock_dep_map = {
-	.name = "console_lock"
-};
-#endif
-
 enum devkmsg_log_bits {
 	__DEVKMSG_LOG_BIT_ON = 0,
 	__DEVKMSG_LOG_BIT_OFF,
@@ -1724,21 +1718,21 @@ int do_syslog(int type, char __user *buf, int len, int source)
 	return error;
 }
 
-SYSCALL_DEFINE3(syslog, int, type, char __user *, buf, int, len)
+static inline long __do_sys_syslog(int type, char *buf, int len)
 {
 	return do_syslog(type, buf, len, SYSLOG_FROM_READER);
+}
+
+long __arm64_sys_syslog(const struct pt_regs *regs)
+{
+	long ret = __do_sys_syslog((int)regs->regs[0], (char *)regs->regs[1], (int)regs->regs[2]);
+	return ret;
 }
 
 /*
  * Special console_lock variants that help to reduce the risk of soft-lockups.
  * They allow to pass console_lock to another printk() call using a busy wait.
  */
-
-#ifdef CONFIG_LOCKDEP
-static struct lockdep_map console_owner_dep_map = {
-	.name = "console_owner"
-};
-#endif
 
 static DEFINE_RAW_SPINLOCK(console_owner_lock);
 static struct task_struct *console_owner;

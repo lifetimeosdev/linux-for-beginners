@@ -4219,57 +4219,6 @@ should_compact_retry(struct alloc_context *ac, unsigned int order, int alloc_fla
 }
 #endif /* CONFIG_COMPACTION */
 
-#ifdef CONFIG_LOCKDEP
-static struct lockdep_map __fs_reclaim_map =
-	STATIC_LOCKDEP_MAP_INIT("fs_reclaim", &__fs_reclaim_map);
-
-static bool __need_fs_reclaim(gfp_t gfp_mask)
-{
-	gfp_mask = current_gfp_context(gfp_mask);
-
-	/* no reclaim without waiting on it */
-	if (!(gfp_mask & __GFP_DIRECT_RECLAIM))
-		return false;
-
-	/* this guy won't enter reclaim */
-	if (current->flags & PF_MEMALLOC)
-		return false;
-
-	/* We're only interested __GFP_FS allocations for now */
-	if (!(gfp_mask & __GFP_FS))
-		return false;
-
-	if (gfp_mask & __GFP_NOLOCKDEP)
-		return false;
-
-	return true;
-}
-
-void __fs_reclaim_acquire(void)
-{
-	lock_map_acquire(&__fs_reclaim_map);
-}
-
-void __fs_reclaim_release(void)
-{
-	lock_map_release(&__fs_reclaim_map);
-}
-
-void fs_reclaim_acquire(gfp_t gfp_mask)
-{
-	if (__need_fs_reclaim(gfp_mask))
-		__fs_reclaim_acquire();
-}
-EXPORT_SYMBOL_GPL(fs_reclaim_acquire);
-
-void fs_reclaim_release(gfp_t gfp_mask)
-{
-	if (__need_fs_reclaim(gfp_mask))
-		__fs_reclaim_release();
-}
-EXPORT_SYMBOL_GPL(fs_reclaim_release);
-#endif
-
 /*
  * Zonelists may change due to hotplug during allocation. Detect when zonelists
  * have been rebuilt so allocation retries. Reader side does not lock and

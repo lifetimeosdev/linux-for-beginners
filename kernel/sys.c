@@ -194,7 +194,7 @@ out:
 	return error;
 }
 
-SYSCALL_DEFINE3(setpriority, int, which, int, who, int, niceval)
+static inline long __do_sys_setpriority(int which, int who, int niceval)
 {
 	struct task_struct *g, *p;
 	struct user_struct *user;
@@ -256,6 +256,12 @@ out_unlock:
 	rcu_read_unlock();
 out:
 	return error;
+}
+
+long __arm64_sys_setpriority(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setpriority((int)regs->regs[0], (int)regs->regs[1], (int)regs->regs[2]);
+	return ret;
 }
 
 /*
@@ -725,12 +731,18 @@ error:
 	return retval;
 }
 
-SYSCALL_DEFINE3(setresuid, uid_t, ruid, uid_t, euid, uid_t, suid)
+static inline long __do_sys_setresuid(uid_t ruid, uid_t euid, uid_t suid)
 {
 	return __sys_setresuid(ruid, euid, suid);
 }
 
-SYSCALL_DEFINE3(getresuid, uid_t __user *, ruidp, uid_t __user *, euidp, uid_t __user *, suidp)
+long __arm64_sys_setresuid(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setresuid((uid_t)regs->regs[0], (uid_t)regs->regs[1], (uid_t)regs->regs[2]);
+	return ret;
+}
+
+static inline long __do_sys_getresuid(uid_t *ruidp, uid_t *euidp, uid_t *suidp)
 {
 	const struct cred *cred = current_cred();
 	int retval;
@@ -747,6 +759,12 @@ SYSCALL_DEFINE3(getresuid, uid_t __user *, ruidp, uid_t __user *, euidp, uid_t _
 			return put_user(suid, suidp);
 	}
 	return retval;
+}
+
+long __arm64_sys_getresuid(const struct pt_regs *regs)
+{
+	long ret = __do_sys_getresuid((uid_t *)regs->regs[0], (uid_t *)regs->regs[1], (uid_t *)regs->regs[2]);
+	return ret;
 }
 
 /*
@@ -814,12 +832,18 @@ error:
 	return retval;
 }
 
-SYSCALL_DEFINE3(setresgid, gid_t, rgid, gid_t, egid, gid_t, sgid)
+static inline long __do_sys_setresgid(gid_t rgid, gid_t egid, gid_t sgid)
 {
 	return __sys_setresgid(rgid, egid, sgid);
 }
 
-SYSCALL_DEFINE3(getresgid, gid_t __user *, rgidp, gid_t __user *, egidp, gid_t __user *, sgidp)
+long __arm64_sys_setresgid(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setresgid((gid_t)regs->regs[0], (gid_t)regs->regs[1], (gid_t)regs->regs[2]);
+	return ret;
+}
+
+static inline long __do_sys_getresgid(gid_t *rgidp, gid_t *egidp, gid_t *sgidp)
 {
 	const struct cred *cred = current_cred();
 	int retval;
@@ -837,6 +861,12 @@ SYSCALL_DEFINE3(getresgid, gid_t __user *, rgidp, gid_t __user *, egidp, gid_t _
 	}
 
 	return retval;
+}
+
+long __arm64_sys_getresgid(const struct pt_regs *regs)
+{
+	long ret = __do_sys_getresgid((gid_t *)regs->regs[0], (gid_t *)regs->regs[1], (gid_t *)regs->regs[2]);
+	return ret;
 }
 
 
@@ -2446,8 +2476,7 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
 	return error;
 }
 
-SYSCALL_DEFINE3(getcpu, unsigned __user *, cpup, unsigned __user *, nodep,
-		struct getcpu_cache __user *, unused)
+static inline long __do_sys_getcpu(unsigned * cpup, unsigned * nodep, struct getcpu_cache * unused)
 {
 	int err = 0;
 	int cpu = raw_smp_processor_id();
@@ -2457,6 +2486,12 @@ SYSCALL_DEFINE3(getcpu, unsigned __user *, cpup, unsigned __user *, nodep,
 	if (nodep)
 		err |= put_user(cpu_to_node(cpu), nodep);
 	return err ? -EFAULT : 0;
+}
+
+long __arm64_sys_getcpu(const struct pt_regs *regs)
+{
+	long ret = __do_sys_getcpu((unsigned *)regs->regs[0], (unsigned *)regs->regs[1], (struct getcpu_cache *)regs->regs[2]);
+	return ret;
 }
 
 /**

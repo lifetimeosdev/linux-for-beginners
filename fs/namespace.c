@@ -2432,7 +2432,7 @@ static struct file *open_detached_copy(struct path *path, bool recursive)
 	return file;
 }
 
-SYSCALL_DEFINE3(open_tree, int, dfd, const char __user *, filename, unsigned, flags)
+static inline long __do_sys_open_tree(int dfd, const char *filename, unsigned flags)
 {
 	struct file *file;
 	struct path path;
@@ -2481,6 +2481,12 @@ SYSCALL_DEFINE3(open_tree, int, dfd, const char __user *, filename, unsigned, fl
 	}
 	fd_install(fd, file);
 	return fd;
+}
+
+long __arm64_sys_open_tree(const struct pt_regs *regs)
+{
+	long ret = __do_sys_open_tree((int)regs->regs[0], (const char *)regs->regs[1], (unsigned)regs->regs[2]);
+	return ret;
 }
 
 /*
@@ -3467,8 +3473,7 @@ out_type:
  * Create a kernel mount representation for a new, prepared superblock
  * (specified by fs_fd) and attach to an open_tree-like file descriptor.
  */
-SYSCALL_DEFINE3(fsmount, int, fs_fd, unsigned int, flags,
-		unsigned int, attr_flags)
+static inline long __do_sys_fsmount(int fs_fd, unsigned int flags, unsigned int attr_flags)
 {
 	struct mnt_namespace *ns;
 	struct fs_context *fc;
@@ -3600,6 +3605,12 @@ err_unlock:
 	mutex_unlock(&fc->uapi_mutex);
 err_fsfd:
 	fdput(f);
+	return ret;
+}
+
+long __arm64_sys_fsmount(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fsmount((int)regs->regs[0], (unsigned int)regs->regs[1], (unsigned int)regs->regs[2]);
 	return ret;
 }
 

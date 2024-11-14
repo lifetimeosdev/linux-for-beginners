@@ -450,9 +450,15 @@ out:
 	return res;
 }
 
-SYSCALL_DEFINE3(faccessat, int, dfd, const char __user *, filename, int, mode)
+static inline long __do_sys_faccessat(int dfd, const char *filename, int mode)
 {
 	return do_faccessat(dfd, filename, mode, 0);
+}
+
+long __arm64_sys_faccessat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_faccessat((int)regs->regs[0], (const char *)regs->regs[1], (int)regs->regs[2]);
+	return ret;
 }
 
 SYSCALL_DEFINE4(faccessat2, int, dfd, const char __user *, filename, int, mode,
@@ -642,10 +648,15 @@ retry:
 	return error;
 }
 
-SYSCALL_DEFINE3(fchmodat, int, dfd, const char __user *, filename,
-		umode_t, mode)
+static inline long __do_sys_fchmodat(int dfd, const char *filename, umode_t mode)
 {
 	return do_fchmodat(dfd, filename, mode);
+}
+
+long __arm64_sys_fchmodat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fchmodat((int)regs->regs[0], (const char *)regs->regs[1], (umode_t)regs->regs[2]);
+	return ret;
 }
 
 static inline long __do_sys_chmod(const char *filename, umode_t mode)
@@ -739,15 +750,27 @@ SYSCALL_DEFINE5(fchownat, int, dfd, const char __user *, filename, uid_t, user,
 	return do_fchownat(dfd, filename, user, group, flag);
 }
 
-SYSCALL_DEFINE3(chown, const char __user *, filename, uid_t, user, gid_t, group)
+static inline long __do_sys_chown(const char *filename, uid_t user, gid_t group)
 {
 	return do_fchownat(AT_FDCWD, filename, user, group, 0);
 }
 
-SYSCALL_DEFINE3(lchown, const char __user *, filename, uid_t, user, gid_t, group)
+long __arm64_sys_chown(const struct pt_regs *regs)
+{
+	long ret = __do_sys_chown((const char *)regs->regs[0], (uid_t)regs->regs[1], (gid_t)regs->regs[2]);
+	return ret;
+}
+
+static inline long __do_sys_lchown(const char *filename, uid_t user, gid_t group)
 {
 	return do_fchownat(AT_FDCWD, filename, user, group,
 			   AT_SYMLINK_NOFOLLOW);
+}
+
+long __arm64_sys_lchown(const struct pt_regs *regs)
+{
+	long ret = __do_sys_lchown((const char *)regs->regs[0], (uid_t)regs->regs[1], (gid_t)regs->regs[2]);
+	return ret;
 }
 
 int vfs_fchown(struct file *file, uid_t user, gid_t group)
@@ -775,9 +798,15 @@ int ksys_fchown(unsigned int fd, uid_t user, gid_t group)
 	return error;
 }
 
-SYSCALL_DEFINE3(fchown, unsigned int, fd, uid_t, user, gid_t, group)
+static inline long __do_sys_fchown(unsigned int fd, uid_t user, gid_t group)
 {
 	return ksys_fchown(fd, user, group);
+}
+
+long __arm64_sys_fchown(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fchown((unsigned int)regs->regs[0], (uid_t)regs->regs[1], (gid_t)regs->regs[2]);
+	return ret;
 }
 
 static int do_dentry_open(struct file *f,
@@ -1222,12 +1251,17 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 	return do_sys_openat2(dfd, filename, &how);
 }
 
-
-SYSCALL_DEFINE3(open, const char __user *, filename, int, flags, umode_t, mode)
+static inline long __do_sys_open(const char *filename, int flags, umode_t mode)
 {
 	if (force_o_largefile())
 		flags |= O_LARGEFILE;
 	return do_sys_open(AT_FDCWD, filename, flags, mode);
+}
+
+long __arm64_sys_open(const struct pt_regs *regs)
+{
+	long ret = __do_sys_open((const char *)regs->regs[0], (int)regs->regs[1], (umode_t)regs->regs[2]);
+	return ret;
 }
 
 SYSCALL_DEFINE4(openat, int, dfd, const char __user *, filename, int, flags,
@@ -1342,10 +1376,15 @@ long __arm64_sys_close(const struct pt_regs *regs)
  * from @fd up to and including @max_fd are closed.
  * Currently, errors to close a given file descriptor are ignored.
  */
-SYSCALL_DEFINE3(close_range, unsigned int, fd, unsigned int, max_fd,
-		unsigned int, flags)
+static inline long __do_sys_close_range(unsigned int fd, unsigned int max_fd, unsigned int flags)
 {
 	return __close_range(fd, max_fd, flags);
+}
+
+long __arm64_sys_close_range(const struct pt_regs *regs)
+{
+	long ret = __do_sys_close_range((unsigned int)regs->regs[0], (unsigned int)regs->regs[1], (unsigned int)regs->regs[2]);
+	return ret;
 }
 
 /*

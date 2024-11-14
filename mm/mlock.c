@@ -731,7 +731,7 @@ long __arm64_sys_mlock(const struct pt_regs *regs)
 	return ret;
 }
 
-SYSCALL_DEFINE3(mlock2, unsigned long, start, size_t, len, int, flags)
+static inline long __do_sys_mlock2(unsigned long start, size_t len, int flags)
 {
 	vm_flags_t vm_flags = VM_LOCKED;
 
@@ -742,6 +742,12 @@ SYSCALL_DEFINE3(mlock2, unsigned long, start, size_t, len, int, flags)
 		vm_flags |= VM_LOCKONFAULT;
 
 	return do_mlock(start, len, vm_flags);
+}
+
+long __arm64_sys_mlock2(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mlock2((unsigned long)regs->regs[0], (size_t)regs->regs[1], (int)regs->regs[2]);
+	return ret;
 }
 
 static inline long __do_sys_munlock(unsigned long start, size_t len)

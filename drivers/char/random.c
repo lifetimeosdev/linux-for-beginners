@@ -1212,8 +1212,7 @@ static void __cold try_to_generate_entropy(void)
  * reseeding the crng.
  *
  **********************************************************************/
-
-SYSCALL_DEFINE3(getrandom, char __user *, ubuf, size_t, len, unsigned int, flags)
+static inline long __do_sys_getrandom(char *ubuf, size_t len, unsigned int flags)
 {
 	struct iov_iter iter;
 	struct iovec iov;
@@ -1241,6 +1240,12 @@ SYSCALL_DEFINE3(getrandom, char __user *, ubuf, size_t, len, unsigned int, flags
 	if (unlikely(ret))
 		return ret;
 	return get_random_bytes_user(&iter);
+}
+
+long __arm64_sys_getrandom(const struct pt_regs *regs)
+{
+	long ret = __do_sys_getrandom((char *)regs->regs[0], (size_t)regs->regs[1], (unsigned int)regs->regs[2]);
+	return ret;
 }
 
 static __poll_t random_poll(struct file *file, poll_table *wait)
