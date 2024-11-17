@@ -2322,8 +2322,7 @@ error_return:
  * the eventpoll file that enables the insertion/removal/change of
  * file descriptors inside the interest set.
  */
-SYSCALL_DEFINE4(epoll_ctl, int, epfd, int, op, int, fd,
-		struct epoll_event __user *, event)
+static inline long __do_sys_epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)
 {
 	struct epoll_event epds;
 
@@ -2332,6 +2331,12 @@ SYSCALL_DEFINE4(epoll_ctl, int, epfd, int, op, int, fd,
 		return -EFAULT;
 
 	return do_epoll_ctl(epfd, op, fd, &epds, false);
+}
+
+long __arm64_sys_epoll_ctl(const struct pt_regs *regs)
+{
+	long ret = __do_sys_epoll_ctl((int)regs->regs[0], (int)regs->regs[1], (int)regs->regs[2], (struct epoll_event *)regs->regs[3]);
+	return ret;
 }
 
 /*
@@ -2380,10 +2385,17 @@ error_fput:
 	return error;
 }
 
-SYSCALL_DEFINE4(epoll_wait, int, epfd, struct epoll_event __user *, events,
-		int, maxevents, int, timeout)
+static inline long __do_sys_epoll_wait(int epfd, struct epoll_event *events, int maxevents,
+				       int timeout)
 {
 	return do_epoll_wait(epfd, events, maxevents, timeout);
+}
+
+long __arm64_sys_epoll_wait(const struct pt_regs *regs)
+{
+	long ret = __do_sys_epoll_wait((int)regs->regs[0], (struct epoll_event *)regs->regs[1], (int)regs->regs[2],
+				       (int)regs->regs[3]);
+	return ret;
 }
 
 /*

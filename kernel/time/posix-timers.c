@@ -930,9 +930,9 @@ retry:
 }
 
 /* Set a POSIX.1b interval timer */
-SYSCALL_DEFINE4(timer_settime, timer_t, timer_id, int, flags,
-		const struct __kernel_itimerspec __user *, new_setting,
-		struct __kernel_itimerspec __user *, old_setting)
+static inline long __do_sys_timer_settime(timer_t timer_id, int flags,
+					  const struct __kernel_itimerspec *new_setting,
+					  struct __kernel_itimerspec *old_setting)
 {
 	struct itimerspec64 new_spec, old_spec;
 	struct itimerspec64 *rtn = old_setting ? &old_spec : NULL;
@@ -950,6 +950,14 @@ SYSCALL_DEFINE4(timer_settime, timer_t, timer_id, int, flags,
 			error = -EFAULT;
 	}
 	return error;
+}
+
+long __arm64_sys_timer_settime(const struct pt_regs *regs)
+{
+	long ret = __do_sys_timer_settime((timer_t)regs->regs[0], (int)regs->regs[1],
+					  (const struct __kernel_itimerspec *)regs->regs[2],
+					  (struct __kernel_itimerspec *)regs->regs[3]);
+	return ret;
 }
 
 int common_timer_del(struct k_itimer *timer)
@@ -1209,9 +1217,9 @@ static int common_nsleep_timens(const clockid_t which_clock, int flags,
 				 which_clock);
 }
 
-SYSCALL_DEFINE4(clock_nanosleep, const clockid_t, which_clock, int, flags,
-		const struct __kernel_timespec __user *, rqtp,
-		struct __kernel_timespec __user *, rmtp)
+static inline long __do_sys_clock_nanosleep(const clockid_t which_clock, int flags,
+					    const struct __kernel_timespec *rqtp,
+					    struct __kernel_timespec *rmtp)
 {
 	const struct k_clock *kc = clockid_to_kclock(which_clock);
 	struct timespec64 t;
@@ -1233,6 +1241,14 @@ SYSCALL_DEFINE4(clock_nanosleep, const clockid_t, which_clock, int, flags,
 	current->restart_block.nanosleep.rmtp = rmtp;
 
 	return kc->nsleep(which_clock, flags, &t);
+}
+
+long __arm64_sys_clock_nanosleep(const struct pt_regs *regs)
+{
+	long ret = __do_sys_clock_nanosleep((const clockid_t)regs->regs[0], (int)regs->regs[1],
+					    (const struct __kernel_timespec *)regs->regs[2],
+					    (struct __kernel_timespec *)regs->regs[3]);
+	return ret;
 }
 
 static const struct k_clock clock_realtime = {

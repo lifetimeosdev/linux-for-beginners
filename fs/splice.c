@@ -1286,8 +1286,8 @@ static int vmsplice_type(struct fd f, int *type)
  * Currently we punt and implement it as a normal copy, see pipe_to_user().
  *
  */
-SYSCALL_DEFINE4(vmsplice, int, fd, const struct iovec __user *, uiov,
-		unsigned long, nr_segs, unsigned int, flags)
+static inline long __do_sys_vmsplice(int fd, const struct iovec *uiov, unsigned long nr_segs,
+				     unsigned int flags)
 {
 	struct iovec iovstack[UIO_FASTIOV];
 	struct iovec *iov = iovstack;
@@ -1320,6 +1320,13 @@ SYSCALL_DEFINE4(vmsplice, int, fd, const struct iovec __user *, uiov,
 out_fdput:
 	fdput(f);
 	return error;
+}
+
+long __arm64_sys_vmsplice(const struct pt_regs *regs)
+{
+	long ret = __do_sys_vmsplice((int)regs->regs[0], (const struct iovec *)regs->regs[1], (unsigned long)regs->regs[2],
+				     (unsigned int)regs->regs[3]);
+	return ret;
 }
 
 SYSCALL_DEFINE6(splice, int, fd_in, loff_t __user *, off_in,
@@ -1688,7 +1695,7 @@ long do_tee(struct file *in, struct file *out, size_t len, unsigned int flags)
 	return ret;
 }
 
-SYSCALL_DEFINE4(tee, int, fdin, int, fdout, size_t, len, unsigned int, flags)
+static inline long __do_sys_tee(int fdin, int fdout, size_t len, unsigned int flags)
 {
 	struct fd in, out;
 	int error;
@@ -1711,4 +1718,10 @@ SYSCALL_DEFINE4(tee, int, fdin, int, fdout, size_t, len, unsigned int, flags)
  	}
 
 	return error;
+}
+
+long __arm64_sys_tee(const struct pt_regs *regs)
+{
+	long ret = __do_sys_tee((int)regs->regs[0], (int)regs->regs[1], (size_t)regs->regs[2], (unsigned int)regs->regs[3]);
+	return ret;
 }

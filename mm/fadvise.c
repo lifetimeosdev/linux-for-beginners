@@ -187,7 +187,6 @@ int vfs_fadvise(struct file *file, loff_t offset, loff_t len, int advice)
 }
 EXPORT_SYMBOL(vfs_fadvise);
 
-#ifdef CONFIG_ADVISE_SYSCALLS
 
 int ksys_fadvise64_64(int fd, loff_t offset, loff_t len, int advice)
 {
@@ -203,17 +202,13 @@ int ksys_fadvise64_64(int fd, loff_t offset, loff_t len, int advice)
 	return ret;
 }
 
-SYSCALL_DEFINE4(fadvise64_64, int, fd, loff_t, offset, loff_t, len, int, advice)
+static inline long __do_sys_fadvise64_64(int fd, loff_t offset, loff_t len, int advice)
 {
 	return ksys_fadvise64_64(fd, offset, len, advice);
 }
 
-#ifdef __ARCH_WANT_SYS_FADVISE64
-
-SYSCALL_DEFINE4(fadvise64, int, fd, loff_t, offset, size_t, len, int, advice)
+long __arm64_sys_fadvise64_64(const struct pt_regs *regs)
 {
-	return ksys_fadvise64_64(fd, offset, len, advice);
+	long ret = __do_sys_fadvise64_64((int)regs->regs[0], (loff_t)regs->regs[1], (loff_t)regs->regs[2], (int)regs->regs[3]);
+	return ret;
 }
-
-#endif
-#endif

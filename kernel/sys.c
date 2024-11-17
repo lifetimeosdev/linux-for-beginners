@@ -1548,9 +1548,7 @@ static int check_prlimit_permission(struct task_struct *task,
 	return security_task_prlimit(cred, tcred, flags);
 }
 
-SYSCALL_DEFINE4(prlimit64, pid_t, pid, unsigned int, resource,
-		const struct rlimit64 __user *, new_rlim,
-		struct rlimit64 __user *, old_rlim)
+static inline long __do_sys_prlimit64(pid_t pid, unsigned int resource, const struct rlimit64 * new_rlim, struct rlimit64 * old_rlim)
 {
 	struct rlimit64 old64, new64;
 	struct rlimit old, new;
@@ -1592,6 +1590,14 @@ SYSCALL_DEFINE4(prlimit64, pid_t, pid, unsigned int, resource,
 	}
 
 	put_task_struct(tsk);
+	return ret;
+}
+
+long __arm64_sys_prlimit64(const struct pt_regs *regs)
+{
+	long ret = __do_sys_prlimit64((pid_t)regs->regs[0], (unsigned int)regs->regs[1],
+				      (const struct rlimit64 *)regs->regs[2],
+				      (struct rlimit64 *)regs->regs[3]);
 	return ret;
 }
 

@@ -1254,8 +1254,7 @@ int ptrace_request(struct task_struct *child, long request,
 #define arch_ptrace_attach(child)	do { } while (0)
 #endif
 
-SYSCALL_DEFINE4(ptrace, long, request, long, pid, unsigned long, addr,
-		unsigned long, data)
+static inline long __do_sys_ptrace(long request, long pid, unsigned long addr, unsigned long data)
 {
 	struct task_struct *child;
 	long ret;
@@ -1296,6 +1295,12 @@ SYSCALL_DEFINE4(ptrace, long, request, long, pid, unsigned long, addr,
  out_put_task_struct:
 	put_task_struct(child);
  out:
+	return ret;
+}
+
+long __arm64_sys_ptrace(const struct pt_regs *regs)
+{
+	long ret = __do_sys_ptrace((long)regs->regs[0], (long)regs->regs[1], (unsigned long)regs->regs[2], (unsigned long)regs->regs[3]);
 	return ret;
 }
 

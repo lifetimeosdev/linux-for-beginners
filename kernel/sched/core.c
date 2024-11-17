@@ -5646,8 +5646,8 @@ sched_attr_copy_to_user(struct sched_attr __user *uattr,
  * @usize: sizeof(attr) for fwd/bwd comp.
  * @flags: for future extension.
  */
-SYSCALL_DEFINE4(sched_getattr, pid_t, pid, struct sched_attr __user *, uattr,
-		unsigned int, usize, unsigned int, flags)
+static inline long __do_sys_sched_getattr(pid_t pid, struct sched_attr *uattr, unsigned int usize,
+					  unsigned int flags)
 {
 	struct sched_attr kattr = { };
 	struct task_struct *p;
@@ -5694,6 +5694,13 @@ SYSCALL_DEFINE4(sched_getattr, pid_t, pid, struct sched_attr __user *, uattr,
 out_unlock:
 	rcu_read_unlock();
 	return retval;
+}
+
+long __arm64_sys_sched_getattr(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sched_getattr((pid_t)regs->regs[0], (struct sched_attr *)regs->regs[1],
+					  (unsigned int)regs->regs[2], (unsigned int)regs->regs[3]);
+	return ret;
 }
 
 long sched_setaffinity(pid_t pid, const struct cpumask *in_mask)

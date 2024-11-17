@@ -545,9 +545,9 @@ static int do_timerfd_gettime(int ufd, struct itimerspec64 *t)
 	return 0;
 }
 
-SYSCALL_DEFINE4(timerfd_settime, int, ufd, int, flags,
-		const struct __kernel_itimerspec __user *, utmr,
-		struct __kernel_itimerspec __user *, otmr)
+static inline long __do_sys_timerfd_settime(int ufd, int flags,
+					    const struct __kernel_itimerspec *utmr,
+					    struct __kernel_itimerspec *otmr)
 {
 	struct itimerspec64 new, old;
 	int ret;
@@ -560,6 +560,14 @@ SYSCALL_DEFINE4(timerfd_settime, int, ufd, int, flags,
 	if (otmr && put_itimerspec64(&old, otmr))
 		return -EFAULT;
 
+	return ret;
+}
+
+long __arm64_sys_timerfd_settime(const struct pt_regs *regs)
+{
+	long ret = __do_sys_timerfd_settime((int)regs->regs[0], (int)regs->regs[1],
+					    (const struct __kernel_itimerspec *)regs->regs[2],
+					    (struct __kernel_itimerspec *)regs->regs[3]);
 	return ret;
 }
 

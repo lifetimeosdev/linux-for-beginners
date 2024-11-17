@@ -669,20 +669,33 @@ retry:
 	return error;
 }
 
-SYSCALL_DEFINE4(getxattr, const char __user *, pathname,
-		const char __user *, name, void __user *, value, size_t, size)
+static inline long __do_sys_getxattr(const char *pathname, const char *name, void *value,
+				     size_t size)
 {
 	return path_getxattr(pathname, name, value, size, LOOKUP_FOLLOW);
 }
 
-SYSCALL_DEFINE4(lgetxattr, const char __user *, pathname,
-		const char __user *, name, void __user *, value, size_t, size)
+long __arm64_sys_getxattr(const struct pt_regs *regs)
+{
+	long ret = __do_sys_getxattr((const char *)regs->regs[0], (const char *)regs->regs[1], (void *)regs->regs[2],
+				     (size_t)regs->regs[3]);
+	return ret;
+}
+
+static inline long __do_sys_lgetxattr(const char *pathname, const char *name, void *value,
+				      size_t size)
 {
 	return path_getxattr(pathname, name, value, size, 0);
 }
 
-SYSCALL_DEFINE4(fgetxattr, int, fd, const char __user *, name,
-		void __user *, value, size_t, size)
+long __arm64_sys_lgetxattr(const struct pt_regs *regs)
+{
+	long ret = __do_sys_lgetxattr((const char *)regs->regs[0], (const char *)regs->regs[1], (void *)regs->regs[2],
+				      (size_t)regs->regs[3]);
+	return ret;
+}
+
+static inline long __do_sys_fgetxattr(int fd, const char *name, void *value, size_t size)
 {
 	struct fd f = fdget(fd);
 	ssize_t error = -EBADF;
@@ -693,6 +706,12 @@ SYSCALL_DEFINE4(fgetxattr, int, fd, const char __user *, name,
 	error = getxattr(f.file->f_path.dentry, name, value, size);
 	fdput(f);
 	return error;
+}
+
+long __arm64_sys_fgetxattr(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fgetxattr((int)regs->regs[0], (const char *)regs->regs[1], (void *)regs->regs[2], (size_t)regs->regs[3]);
+	return ret;
 }
 
 /*

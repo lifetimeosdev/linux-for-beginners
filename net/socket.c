@@ -1621,10 +1621,15 @@ out:
 	return err;
 }
 
-SYSCALL_DEFINE4(socketpair, int, family, int, type, int, protocol,
-		int __user *, usockvec)
+static inline long __do_sys_socketpair(int family, int type, int protocol, int *usockvec)
 {
 	return __sys_socketpair(family, type, protocol, usockvec);
+}
+
+long __arm64_sys_socketpair(const struct pt_regs *regs)
+{
+	long ret = __do_sys_socketpair((int)regs->regs[0], (int)regs->regs[1], (int)regs->regs[2], (int *)regs->regs[3]);
+	return ret;
 }
 
 /*
@@ -1823,10 +1828,17 @@ int __sys_accept4(int fd, struct sockaddr __user *upeer_sockaddr,
 	return ret;
 }
 
-SYSCALL_DEFINE4(accept4, int, fd, struct sockaddr __user *, upeer_sockaddr,
-		int __user *, upeer_addrlen, int, flags)
+static inline long __do_sys_accept4(int fd, struct sockaddr *upeer_sockaddr, int *upeer_addrlen,
+				    int flags)
 {
 	return __sys_accept4(fd, upeer_sockaddr, upeer_addrlen, flags);
+}
+
+long __arm64_sys_accept4(const struct pt_regs *regs)
+{
+	long ret = __do_sys_accept4((int)regs->regs[0], (struct sockaddr *)regs->regs[1],
+				    (int *)regs->regs[2], (int)regs->regs[3]);
+	return ret;
 }
 
 static inline long __do_sys_accept(int fd, struct sockaddr *upeer_sockaddr, int *upeer_addrlen)
@@ -2041,10 +2053,15 @@ SYSCALL_DEFINE6(sendto, int, fd, void __user *, buff, size_t, len,
  *	Send a datagram down a socket.
  */
 
-SYSCALL_DEFINE4(send, int, fd, void __user *, buff, size_t, len,
-		unsigned int, flags)
+static inline long __do_sys_send(int fd, void *buff, size_t len, unsigned int flags)
 {
 	return __sys_sendto(fd, buff, len, flags, NULL, 0);
+}
+
+long __arm64_sys_send(const struct pt_regs *regs)
+{
+	long ret = __do_sys_send((int)regs->regs[0], (void *)regs->regs[1], (size_t)regs->regs[2], (unsigned int)regs->regs[3]);
+	return ret;
 }
 
 /*
@@ -2104,10 +2121,15 @@ SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, ubuf, size_t, size,
  *	Receive a datagram from a socket.
  */
 
-SYSCALL_DEFINE4(recv, int, fd, void __user *, ubuf, size_t, size,
-		unsigned int, flags)
+static inline long __do_sys_recv(int fd, void *ubuf, size_t size, unsigned int flags)
 {
 	return __sys_recvfrom(fd, ubuf, size, flags, NULL, NULL);
+}
+
+long __arm64_sys_recv(const struct pt_regs *regs)
+{
+	long ret = __do_sys_recv((int)regs->regs[0], (void *)regs->regs[1], (size_t)regs->regs[2], (unsigned int)regs->regs[3]);
+	return ret;
 }
 
 static bool sock_use_custom_sol_socket(const struct socket *sock)
@@ -2573,10 +2595,17 @@ int __sys_sendmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
 	return err;
 }
 
-SYSCALL_DEFINE4(sendmmsg, int, fd, struct mmsghdr __user *, mmsg,
-		unsigned int, vlen, unsigned int, flags)
+static inline long __do_sys_sendmmsg(int fd, struct mmsghdr *mmsg, unsigned int vlen,
+				     unsigned int flags)
 {
 	return __sys_sendmmsg(fd, mmsg, vlen, flags, true);
+}
+
+long __arm64_sys_sendmmsg(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sendmmsg((int)regs->regs[0], (struct mmsghdr *)regs->regs[1], (unsigned int)regs->regs[2],
+				     (unsigned int)regs->regs[3]);
+	return ret;
 }
 
 int recvmsg_copy_msghdr(struct msghdr *msg,

@@ -319,9 +319,15 @@ int ksys_fallocate(int fd, int mode, loff_t offset, loff_t len)
 	return error;
 }
 
-SYSCALL_DEFINE4(fallocate, int, fd, int, mode, loff_t, offset, loff_t, len)
+static inline long __do_sys_fallocate(int fd, int mode, loff_t offset, loff_t len)
 {
 	return ksys_fallocate(fd, mode, offset, len);
+}
+
+long __arm64_sys_fallocate(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fallocate((int)regs->regs[0], (int)regs->regs[1], (loff_t)regs->regs[2], (loff_t)regs->regs[3]);
+	return ret;
 }
 
 /*
@@ -461,10 +467,15 @@ long __arm64_sys_faccessat(const struct pt_regs *regs)
 	return ret;
 }
 
-SYSCALL_DEFINE4(faccessat2, int, dfd, const char __user *, filename, int, mode,
-		int, flags)
+static inline long __do_sys_faccessat2(int dfd, const char *filename, int mode, int flags)
 {
 	return do_faccessat(dfd, filename, mode, flags);
+}
+
+long __arm64_sys_faccessat2(const struct pt_regs *regs)
+{
+	long ret = __do_sys_faccessat2((int)regs->regs[0], (const char *)regs->regs[1], (int)regs->regs[2], (int)regs->regs[3]);
+	return ret;
 }
 
 static inline long __do_sys_access(const char *filename, int mode)
@@ -1264,16 +1275,21 @@ long __arm64_sys_open(const struct pt_regs *regs)
 	return ret;
 }
 
-SYSCALL_DEFINE4(openat, int, dfd, const char __user *, filename, int, flags,
-		umode_t, mode)
+static inline long __do_sys_openat(int dfd, const char *filename, int flags, umode_t mode)
 {
 	if (force_o_largefile())
 		flags |= O_LARGEFILE;
 	return do_sys_open(dfd, filename, flags, mode);
 }
 
-SYSCALL_DEFINE4(openat2, int, dfd, const char __user *, filename,
-		struct open_how __user *, how, size_t, usize)
+long __arm64_sys_openat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_openat((int)regs->regs[0], (const char *)regs->regs[1], (int)regs->regs[2], (umode_t)regs->regs[3]);
+	return ret;
+}
+
+static inline long __do_sys_openat2(int dfd, const char *filename, struct open_how *how,
+				    size_t usize)
 {
 	int err;
 	struct open_how tmp;
@@ -1293,6 +1309,13 @@ SYSCALL_DEFINE4(openat2, int, dfd, const char __user *, filename,
 		tmp.flags |= O_LARGEFILE;
 
 	return do_sys_openat2(dfd, filename, &tmp);
+}
+
+long __arm64_sys_openat2(const struct pt_regs *regs)
+{
+	long ret = __do_sys_openat2((int)regs->regs[0], (const char *)regs->regs[1], (struct open_how *)regs->regs[2],
+				    (size_t)regs->regs[3]);
+	return ret;
 }
 
 /*

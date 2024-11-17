@@ -1699,8 +1699,7 @@ int kernel_wait(pid_t pid, int *stat)
 	return ret;
 }
 
-SYSCALL_DEFINE4(wait4, pid_t, upid, int __user *, stat_addr,
-		int, options, struct rusage __user *, ru)
+static inline long __do_sys_wait4(pid_t upid, int *stat_addr, int options, struct rusage *ru)
 {
 	struct rusage r;
 	long err = kernel_wait4(upid, stat_addr, options, ru ? &r : NULL);
@@ -1710,6 +1709,12 @@ SYSCALL_DEFINE4(wait4, pid_t, upid, int __user *, stat_addr,
 			return -EFAULT;
 	}
 	return err;
+}
+
+long __arm64_sys_wait4(const struct pt_regs *regs)
+{
+	long ret = __do_sys_wait4((pid_t)regs->regs[0], (int *)regs->regs[1], (int)regs->regs[2], (struct rusage *)regs->regs[3]);
+	return ret;
 }
 
 /**

@@ -400,16 +400,30 @@ int ksys_sync_file_range(int fd, loff_t offset, loff_t nbytes,
 	return ret;
 }
 
-SYSCALL_DEFINE4(sync_file_range, int, fd, loff_t, offset, loff_t, nbytes,
-				unsigned int, flags)
+static inline long __do_sys_sync_file_range(int fd, loff_t offset, loff_t nbytes,
+					    unsigned int flags)
 {
 	return ksys_sync_file_range(fd, offset, nbytes, flags);
 }
 
+long __arm64_sys_sync_file_range(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sync_file_range((int)regs->regs[0], (loff_t)regs->regs[1], (loff_t)regs->regs[2],
+					    (unsigned int)regs->regs[3]);
+	return ret;
+}
+
 /* It would be nice if people remember that not all the world's an i386
    when they introduce new system calls */
-SYSCALL_DEFINE4(sync_file_range2, int, fd, unsigned int, flags,
-				 loff_t, offset, loff_t, nbytes)
+static inline long __do_sys_sync_file_range2(int fd, unsigned int flags, loff_t offset,
+					     loff_t nbytes)
 {
 	return ksys_sync_file_range(fd, offset, nbytes, flags);
+}
+
+long __arm64_sys_sync_file_range2(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sync_file_range2((int)regs->regs[0], (unsigned int)regs->regs[1], (loff_t)regs->regs[2],
+					     (loff_t)regs->regs[3]);
+	return ret;
 }

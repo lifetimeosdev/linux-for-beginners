@@ -3673,10 +3673,16 @@ out:
 	return error;
 }
 
-SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
-		unsigned int, dev)
+static inline long __do_sys_mknodat(int dfd, const char *filename, umode_t mode, unsigned int dev)
 {
 	return do_mknodat(dfd, filename, mode, dev);
+}
+
+long __arm64_sys_mknodat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mknodat((int)regs->regs[0], (const char *)regs->regs[1], (umode_t)regs->regs[2],
+				    (unsigned int)regs->regs[3]);
+	return ret;
 }
 
 static inline long __do_sys_mknod(const char *filename, umode_t mode, unsigned dev)
@@ -4627,11 +4633,18 @@ SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
 				flags);
 }
 
-SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
-		int, newdfd, const char __user *, newname)
+static inline long __do_sys_renameat(int olddfd, const char *oldname, int newdfd,
+				     const char *newname)
 {
 	return do_renameat2(olddfd, getname(oldname), newdfd, getname(newname),
 				0);
+}
+
+long __arm64_sys_renameat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_renameat((int)regs->regs[0], (const char *)regs->regs[1], (int)regs->regs[2],
+				     (const char *)regs->regs[3]);
+	return ret;
 }
 
 static inline long __do_sys_rename(const char *oldname, const char *newname)

@@ -700,10 +700,15 @@ ssize_t ksys_pread64(unsigned int fd, char __user *buf, size_t count,
 	return ret;
 }
 
-SYSCALL_DEFINE4(pread64, unsigned int, fd, char __user *, buf,
-			size_t, count, loff_t, pos)
+static inline long __do_sys_pread64(unsigned int fd, char *buf, size_t count, loff_t pos)
 {
 	return ksys_pread64(fd, buf, count, pos);
+}
+
+long __arm64_sys_pread64(const struct pt_regs *regs)
+{
+	long ret = __do_sys_pread64((unsigned int)regs->regs[0], (char *)regs->regs[1], (size_t)regs->regs[2], (loff_t)regs->regs[3]);
+	return ret;
 }
 
 ssize_t ksys_pwrite64(unsigned int fd, const char __user *buf,
@@ -726,10 +731,15 @@ ssize_t ksys_pwrite64(unsigned int fd, const char __user *buf,
 	return ret;
 }
 
-SYSCALL_DEFINE4(pwrite64, unsigned int, fd, const char __user *, buf,
-			 size_t, count, loff_t, pos)
+static inline long __do_sys_pwrite64(unsigned int fd, const char *buf, size_t count, loff_t pos)
 {
 	return ksys_pwrite64(fd, buf, count, pos);
+}
+
+long __arm64_sys_pwrite64(const struct pt_regs *regs)
+{
+	long ret = __do_sys_pwrite64((unsigned int)regs->regs[0], (const char *)regs->regs[1], (size_t)regs->regs[2], (loff_t)regs->regs[3]);
+	return ret;
 }
 
 static ssize_t do_iter_readv_writev(struct file *filp, struct iov_iter *iter,
@@ -1219,7 +1229,7 @@ out:
 	return retval;
 }
 
-SYSCALL_DEFINE4(sendfile, int, out_fd, int, in_fd, off_t __user *, offset, size_t, count)
+static inline long __do_sys_sendfile(int out_fd, int in_fd, off_t *offset, size_t count)
 {
 	loff_t pos;
 	off_t off;
@@ -1238,7 +1248,13 @@ SYSCALL_DEFINE4(sendfile, int, out_fd, int, in_fd, off_t __user *, offset, size_
 	return do_sendfile(out_fd, in_fd, NULL, count, 0);
 }
 
-SYSCALL_DEFINE4(sendfile64, int, out_fd, int, in_fd, loff_t __user *, offset, size_t, count)
+long __arm64_sys_sendfile(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sendfile((int)regs->regs[0], (int)regs->regs[1], (off_t *)regs->regs[2], (size_t)regs->regs[3]);
+	return ret;
+}
+
+static inline long __do_sys_sendfile64(int out_fd, int in_fd, loff_t *offset, size_t count)
 {
 	loff_t pos;
 	ssize_t ret;
@@ -1253,6 +1269,12 @@ SYSCALL_DEFINE4(sendfile64, int, out_fd, int, in_fd, loff_t __user *, offset, si
 	}
 
 	return do_sendfile(out_fd, in_fd, NULL, count, 0);
+}
+
+long __arm64_sys_sendfile64(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sendfile64((int)regs->regs[0], (int)regs->regs[1], (loff_t *)regs->regs[2], (size_t)regs->regs[3]);
+	return ret;
 }
 
 /**

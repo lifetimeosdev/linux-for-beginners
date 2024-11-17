@@ -320,8 +320,7 @@ void rseq_syscall(struct pt_regs *regs)
 /*
  * sys_rseq - setup restartable sequences for caller thread.
  */
-SYSCALL_DEFINE4(rseq, struct rseq __user *, rseq, u32, rseq_len,
-		int, flags, u32, sig)
+static inline long __do_sys_rseq(struct rseq *rseq, u32 rseq_len, int flags, u32 sig)
 {
 	int ret;
 
@@ -379,4 +378,10 @@ SYSCALL_DEFINE4(rseq, struct rseq __user *, rseq, u32, rseq_len,
 	rseq_set_notify_resume(current);
 
 	return 0;
+}
+
+long __arm64_sys_rseq(const struct pt_regs *regs)
+{
+	long ret = __do_sys_rseq((struct rseq *)regs->regs[0], (u32)regs->regs[1], (int)regs->regs[2], (u32)regs->regs[3]);
+	return ret;
 }

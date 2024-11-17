@@ -143,8 +143,8 @@ long do_utimes(int dfd, const char __user *filename, struct timespec64 *times,
 	return do_utimes_path(dfd, filename, times, flags);
 }
 
-SYSCALL_DEFINE4(utimensat, int, dfd, const char __user *, filename,
-		struct __kernel_timespec __user *, utimes, int, flags)
+static inline long __do_sys_utimensat(int dfd, const char *filename,
+				      struct __kernel_timespec *utimes, int flags)
 {
 	struct timespec64 tstimes[2];
 
@@ -160,4 +160,11 @@ SYSCALL_DEFINE4(utimensat, int, dfd, const char __user *, filename,
 	}
 
 	return do_utimes(dfd, filename, utimes ? tstimes : NULL, flags);
+}
+
+long __arm64_sys_utimensat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_utimensat((int)regs->regs[0], (const char *)regs->regs[1],
+				      (struct __kernel_timespec *)regs->regs[2], (int)regs->regs[3]);
+	return ret;
 }

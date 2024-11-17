@@ -299,9 +299,8 @@ long __arm64_sys_newlstat(const struct pt_regs *regs)
 	return ret;
 }
 
-#if !defined(__ARCH_WANT_STAT64) || defined(__ARCH_WANT_SYS_NEWFSTATAT)
-SYSCALL_DEFINE4(newfstatat, int, dfd, const char __user *, filename,
-		struct stat __user *, statbuf, int, flag)
+static inline long __do_sys_newfstatat(int dfd, const char *filename, struct stat *statbuf,
+				       int flag)
 {
 	struct kstat stat;
 	int error;
@@ -311,7 +310,13 @@ SYSCALL_DEFINE4(newfstatat, int, dfd, const char __user *, filename,
 		return error;
 	return cp_new_stat(&stat, statbuf);
 }
-#endif
+
+long __arm64_sys_newfstatat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_newfstatat((int)regs->regs[0], (const char *)regs->regs[1], (struct stat *)regs->regs[2],
+				       (int)regs->regs[3]);
+	return ret;
+}
 
 static inline long __do_sys_newfstat(unsigned int fd, struct stat *statbuf)
 {
@@ -366,10 +371,15 @@ retry:
 	return error;
 }
 
-SYSCALL_DEFINE4(readlinkat, int, dfd, const char __user *, pathname,
-		char __user *, buf, int, bufsiz)
+static inline long __do_sys_readlinkat(int dfd, const char *pathname, char *buf, int bufsiz)
 {
 	return do_readlinkat(dfd, pathname, buf, bufsiz);
+}
+
+long __arm64_sys_readlinkat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_readlinkat((int)regs->regs[0], (const char *)regs->regs[1], (char *)regs->regs[2], (int)regs->regs[3]);
+	return ret;
 }
 
 static inline long __do_sys_readlink(const char *path, char *buf, int bufsiz)

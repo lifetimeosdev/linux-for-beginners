@@ -164,10 +164,8 @@ SYSCALL_DEFINE5(add_key, const char __user *, _type,
  * passed to /sbin/request-key to aid with completing the request.  If the
  * _callout_info string is "" then it will be changed to "-".
  */
-SYSCALL_DEFINE4(request_key, const char __user *, _type,
-		const char __user *, _description,
-		const char __user *, _callout_info,
-		key_serial_t, destringid)
+static inline long __do_sys_request_key(const char *_type, const char *_description,
+					const char *_callout_info, key_serial_t destringid)
 {
 	struct key_type *ktype;
 	struct key *key;
@@ -245,6 +243,13 @@ error3:
 error2:
 	kfree(description);
 error:
+	return ret;
+}
+
+long __arm64_sys_request_key(const struct pt_regs *regs)
+{
+	long ret = __do_sys_request_key((const char *)regs->regs[0], (const char *)regs->regs[1],
+					(const char *)regs->regs[2], (key_serial_t)regs->regs[3]);
 	return ret;
 }
 

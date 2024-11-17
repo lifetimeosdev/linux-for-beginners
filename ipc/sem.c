@@ -1707,9 +1707,15 @@ static long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg, int v
 	}
 }
 
-SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
+static inline long __do_sys_semctl(int semid, int semnum, int cmd, unsigned long arg)
 {
 	return ksys_semctl(semid, semnum, cmd, arg, IPC_64);
+}
+
+long __arm64_sys_semctl(const struct pt_regs *regs)
+{
+	long ret = __do_sys_semctl((int)regs->regs[0], (int)regs->regs[1], (int)regs->regs[2], (unsigned long)regs->regs[3]);
+	return ret;
 }
 
 /* If the task doesn't already have a undo_list, then allocate one
@@ -2123,10 +2129,17 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
 	return do_semtimedop(semid, tsops, nsops, NULL);
 }
 
-SYSCALL_DEFINE4(semtimedop, int, semid, struct sembuf __user *, tsops,
-		unsigned int, nsops, const struct __kernel_timespec __user *, timeout)
+static inline long __do_sys_semtimedop(int semid, struct sembuf *tsops, unsigned int nsops,
+				       const struct __kernel_timespec *timeout)
 {
 	return ksys_semtimedop(semid, tsops, nsops, timeout);
+}
+
+long __arm64_sys_semtimedop(const struct pt_regs *regs)
+{
+	long ret = __do_sys_semtimedop((int)regs->regs[0], (struct sembuf *)regs->regs[1], (unsigned int)regs->regs[2],
+				       (const struct __kernel_timespec *)regs->regs[3]);
+	return ret;
 }
 
 static inline long __do_sys_semop(int semid, struct sembuf *tsops, unsigned nsops)

@@ -825,10 +825,15 @@ long ksys_msgsnd(int msqid, struct msgbuf __user *msgp, size_t msgsz,
 	return do_msgsnd(msqid, mtype, msgp->mtext, msgsz, msgflg);
 }
 
-SYSCALL_DEFINE4(msgsnd, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
-		int, msgflg)
+static inline long __do_sys_msgsnd(int msqid, struct msgbuf *msgp, size_t msgsz, int msgflg)
 {
 	return ksys_msgsnd(msqid, msgp, msgsz, msgflg);
+}
+
+long __arm64_sys_msgsnd(const struct pt_regs *regs)
+{
+	long ret = __do_sys_msgsnd((int)regs->regs[0], (struct msgbuf *)regs->regs[1], (size_t)regs->regs[2], (int)regs->regs[3]);
+	return ret;
 }
 
 static inline int convert_mode(long *msgtyp, int msgflg)

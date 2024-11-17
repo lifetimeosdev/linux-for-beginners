@@ -10953,8 +10953,8 @@ static int __io_uring_register(struct io_ring_ctx *ctx, unsigned opcode,
 	return ret;
 }
 
-SYSCALL_DEFINE4(io_uring_register, unsigned int, fd, unsigned int, opcode,
-		void __user *, arg, unsigned int, nr_args)
+static inline long __do_sys_io_uring_register(unsigned int fd, unsigned int opcode, void *arg,
+					      unsigned int nr_args)
 {
 	struct io_ring_ctx *ctx;
 	long ret = -EBADF;
@@ -10982,6 +10982,13 @@ SYSCALL_DEFINE4(io_uring_register, unsigned int, fd, unsigned int, opcode,
 							ctx->cq_ev_fd != NULL, ret);
 out_fput:
 	fdput(f);
+	return ret;
+}
+
+long __arm64_sys_io_uring_register(const struct pt_regs *regs)
+{
+	long ret = __do_sys_io_uring_register((unsigned int)regs->regs[0], (unsigned int)regs->regs[1], (void *)regs->regs[2],
+					      (unsigned int)regs->regs[3]);
 	return ret;
 }
 

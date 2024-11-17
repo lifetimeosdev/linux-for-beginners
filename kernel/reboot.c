@@ -308,8 +308,7 @@ DEFINE_MUTEX(system_transition_mutex);
  *
  * reboot doesn't sync: do that yourself before calling this.
  */
-SYSCALL_DEFINE4(reboot, int, magic1, int, magic2, unsigned int, cmd,
-		void __user *, arg)
+static inline long __do_sys_reboot(int magic1, int magic2, unsigned int cmd, void *arg)
 {
 	struct pid_namespace *pid_ns = task_active_pid_ns(current);
 	char buffer[256];
@@ -394,6 +393,12 @@ SYSCALL_DEFINE4(reboot, int, magic1, int, magic2, unsigned int, cmd,
 		break;
 	}
 	mutex_unlock(&system_transition_mutex);
+	return ret;
+}
+
+long __arm64_sys_reboot(const struct pt_regs *regs)
+{
+	long ret = __do_sys_reboot((int)regs->regs[0], (int)regs->regs[1], (unsigned int)regs->regs[2], (void *)regs->regs[3]);
 	return ret;
 }
 

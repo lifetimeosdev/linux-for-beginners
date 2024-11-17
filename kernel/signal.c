@@ -3004,8 +3004,8 @@ int set_user_sigmask(const sigset_t __user *umask, size_t sigsetsize)
  *  @oset: previous value of signal mask if non-null
  *  @sigsetsize: size of sigset_t type
  */
-SYSCALL_DEFINE4(rt_sigprocmask, int, how, sigset_t __user *, nset,
-		sigset_t __user *, oset, size_t, sigsetsize)
+static inline long __do_sys_rt_sigprocmask(int how, sigset_t *nset, sigset_t *oset,
+					   size_t sigsetsize)
 {
 	sigset_t old_set, new_set;
 	int error;
@@ -3032,6 +3032,13 @@ SYSCALL_DEFINE4(rt_sigprocmask, int, how, sigset_t __user *, nset,
 	}
 
 	return 0;
+}
+
+long __arm64_sys_rt_sigprocmask(const struct pt_regs *regs)
+{
+	long ret = __do_sys_rt_sigprocmask((int)regs->regs[0], (sigset_t *)regs->regs[1], (sigset_t *)regs->regs[2],
+					   (size_t)regs->regs[3]);
+	return ret;
 }
 
 static void do_sigpending(sigset_t *set)
@@ -3256,10 +3263,8 @@ static int do_sigtimedwait(const sigset_t *which, kernel_siginfo_t *info,
  *  @uts: upper bound on process time suspension
  *  @sigsetsize: size of sigset_t type
  */
-SYSCALL_DEFINE4(rt_sigtimedwait, const sigset_t __user *, uthese,
-		siginfo_t __user *, uinfo,
-		const struct __kernel_timespec __user *, uts,
-		size_t, sigsetsize)
+static inline long __do_sys_rt_sigtimedwait(const sigset_t *uthese, siginfo_t *uinfo,
+					    const struct __kernel_timespec *uts, size_t sigsetsize)
 {
 	sigset_t these;
 	struct timespec64 ts;
@@ -3285,6 +3290,14 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const sigset_t __user *, uthese,
 			ret = -EFAULT;
 	}
 
+	return ret;
+}
+
+long __arm64_sys_rt_sigtimedwait(const struct pt_regs *regs)
+{
+	long ret = __do_sys_rt_sigtimedwait(
+		(const sigset_t *)regs->regs[0], (siginfo_t *)regs->regs[1],
+		(const struct __kernel_timespec *)regs->regs[2], (size_t)regs->regs[3]);
 	return ret;
 }
 
@@ -3373,8 +3386,8 @@ static struct pid *pidfd_to_pid(const struct file *file)
  *
  * Return: 0 on success, negative errno on failure
  */
-SYSCALL_DEFINE4(pidfd_send_signal, int, pidfd, int, sig,
-		siginfo_t __user *, info, unsigned int, flags)
+static inline long __do_sys_pidfd_send_signal(int pidfd, int sig, siginfo_t *info,
+					      unsigned int flags)
 {
 	int ret;
 	struct fd f;
@@ -3422,6 +3435,13 @@ SYSCALL_DEFINE4(pidfd_send_signal, int, pidfd, int, sig,
 
 err:
 	fdput(f);
+	return ret;
+}
+
+long __arm64_sys_pidfd_send_signal(const struct pt_regs *regs)
+{
+	long ret = __do_sys_pidfd_send_signal((int)regs->regs[0], (int)regs->regs[1], (siginfo_t *)regs->regs[2],
+					      (unsigned int)regs->regs[3]);
 	return ret;
 }
 
@@ -3566,14 +3586,19 @@ static int do_rt_tgsigqueueinfo(pid_t tgid, pid_t pid, int sig, kernel_siginfo_t
 	return do_send_specific(tgid, pid, sig, info);
 }
 
-SYSCALL_DEFINE4(rt_tgsigqueueinfo, pid_t, tgid, pid_t, pid, int, sig,
-		siginfo_t __user *, uinfo)
+static inline long __do_sys_rt_tgsigqueueinfo(pid_t tgid, pid_t pid, int sig, siginfo_t *uinfo)
 {
 	kernel_siginfo_t info;
 	int ret = __copy_siginfo_from_user(sig, &info, uinfo);
 	if (unlikely(ret))
 		return ret;
 	return do_rt_tgsigqueueinfo(tgid, pid, sig, &info);
+}
+
+long __arm64_sys_rt_tgsigqueueinfo(const struct pt_regs *regs)
+{
+	long ret = __do_sys_rt_tgsigqueueinfo((pid_t)regs->regs[0], (pid_t)regs->regs[1], (int)regs->regs[2], (siginfo_t *)regs->regs[3]);
+	return ret;
 }
 
 /*
@@ -3734,7 +3759,6 @@ int __save_altstack(stack_t __user *uss, unsigned long sp)
 	return 0;
 }
 
-#ifndef CONFIG_ODD_RT_SIGACTION
 /**
  *  sys_rt_sigaction - alter an action taken by a process
  *  @sig: signal to be sent
@@ -3742,10 +3766,8 @@ int __save_altstack(stack_t __user *uss, unsigned long sp)
  *  @oact: used to save the previous sigaction
  *  @sigsetsize: size of sigset_t type
  */
-SYSCALL_DEFINE4(rt_sigaction, int, sig,
-		const struct sigaction __user *, act,
-		struct sigaction __user *, oact,
-		size_t, sigsetsize)
+static inline long __do_sys_rt_sigaction(int sig, const struct sigaction *act,
+					 struct sigaction *oact, size_t sigsetsize)
 {
 	struct k_sigaction new_sa, old_sa;
 	int ret;
@@ -3766,8 +3788,13 @@ SYSCALL_DEFINE4(rt_sigaction, int, sig,
 
 	return 0;
 }
-#endif /* !CONFIG_ODD_RT_SIGACTION */
 
+long __arm64_sys_rt_sigaction(const struct pt_regs *regs)
+{
+	long ret = __do_sys_rt_sigaction((int)regs->regs[0], (const struct sigaction *)regs->regs[1],
+					 (struct sigaction *)regs->regs[2], (size_t)regs->regs[3]);
+	return ret;
+}
 
 static int sigsuspend(sigset_t *set)
 {

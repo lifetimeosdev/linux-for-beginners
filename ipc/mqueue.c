@@ -939,14 +939,21 @@ out_putname:
 	return fd;
 }
 
-SYSCALL_DEFINE4(mq_open, const char __user *, u_name, int, oflag, umode_t, mode,
-		struct mq_attr __user *, u_attr)
+static inline long __do_sys_mq_open(const char *u_name, int oflag, umode_t mode,
+				    struct mq_attr *u_attr)
 {
 	struct mq_attr attr;
 	if (u_attr && copy_from_user(&attr, u_attr, sizeof(struct mq_attr)))
 		return -EFAULT;
 
 	return do_mq_open(u_name, oflag, mode, u_attr ? &attr : NULL);
+}
+
+long __arm64_sys_mq_open(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mq_open((const char *)regs->regs[0], (int)regs->regs[1], (umode_t)regs->regs[2],
+				    (struct mq_attr *)regs->regs[3]);
+	return ret;
 }
 
 static inline long __do_sys_mq_unlink(const char *u_name)

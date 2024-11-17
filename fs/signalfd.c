@@ -300,8 +300,7 @@ static int do_signalfd4(int ufd, sigset_t *mask, int flags)
 	return ufd;
 }
 
-SYSCALL_DEFINE4(signalfd4, int, ufd, sigset_t __user *, user_mask,
-		size_t, sizemask, int, flags)
+static inline long __do_sys_signalfd4(int ufd, sigset_t *user_mask, size_t sizemask, int flags)
 {
 	sigset_t mask;
 
@@ -310,6 +309,12 @@ SYSCALL_DEFINE4(signalfd4, int, ufd, sigset_t __user *, user_mask,
 	if (copy_from_user(&mask, user_mask, sizeof(mask)))
 		return -EFAULT;
 	return do_signalfd4(ufd, &mask, flags);
+}
+
+long __arm64_sys_signalfd4(const struct pt_regs *regs)
+{
+	long ret = __do_sys_signalfd4((int)regs->regs[0], (sigset_t *)regs->regs[1], (size_t)regs->regs[2], (int)regs->regs[3]);
+	return ret;
 }
 
 static inline long __do_sys_signalfd(int ufd, sigset_t *user_mask, size_t sizemask)
