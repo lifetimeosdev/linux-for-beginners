@@ -289,17 +289,33 @@ free_iov_l:
 	return rc;
 }
 
-SYSCALL_DEFINE6(process_vm_readv, pid_t, pid, const struct iovec __user *, lvec,
-		unsigned long, liovcnt, const struct iovec __user *, rvec,
-		unsigned long, riovcnt,	unsigned long, flags)
+static inline long __do_sys_process_vm_readv(pid_t pid, const struct iovec *lvec,
+					     unsigned long liovcnt, const struct iovec *rvec,
+					     unsigned long riovcnt, unsigned long flags)
 {
 	return process_vm_rw(pid, lvec, liovcnt, rvec, riovcnt, flags, 0);
 }
 
-SYSCALL_DEFINE6(process_vm_writev, pid_t, pid,
-		const struct iovec __user *, lvec,
-		unsigned long, liovcnt, const struct iovec __user *, rvec,
-		unsigned long, riovcnt,	unsigned long, flags)
+long __arm64_sys_process_vm_readv(const struct pt_regs *regs)
+{
+	long ret = __do_sys_process_vm_readv((pid_t)regs->regs[0], (const struct iovec *)regs->regs[1],
+					     (unsigned long)regs->regs[2], (const struct iovec *)regs->regs[3],
+					     (unsigned long)regs->regs[4], (unsigned long)regs->regs[5]);
+	return ret;
+}
+
+static inline long __do_sys_process_vm_writev(pid_t pid, const struct iovec *lvec,
+					      unsigned long liovcnt, const struct iovec *rvec,
+					      unsigned long riovcnt, unsigned long flags)
 {
 	return process_vm_rw(pid, lvec, liovcnt, rvec, riovcnt, flags, 1);
+}
+
+long __arm64_sys_process_vm_writev(const struct pt_regs *regs)
+{
+	long ret = __do_sys_process_vm_writev(
+		(pid_t)regs->regs[0], (const struct iovec *)regs->regs[1],
+		(unsigned long)regs->regs[2], (const struct iovec *)regs->regs[3],
+		(unsigned long)regs->regs[4], (unsigned long)regs->regs[5]);
+	return ret;
 }

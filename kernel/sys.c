@@ -2225,8 +2225,7 @@ int __weak arch_prctl_spec_ctrl_set(struct task_struct *t, unsigned long which,
 
 #define PR_IO_FLUSHER (PF_MEMALLOC_NOIO | PF_LOCAL_THROTTLE)
 
-SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
-		unsigned long, arg4, unsigned long, arg5)
+static inline long __do_sys_prctl(int option, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5)
 {
 	struct task_struct *me = current;
 	unsigned char comm[sizeof(me->comm)];
@@ -2480,6 +2479,14 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
 		break;
 	}
 	return error;
+}
+
+long __arm64_sys_prctl(const struct pt_regs *regs)
+{
+	long ret = __do_sys_prctl((int)regs->regs[0], (unsigned long)regs->regs[1],
+				  (unsigned long)regs->regs[2], (unsigned long)regs->regs[3],
+				  (unsigned long)regs->regs[4]);
+	return ret;
 }
 
 static inline long __do_sys_getcpu(unsigned * cpup, unsigned * nodep, struct getcpu_cache * unused)

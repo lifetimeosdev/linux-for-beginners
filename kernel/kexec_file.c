@@ -326,9 +326,8 @@ out_free_image:
 	return ret;
 }
 
-SYSCALL_DEFINE5(kexec_file_load, int, kernel_fd, int, initrd_fd,
-		unsigned long, cmdline_len, const char __user *, cmdline_ptr,
-		unsigned long, flags)
+static inline long __do_sys_kexec_file_load(int kernel_fd, int initrd_fd, unsigned long cmdline_len,
+					    const char *cmdline_ptr, unsigned long flags)
 {
 	int ret = 0, i;
 	struct kimage **dest_image, *image;
@@ -417,6 +416,14 @@ out:
 
 	kexec_unlock();
 	kimage_free(image);
+	return ret;
+}
+
+long __arm64_sys_kexec_file_load(const struct pt_regs *regs)
+{
+	long ret = __do_sys_kexec_file_load(
+		(int)regs->regs[0], (int)regs->regs[1], (unsigned long)regs->regs[2],
+		(const char *)regs->regs[3], (unsigned long)regs->regs[4]);
 	return ret;
 }
 

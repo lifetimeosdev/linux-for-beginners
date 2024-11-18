@@ -1098,8 +1098,8 @@ long __arm64_sys_madvise(const struct pt_regs *regs)
 	return ret;
 }
 
-SYSCALL_DEFINE5(process_madvise, int, pidfd, const struct iovec __user *, vec,
-		size_t, vlen, int, behavior, unsigned int, flags)
+static inline long __do_sys_process_madvise(int pidfd, const struct iovec *vec, size_t vlen,
+					    int behavior, unsigned int flags)
 {
 	ssize_t ret;
 	struct iovec iovstack[UIO_FASTIOV], iovec;
@@ -1175,5 +1175,13 @@ put_pid:
 free_iov:
 	kfree(iov);
 out:
+	return ret;
+}
+
+long __arm64_sys_process_madvise(const struct pt_regs *regs)
+{
+	long ret = __do_sys_process_madvise((int)regs->regs[0], (const struct iovec *)regs->regs[1],
+					    (size_t)regs->regs[2], (int)regs->regs[3],
+					    (unsigned int)regs->regs[4]);
 	return ret;
 }

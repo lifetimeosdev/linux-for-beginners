@@ -3435,8 +3435,8 @@ struct dentry *mount_subtree(struct vfsmount *m, const char *name)
 }
 EXPORT_SYMBOL(mount_subtree);
 
-SYSCALL_DEFINE5(mount, char __user *, dev_name, char __user *, dir_name,
-		char __user *, type, unsigned long, flags, void __user *, data)
+static inline long __do_sys_mount(char *dev_name, char *dir_name, char *type, unsigned long flags,
+				  void *data)
 {
 	int ret;
 	char *kernel_type;
@@ -3466,6 +3466,13 @@ out_data:
 out_dev:
 	kfree(kernel_type);
 out_type:
+	return ret;
+}
+
+long __arm64_sys_mount(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mount((char *)regs->regs[0], (char *)regs->regs[1], (char *)regs->regs[2],
+				  (unsigned long)regs->regs[3], (void *)regs->regs[4]);
 	return ret;
 }
 
@@ -3622,10 +3629,8 @@ long __arm64_sys_fsmount(const struct pt_regs *regs)
  *
  * Note the flags value is a combination of MOVE_MOUNT_* flags.
  */
-SYSCALL_DEFINE5(move_mount,
-		int, from_dfd, const char __user *, from_pathname,
-		int, to_dfd, const char __user *, to_pathname,
-		unsigned int, flags)
+static inline long __do_sys_move_mount(int from_dfd, const char *from_pathname, int to_dfd,
+				       const char *to_pathname, unsigned int flags)
 {
 	struct path from_path, to_path;
 	unsigned int lflags;
@@ -3669,6 +3674,13 @@ out_to:
 	path_put(&to_path);
 out_from:
 	path_put(&from_path);
+	return ret;
+}
+
+long __arm64_sys_move_mount(const struct pt_regs *regs)
+{
+	long ret = __do_sys_move_mount((int)regs->regs[0], (const char *)regs->regs[1], (int)regs->regs[2],
+				       (const char *)regs->regs[3], (unsigned int)regs->regs[4]);
 	return ret;
 }
 

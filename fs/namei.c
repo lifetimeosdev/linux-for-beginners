@@ -4268,10 +4268,17 @@ out:
 	return error;
 }
 
-SYSCALL_DEFINE5(linkat, int, olddfd, const char __user *, oldname,
-		int, newdfd, const char __user *, newname, int, flags)
+static inline long __do_sys_linkat(int olddfd, const char *oldname, int newdfd, const char *newname,
+				   int flags)
 {
 	return do_linkat(olddfd, oldname, newdfd, newname, flags);
+}
+
+long __arm64_sys_linkat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_linkat((int)regs->regs[0], (const char *)regs->regs[1], (int)regs->regs[2],
+				   (const char *)regs->regs[3], (int)regs->regs[4]);
+	return ret;
 }
 
 static inline long __do_sys_link(const char *oldname, const char *newname)
@@ -4626,11 +4633,18 @@ put_new:
 	return error;
 }
 
-SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
-		int, newdfd, const char __user *, newname, unsigned int, flags)
+static inline long __do_sys_renameat2(int olddfd, const char *oldname, int newdfd,
+				      const char *newname, unsigned int flags)
 {
 	return do_renameat2(olddfd, getname(oldname), newdfd, getname(newname),
 				flags);
+}
+
+long __arm64_sys_renameat2(const struct pt_regs *regs)
+{
+	long ret = __do_sys_renameat2((int)regs->regs[0], (const char *)regs->regs[1], (int)regs->regs[2],
+				      (const char *)regs->regs[3], (unsigned int)regs->regs[4]);
+	return ret;
 }
 
 static inline long __do_sys_renameat(int olddfd, const char *oldname, int newdfd,

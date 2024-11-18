@@ -1607,8 +1607,8 @@ static long kernel_waitid(int which, pid_t upid, struct waitid_info *infop,
 	return ret;
 }
 
-SYSCALL_DEFINE5(waitid, int, which, pid_t, upid, struct siginfo __user *,
-		infop, int, options, struct rusage __user *, ru)
+static inline long __do_sys_waitid(int which, pid_t upid, struct siginfo *infop, int options,
+				   struct rusage *ru)
 {
 	struct rusage r;
 	struct waitid_info info = {.status = 0};
@@ -1638,6 +1638,14 @@ SYSCALL_DEFINE5(waitid, int, which, pid_t, upid, struct siginfo __user *,
 Efault:
 	user_write_access_end();
 	return -EFAULT;
+}
+
+long __arm64_sys_waitid(const struct pt_regs *regs)
+{
+	long ret = __do_sys_waitid((int)regs->regs[0], (pid_t)regs->regs[1],
+				   (struct siginfo *)regs->regs[2], (int)regs->regs[3],
+				   (struct rusage *)regs->regs[4]);
+	return ret;
 }
 
 long kernel_wait4(pid_t upid, int __user *stat_addr, int options,

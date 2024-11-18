@@ -2152,13 +2152,8 @@ static long do_io_getevents(aio_context_t ctx_id,
  *	specifies an infinite timeout. Note that the timeout pointed to by
  *	timeout is relative.  Will fail with -ENOSYS if not implemented.
  */
-#ifdef CONFIG_64BIT
-
-SYSCALL_DEFINE5(io_getevents, aio_context_t, ctx_id,
-		long, min_nr,
-		long, nr,
-		struct io_event __user *, events,
-		struct __kernel_timespec __user *, timeout)
+static inline long __do_sys_io_getevents(aio_context_t ctx_id, long min_nr, long nr,
+					 struct io_event *events, struct __kernel_timespec *timeout)
 {
 	struct timespec64	ts;
 	int			ret;
@@ -2172,20 +2167,23 @@ SYSCALL_DEFINE5(io_getevents, aio_context_t, ctx_id,
 	return ret;
 }
 
-#endif
+long __arm64_sys_io_getevents(const struct pt_regs *regs)
+{
+	long ret = __do_sys_io_getevents((aio_context_t)regs->regs[0], (long)regs->regs[1], (long)regs->regs[2],
+					 (struct io_event *)regs->regs[3],
+					 (struct __kernel_timespec *)regs->regs[4]);
+	return ret;
+}
 
 struct __aio_sigset {
 	const sigset_t __user	*sigmask;
 	size_t		sigsetsize;
 };
 
-SYSCALL_DEFINE6(io_pgetevents,
-		aio_context_t, ctx_id,
-		long, min_nr,
-		long, nr,
-		struct io_event __user *, events,
-		struct __kernel_timespec __user *, timeout,
-		const struct __aio_sigset __user *, usig)
+static inline long __do_sys_io_pgetevents(aio_context_t ctx_id, long min_nr, long nr,
+					  struct io_event *events,
+					  struct __kernel_timespec *timeout,
+					  const struct __aio_sigset *usig)
 {
 	struct __aio_sigset	ksig = { NULL, };
 	struct timespec64	ts;
@@ -2212,62 +2210,11 @@ SYSCALL_DEFINE6(io_pgetevents,
 	return ret;
 }
 
-#if defined(CONFIG_COMPAT_32BIT_TIME) && !defined(CONFIG_64BIT)
-
-SYSCALL_DEFINE6(io_pgetevents_time32,
-		aio_context_t, ctx_id,
-		long, min_nr,
-		long, nr,
-		struct io_event __user *, events,
-		struct old_timespec32 __user *, timeout,
-		const struct __aio_sigset __user *, usig)
+long __arm64_sys_io_pgetevents(const struct pt_regs *regs)
 {
-	struct __aio_sigset	ksig = { NULL, };
-	struct timespec64	ts;
-	bool interrupted;
-	int ret;
-
-	if (timeout && unlikely(get_old_timespec32(&ts, timeout)))
-		return -EFAULT;
-
-	if (usig && copy_from_user(&ksig, usig, sizeof(ksig)))
-		return -EFAULT;
-
-
-	ret = set_user_sigmask(ksig.sigmask, ksig.sigsetsize);
-	if (ret)
-		return ret;
-
-	ret = do_io_getevents(ctx_id, min_nr, nr, events, timeout ? &ts : NULL);
-
-	interrupted = signal_pending(current);
-	restore_saved_sigmask_unless(interrupted);
-	if (interrupted && !ret)
-		ret = -ERESTARTNOHAND;
-
+	long ret = __do_sys_io_pgetevents((aio_context_t)regs->regs[0], (long)regs->regs[1],
+					  (long)regs->regs[2], (struct io_event *)regs->regs[3],
+					  (struct __kernel_timespec *)regs->regs[4],
+					  (const struct __aio_sigset *)regs->regs[5]);
 	return ret;
 }
-
-#endif
-
-#if defined(CONFIG_COMPAT_32BIT_TIME)
-
-SYSCALL_DEFINE5(io_getevents_time32, __u32, ctx_id,
-		__s32, min_nr,
-		__s32, nr,
-		struct io_event __user *, events,
-		struct old_timespec32 __user *, timeout)
-{
-	struct timespec64 t;
-	int ret;
-
-	if (timeout && get_old_timespec32(&t, timeout))
-		return -EFAULT;
-
-	ret = do_io_getevents(ctx_id, min_nr, nr, events, timeout ? &t : NULL);
-	if (!ret && signal_pending(current))
-		ret = -EINTR;
-	return ret;
-}
-
-#endif

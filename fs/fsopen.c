@@ -323,12 +323,8 @@ static int vfs_fsconfig_locked(struct fs_context *fc, int cmd,
  * (*) fsconfig_set_fd: An open file descriptor is specified.  @_value must be
  *     NULL and @aux indicates the file descriptor.
  */
-SYSCALL_DEFINE5(fsconfig,
-		int, fd,
-		unsigned int, cmd,
-		const char __user *, _key,
-		const void __user *, _value,
-		int, aux)
+static inline long __do_sys_fsconfig(int fd, unsigned int cmd, const char *_key, const void *_value,
+				     int aux)
 {
 	struct fs_context *fc;
 	struct fd f;
@@ -477,5 +473,12 @@ out_key:
 	kfree(param.key);
 out_f:
 	fdput(f);
+	return ret;
+}
+
+long __arm64_sys_fsconfig(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fsconfig((int)regs->regs[0], (unsigned int)regs->regs[1], (const char *)regs->regs[2],
+				     (const void *)regs->regs[3], (int)regs->regs[4]);
 	return ret;
 }

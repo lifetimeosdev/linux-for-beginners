@@ -9949,9 +9949,8 @@ static int io_get_ext_arg(unsigned flags, const void __user *argp, size_t *argsz
 	return 0;
 }
 
-SYSCALL_DEFINE6(io_uring_enter, unsigned int, fd, u32, to_submit,
-		u32, min_complete, u32, flags, const void __user *, argp,
-		size_t, argsz)
+static inline long __do_sys_io_uring_enter(unsigned int fd, u32 to_submit, u32 min_complete,
+					   u32 flags, const void *argp, size_t argsz)
 {
 	struct io_ring_ctx *ctx;
 	int submitted = 0;
@@ -10042,6 +10041,14 @@ out:
 out_fput:
 	fdput(f);
 	return submitted ? submitted : ret;
+}
+
+long __arm64_sys_io_uring_enter(const struct pt_regs *regs)
+{
+	long ret = __do_sys_io_uring_enter((unsigned int)regs->regs[0], (u32)regs->regs[1],
+					   (u32)regs->regs[2], (u32)regs->regs[3],
+					   (const void *)regs->regs[4], (size_t)regs->regs[5]);
+	return ret;
 }
 
 #ifdef CONFIG_PROC_FS

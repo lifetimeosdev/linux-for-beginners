@@ -1104,10 +1104,17 @@ long ksys_msgrcv(int msqid, struct msgbuf __user *msgp, size_t msgsz,
 	return do_msgrcv(msqid, msgp, msgsz, msgtyp, msgflg, do_msg_fill);
 }
 
-SYSCALL_DEFINE5(msgrcv, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
-		long, msgtyp, int, msgflg)
+static inline long __do_sys_msgrcv(int msqid, struct msgbuf *msgp, size_t msgsz, long msgtyp,
+				   int msgflg)
 {
 	return ksys_msgrcv(msqid, msgp, msgsz, msgtyp, msgflg);
+}
+
+long __arm64_sys_msgrcv(const struct pt_regs *regs)
+{
+	long ret = __do_sys_msgrcv((int)regs->regs[0], (struct msgbuf *)regs->regs[1],
+				   (size_t)regs->regs[2], (long)regs->regs[3], (int)regs->regs[4]);
+	return ret;
 }
 
 void msg_init_ns(struct ipc_namespace *ns)

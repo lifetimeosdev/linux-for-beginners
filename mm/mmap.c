@@ -1633,11 +1633,18 @@ out_fput:
 	return retval;
 }
 
-SYSCALL_DEFINE6(mmap_pgoff, unsigned long, addr, unsigned long, len,
-		unsigned long, prot, unsigned long, flags,
-		unsigned long, fd, unsigned long, pgoff)
+static inline long __do_sys_mmap_pgoff(unsigned long addr, unsigned long len, unsigned long prot,
+				       unsigned long flags, unsigned long fd, unsigned long pgoff)
 {
 	return ksys_mmap_pgoff(addr, len, prot, flags, fd, pgoff);
+}
+
+long __arm64_sys_mmap_pgoff(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mmap_pgoff((unsigned long)regs->regs[0], (unsigned long)regs->regs[1],
+				       (unsigned long)regs->regs[2], (unsigned long)regs->regs[3],
+				       (unsigned long)regs->regs[4], (unsigned long)regs->regs[5]);
+	return ret;
 }
 
 /*
@@ -2928,8 +2935,9 @@ long __arm64_sys_munmap(const struct pt_regs *regs)
 /*
  * Emulation of deprecated remap_file_pages() syscall.
  */
-SYSCALL_DEFINE5(remap_file_pages, unsigned long, start, unsigned long, size,
-		unsigned long, prot, unsigned long, pgoff, unsigned long, flags)
+static inline long __do_sys_remap_file_pages(unsigned long start, unsigned long size,
+					     unsigned long prot, unsigned long pgoff,
+					     unsigned long flags)
 {
 
 	struct mm_struct *mm = current->mm;
@@ -3021,6 +3029,15 @@ out:
 		mm_populate(ret, populate);
 	if (!IS_ERR_VALUE(ret))
 		ret = 0;
+	return ret;
+}
+
+long __arm64_sys_remap_file_pages(const struct pt_regs *regs)
+{
+	long ret = __do_sys_remap_file_pages(
+		(unsigned long)regs->regs[0], (unsigned long)regs->regs[1],
+		(unsigned long)regs->regs[2], (unsigned long)regs->regs[3],
+		(unsigned long)regs->regs[4]);
 	return ret;
 }
 

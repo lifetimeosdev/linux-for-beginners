@@ -1309,25 +1309,18 @@ fput_and_out:
 	return ret;
 }
 
-#ifndef CONFIG_ARCH_SPLIT_ARG64
-SYSCALL_DEFINE5(fanotify_mark, int, fanotify_fd, unsigned int, flags,
-			      __u64, mask, int, dfd,
-			      const char  __user *, pathname)
+static inline long __do_sys_fanotify_mark(int fanotify_fd, unsigned int flags, __u64 mask, int dfd,
+					  const char *pathname)
 {
 	return do_fanotify_mark(fanotify_fd, flags, mask, dfd, pathname);
 }
-#endif
 
-#if defined(CONFIG_ARCH_SPLIT_ARG64) || defined(CONFIG_COMPAT)
-SYSCALL32_DEFINE6(fanotify_mark,
-				int, fanotify_fd, unsigned int, flags,
-				SC_ARG64(mask), int, dfd,
-				const char  __user *, pathname)
+long __arm64_sys_fanotify_mark(const struct pt_regs *regs)
 {
-	return do_fanotify_mark(fanotify_fd, flags, SC_VAL64(__u64, mask),
-				dfd, pathname);
+	long ret = __do_sys_fanotify_mark((int)regs->regs[0], (unsigned int)regs->regs[1], (__u64)regs->regs[2],
+					  (int)regs->regs[3], (const char *)regs->regs[4]);
+	return ret;
 }
-#endif
 
 /*
  * fanotify_user_setup - Our initialization function.  Note that we cannot return

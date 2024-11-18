@@ -722,10 +722,18 @@ static int kern_select(int n, fd_set __user *inp, fd_set __user *outp,
 	return poll_select_finish(&end_time, tvp, PT_TIMEVAL, ret);
 }
 
-SYSCALL_DEFINE5(select, int, n, fd_set __user *, inp, fd_set __user *, outp,
-		fd_set __user *, exp, struct __kernel_old_timeval __user *, tvp)
+static inline long __do_sys_select(int n, fd_set *inp, fd_set *outp, fd_set *exp,
+				   struct __kernel_old_timeval *tvp)
 {
 	return kern_select(n, inp, outp, exp, tvp);
+}
+
+long __arm64_sys_select(const struct pt_regs *regs)
+{
+	long ret = __do_sys_select((int)regs->regs[0], (fd_set *)regs->regs[1],
+				   (fd_set *)regs->regs[2], (fd_set *)regs->regs[3],
+				   (struct __kernel_old_timeval *)regs->regs[4]);
+	return ret;
 }
 
 static long do_pselect(int n, fd_set __user *inp, fd_set __user *outp,
@@ -791,9 +799,8 @@ Efault:
 	return -EFAULT;
 }
 
-SYSCALL_DEFINE6(pselect6, int, n, fd_set __user *, inp, fd_set __user *, outp,
-		fd_set __user *, exp, struct __kernel_timespec __user *, tsp,
-		void __user *, sig)
+static inline long __do_sys_pselect6(int n, fd_set *inp, fd_set *outp, fd_set *exp,
+				     struct __kernel_timespec *tsp, void *sig)
 {
 	struct sigset_argpack x = {NULL, 0};
 
@@ -803,21 +810,14 @@ SYSCALL_DEFINE6(pselect6, int, n, fd_set __user *, inp, fd_set __user *, outp,
 	return do_pselect(n, inp, outp, exp, tsp, x.p, x.size, PT_TIMESPEC);
 }
 
-#if defined(CONFIG_COMPAT_32BIT_TIME) && !defined(CONFIG_64BIT)
-
-SYSCALL_DEFINE6(pselect6_time32, int, n, fd_set __user *, inp, fd_set __user *, outp,
-		fd_set __user *, exp, struct old_timespec32 __user *, tsp,
-		void __user *, sig)
+long __arm64_sys_pselect6(const struct pt_regs *regs)
 {
-	struct sigset_argpack x = {NULL, 0};
-
-	if (get_sigset_argpack(&x, sig))
-		return -EFAULT;
-
-	return do_pselect(n, inp, outp, exp, tsp, x.p, x.size, PT_OLD_TIMESPEC);
+	long ret =
+		__do_sys_pselect6((int)regs->regs[0], (fd_set *)regs->regs[1],
+				  (fd_set *)regs->regs[2], (fd_set *)regs->regs[3],
+				  (struct __kernel_timespec *)regs->regs[4], (void *)regs->regs[5]);
+	return ret;
 }
-
-#endif
 
 struct poll_list {
 	struct poll_list *next;
@@ -1085,9 +1085,9 @@ long __arm64_sys_poll(const struct pt_regs *regs)
 	return ret;
 }
 
-SYSCALL_DEFINE5(ppoll, struct pollfd __user *, ufds, unsigned int, nfds,
-		struct __kernel_timespec __user *, tsp, const sigset_t __user *, sigmask,
-		size_t, sigsetsize)
+static inline long __do_sys_ppoll(struct pollfd *ufds, unsigned int nfds,
+				  struct __kernel_timespec *tsp, const sigset_t *sigmask,
+				  size_t sigsetsize)
 {
 	struct timespec64 ts, end_time, *to = NULL;
 	int ret;
@@ -1109,29 +1109,10 @@ SYSCALL_DEFINE5(ppoll, struct pollfd __user *, ufds, unsigned int, nfds,
 	return poll_select_finish(&end_time, tsp, PT_TIMESPEC, ret);
 }
 
-#if defined(CONFIG_COMPAT_32BIT_TIME) && !defined(CONFIG_64BIT)
-
-SYSCALL_DEFINE5(ppoll_time32, struct pollfd __user *, ufds, unsigned int, nfds,
-		struct old_timespec32 __user *, tsp, const sigset_t __user *, sigmask,
-		size_t, sigsetsize)
+long __arm64_sys_ppoll(const struct pt_regs *regs)
 {
-	struct timespec64 ts, end_time, *to = NULL;
-	int ret;
-
-	if (tsp) {
-		if (get_old_timespec32(&ts, tsp))
-			return -EFAULT;
-
-		to = &end_time;
-		if (poll_select_set_timeout(to, ts.tv_sec, ts.tv_nsec))
-			return -EINVAL;
-	}
-
-	ret = set_user_sigmask(sigmask, sigsetsize);
-	if (ret)
-		return ret;
-
-	ret = do_sys_poll(ufds, nfds, to);
-	return poll_select_finish(&end_time, tsp, PT_OLD_TIMESPEC, ret);
+	long ret = __do_sys_ppoll((struct pollfd *)regs->regs[0], (unsigned int)regs->regs[1],
+				  (struct __kernel_timespec *)regs->regs[2],
+				  (const sigset_t *)regs->regs[3], (size_t)regs->regs[4]);
+	return ret;
 }
-#endif

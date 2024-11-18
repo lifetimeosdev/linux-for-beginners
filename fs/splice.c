@@ -1329,9 +1329,8 @@ long __arm64_sys_vmsplice(const struct pt_regs *regs)
 	return ret;
 }
 
-SYSCALL_DEFINE6(splice, int, fd_in, loff_t __user *, off_in,
-		int, fd_out, loff_t __user *, off_out,
-		size_t, len, unsigned int, flags)
+static inline long __do_sys_splice(int fd_in, loff_t *off_in, int fd_out, loff_t *off_out,
+				   size_t len, unsigned int flags)
 {
 	struct fd in, out;
 	long error;
@@ -1354,6 +1353,14 @@ SYSCALL_DEFINE6(splice, int, fd_in, loff_t __user *, off_in,
 		fdput(in);
 	}
 	return error;
+}
+
+long __arm64_sys_splice(const struct pt_regs *regs)
+{
+	long ret = __do_sys_splice((int)regs->regs[0], (loff_t *)regs->regs[1], (int)regs->regs[2],
+				   (loff_t *)regs->regs[3], (size_t)regs->regs[4],
+				   (unsigned int)regs->regs[5]);
+	return ret;
 }
 
 /*

@@ -18,14 +18,21 @@
 #include <asm/cpufeature.h>
 #include <asm/syscall.h>
 
-SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
-		unsigned long, prot, unsigned long, flags,
-		unsigned long, fd, unsigned long, off)
+static inline long __do_sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
+				 unsigned long flags, unsigned long fd, unsigned long off)
 {
 	if (offset_in_page(off) != 0)
 		return -EINVAL;
 
 	return ksys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
+}
+
+long __arm64_sys_mmap(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mmap((unsigned long)regs->regs[0], (unsigned long)regs->regs[1],
+				 (unsigned long)regs->regs[2], (unsigned long)regs->regs[3],
+				 (unsigned long)regs->regs[4], (unsigned long)regs->regs[5]);
+	return ret;
 }
 
 static inline long __do_sys_arm64_personality(unsigned int personality)

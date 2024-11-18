@@ -3778,10 +3778,8 @@ long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
 	return -ENOSYS;
 }
 
-
-SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
-		struct __kernel_timespec __user *, utime, u32 __user *, uaddr2,
-		u32, val3)
+static inline long __do_sys_futex(u32 *uaddr, int op, u32 val, struct __kernel_timespec *utime,
+				  u32 *uaddr2, u32 val3)
 {
 	struct timespec64 ts;
 	ktime_t t, *tp = NULL;
@@ -3815,6 +3813,14 @@ SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
 
 	return do_futex(uaddr, op, val, tp, uaddr2, val2, val3);
 }
+
+long __arm64_sys_futex(const struct pt_regs *regs)
+{
+	long ret = __do_sys_futex((u32 *)regs->regs[0], (int)regs->regs[1], (u32)regs->regs[2],
+				  (struct __kernel_timespec *)regs->regs[3], (u32 *)regs->regs[4], (u32)regs->regs[5]);
+	return ret;
+}
+
 
 static void __init futex_detect_cmpxchg(void)
 {

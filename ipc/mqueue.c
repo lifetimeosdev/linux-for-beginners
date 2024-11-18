@@ -1294,9 +1294,9 @@ out:
 	return ret;
 }
 
-SYSCALL_DEFINE5(mq_timedsend, mqd_t, mqdes, const char __user *, u_msg_ptr,
-		size_t, msg_len, unsigned int, msg_prio,
-		const struct __kernel_timespec __user *, u_abs_timeout)
+static inline long __do_sys_mq_timedsend(mqd_t mqdes, const char *u_msg_ptr, size_t msg_len,
+					 unsigned int msg_prio,
+					 const struct __kernel_timespec *u_abs_timeout)
 {
 	struct timespec64 ts, *p = NULL;
 	if (u_abs_timeout) {
@@ -1308,9 +1308,17 @@ SYSCALL_DEFINE5(mq_timedsend, mqd_t, mqdes, const char __user *, u_msg_ptr,
 	return do_mq_timedsend(mqdes, u_msg_ptr, msg_len, msg_prio, p);
 }
 
-SYSCALL_DEFINE5(mq_timedreceive, mqd_t, mqdes, char __user *, u_msg_ptr,
-		size_t, msg_len, unsigned int __user *, u_msg_prio,
-		const struct __kernel_timespec __user *, u_abs_timeout)
+long __arm64_sys_mq_timedsend(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mq_timedsend((mqd_t)regs->regs[0], (const char *)regs->regs[1],
+					 (size_t)regs->regs[2], (unsigned int)regs->regs[3],
+					 (const struct __kernel_timespec *)regs->regs[4]);
+	return ret;
+}
+
+static inline long __do_sys_mq_timedreceive(mqd_t mqdes, char *u_msg_ptr, size_t msg_len,
+					    unsigned int *u_msg_prio,
+					    const struct __kernel_timespec *u_abs_timeout)
 {
 	struct timespec64 ts, *p = NULL;
 	if (u_abs_timeout) {
@@ -1320,6 +1328,14 @@ SYSCALL_DEFINE5(mq_timedreceive, mqd_t, mqdes, char __user *, u_msg_ptr,
 		p = &ts;
 	}
 	return do_mq_timedreceive(mqdes, u_msg_ptr, msg_len, u_msg_prio, p);
+}
+
+long __arm64_sys_mq_timedreceive(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mq_timedreceive((mqd_t)regs->regs[0], (char *)regs->regs[1],
+					    (size_t)regs->regs[2], (unsigned int *)regs->regs[3],
+					    (const struct __kernel_timespec *)regs->regs[4]);
+	return ret;
 }
 
 /*

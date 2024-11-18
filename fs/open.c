@@ -755,10 +755,17 @@ out:
 	return error;
 }
 
-SYSCALL_DEFINE5(fchownat, int, dfd, const char __user *, filename, uid_t, user,
-		gid_t, group, int, flag)
+static inline long __do_sys_fchownat(int dfd, const char *filename, uid_t user, gid_t group,
+				     int flag)
 {
 	return do_fchownat(dfd, filename, user, group, flag);
+}
+
+long __arm64_sys_fchownat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fchownat((int)regs->regs[0], (const char *)regs->regs[1], (uid_t)regs->regs[2], (gid_t)regs->regs[3],
+				     (int)regs->regs[4]);
+	return ret;
 }
 
 static inline long __do_sys_chown(const char *filename, uid_t user, gid_t group)

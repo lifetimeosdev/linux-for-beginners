@@ -657,9 +657,8 @@ static int vma_expandable(struct vm_area_struct *vma, unsigned long delta)
  * MREMAP_FIXED option added 5-Dec-1999 by Benjamin LaHaise
  * This option implies MREMAP_MAYMOVE.
  */
-SYSCALL_DEFINE5(mremap, unsigned long, addr, unsigned long, old_len,
-		unsigned long, new_len, unsigned long, flags,
-		unsigned long, new_addr)
+static inline long __do_sys_mremap(unsigned long addr, unsigned long old_len, unsigned long new_len,
+				   unsigned long flags, unsigned long new_addr)
 {
 	struct mm_struct *mm = current->mm;
 	struct vm_area_struct *vma;
@@ -812,5 +811,13 @@ out:
 	userfaultfd_unmap_complete(mm, &uf_unmap_early);
 	mremap_userfaultfd_complete(&uf, addr, ret, old_len);
 	userfaultfd_unmap_complete(mm, &uf_unmap);
+	return ret;
+}
+
+long __arm64_sys_mremap(const struct pt_regs *regs)
+{
+	long ret = __do_sys_mremap((unsigned long)regs->regs[0], (unsigned long)regs->regs[1],
+				   (unsigned long)regs->regs[2], (unsigned long)regs->regs[3],
+				   (unsigned long)regs->regs[4]);
 	return ret;
 }

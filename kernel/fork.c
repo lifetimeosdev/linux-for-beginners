@@ -2506,10 +2506,8 @@ pid_t kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
 	return kernel_clone(&args);
 }
 
-SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,
-		 int __user *, parent_tidptr,
-		 unsigned long, tls,
-		 int __user *, child_tidptr)
+static inline long __do_sys_clone(unsigned long clone_flags, unsigned long newsp,
+				  int *parent_tidptr, unsigned long tls, int *child_tidptr)
 {
 	struct kernel_clone_args args = {
 		.flags		= (lower_32_bits(clone_flags) & ~CSIGNAL),
@@ -2522,6 +2520,14 @@ SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,
 	};
 
 	return kernel_clone(&args);
+}
+
+long __arm64_sys_clone(const struct pt_regs *regs)
+{
+	long ret = __do_sys_clone((unsigned long)regs->regs[0], (unsigned long)regs->regs[1],
+				  (int *)regs->regs[2], (unsigned long)regs->regs[3],
+				  (int *)regs->regs[4]);
+	return ret;
 }
 
 noinline static int copy_clone_args_from_user(struct kernel_clone_args *kargs,

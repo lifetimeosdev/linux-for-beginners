@@ -459,12 +459,18 @@ int do_statx(int dfd, const char __user *filename, unsigned flags,
  * Note that fstat() can be emulated by setting dfd to the fd of interest,
  * supplying "" as the filename and setting AT_EMPTY_PATH in the flags.
  */
-SYSCALL_DEFINE5(statx,
-		int, dfd, const char __user *, filename, unsigned, flags,
-		unsigned int, mask,
-		struct statx __user *, buffer)
+static inline long __do_sys_statx(int dfd, const char *filename, unsigned flags, unsigned int mask,
+				  struct statx *buffer)
 {
 	return do_statx(dfd, filename, flags, mask, buffer);
+}
+
+long __arm64_sys_statx(const struct pt_regs *regs)
+{
+	long ret = __do_sys_statx((int)regs->regs[0], (const char *)regs->regs[1],
+				  (unsigned)regs->regs[2], (unsigned int)regs->regs[3],
+				  (struct statx *)regs->regs[4]);
+	return ret;
 }
 
 /* Caller is here responsible for sufficient locking (ie. inode->i_lock) */

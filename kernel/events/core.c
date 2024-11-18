@@ -11823,9 +11823,7 @@ again:
  * @cpu:		target cpu
  * @group_fd:		group leader event fd
  */
-SYSCALL_DEFINE5(perf_event_open,
-		struct perf_event_attr __user *, attr_uptr,
-		pid_t, pid, int, cpu, int, group_fd, unsigned long, flags)
+static inline long __do_sys_perf_event_open(struct perf_event_attr * attr_uptr, pid_t pid, int cpu, int group_fd, unsigned long flags)
 {
 	struct perf_event *group_leader = NULL, *output_event = NULL;
 	struct perf_event *event, *sibling;
@@ -12284,6 +12282,14 @@ err_group_fd:
 err_fd:
 	put_unused_fd(event_fd);
 	return err;
+}
+
+long __arm64_sys_perf_event_open(const struct pt_regs *regs)
+{
+	long ret = __do_sys_perf_event_open((struct perf_event_attr *)regs->regs[0],
+					    (pid_t)regs->regs[1], (int)regs->regs[2],
+					    (int)regs->regs[3], (unsigned long)regs->regs[4]);
+	return ret;
 }
 
 /**

@@ -330,38 +330,6 @@ long __arm64_sys_lseek(const struct pt_regs *regs)
 	return ret;
 }
 
-#if !defined(CONFIG_64BIT) || defined(CONFIG_COMPAT) || \
-	defined(__ARCH_WANT_SYS_LLSEEK)
-SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned long, offset_high,
-		unsigned long, offset_low, loff_t __user *, result,
-		unsigned int, whence)
-{
-	int retval;
-	struct fd f = fdget_pos(fd);
-	loff_t offset;
-
-	if (!f.file)
-		return -EBADF;
-
-	retval = -EINVAL;
-	if (whence > SEEK_MAX)
-		goto out_putf;
-
-	offset = vfs_llseek(f.file, ((loff_t) offset_high << 32) | offset_low,
-			whence);
-
-	retval = (int)offset;
-	if (offset >= 0) {
-		retval = -EFAULT;
-		if (!copy_to_user(result, &offset, sizeof(offset)))
-			retval = 0;
-	}
-out_putf:
-	fdput_pos(f);
-	return retval;
-}
-#endif
-
 int rw_verify_area(int read_write, struct file *file, const loff_t *ppos, size_t count)
 {
 	struct inode *inode;
@@ -1085,17 +1053,23 @@ long __arm64_sys_writev(const struct pt_regs *regs)
 	return ret;
 }
 
-SYSCALL_DEFINE5(preadv, unsigned long, fd, const struct iovec __user *, vec,
-		unsigned long, vlen, unsigned long, pos_l, unsigned long, pos_h)
+static inline long __do_sys_preadv(unsigned long fd, const struct iovec *vec, unsigned long vlen,
+				   unsigned long pos_l, unsigned long pos_h)
 {
 	loff_t pos = pos_from_hilo(pos_h, pos_l);
 
 	return do_preadv(fd, vec, vlen, pos, 0);
 }
 
-SYSCALL_DEFINE6(preadv2, unsigned long, fd, const struct iovec __user *, vec,
-		unsigned long, vlen, unsigned long, pos_l, unsigned long, pos_h,
-		rwf_t, flags)
+long __arm64_sys_preadv(const struct pt_regs *regs)
+{
+	long ret = __do_sys_preadv((unsigned long)regs->regs[0], (const struct iovec *)regs->regs[1],
+				   (unsigned long)regs->regs[2], (unsigned long)regs->regs[3], (unsigned long)regs->regs[4]);
+	return ret;
+}
+
+static inline long __do_sys_preadv2(unsigned long fd, const struct iovec *vec, unsigned long vlen,
+				    unsigned long pos_l, unsigned long pos_h, rwf_t flags)
 {
 	loff_t pos = pos_from_hilo(pos_h, pos_l);
 
@@ -1105,17 +1079,34 @@ SYSCALL_DEFINE6(preadv2, unsigned long, fd, const struct iovec __user *, vec,
 	return do_preadv(fd, vec, vlen, pos, flags);
 }
 
-SYSCALL_DEFINE5(pwritev, unsigned long, fd, const struct iovec __user *, vec,
-		unsigned long, vlen, unsigned long, pos_l, unsigned long, pos_h)
+long __arm64_sys_preadv2(const struct pt_regs *regs)
+{
+	long ret =
+		__do_sys_preadv2((unsigned long)regs->regs[0], (const struct iovec *)regs->regs[1],
+				 (unsigned long)regs->regs[2], (unsigned long)regs->regs[3],
+				 (unsigned long)regs->regs[4], (rwf_t)regs->regs[5]);
+	return ret;
+}
+
+static inline long __do_sys_pwritev(unsigned long fd, const struct iovec *vec, unsigned long vlen,
+				    unsigned long pos_l, unsigned long pos_h)
 {
 	loff_t pos = pos_from_hilo(pos_h, pos_l);
 
 	return do_pwritev(fd, vec, vlen, pos, 0);
 }
 
-SYSCALL_DEFINE6(pwritev2, unsigned long, fd, const struct iovec __user *, vec,
-		unsigned long, vlen, unsigned long, pos_l, unsigned long, pos_h,
-		rwf_t, flags)
+long __arm64_sys_pwritev(const struct pt_regs *regs)
+{
+	long ret =
+		__do_sys_pwritev((unsigned long)regs->regs[0], (const struct iovec *)regs->regs[1],
+				 (unsigned long)regs->regs[2], (unsigned long)regs->regs[3],
+				 (unsigned long)regs->regs[4]);
+	return ret;
+}
+
+static inline long __do_sys_pwritev2(unsigned long fd, const struct iovec *vec, unsigned long vlen,
+				     unsigned long pos_l, unsigned long pos_h, rwf_t flags)
 {
 	loff_t pos = pos_from_hilo(pos_h, pos_l);
 
@@ -1123,6 +1114,15 @@ SYSCALL_DEFINE6(pwritev2, unsigned long, fd, const struct iovec __user *, vec,
 		return do_writev(fd, vec, vlen, flags);
 
 	return do_pwritev(fd, vec, vlen, pos, flags);
+}
+
+long __arm64_sys_pwritev2(const struct pt_regs *regs)
+{
+	long ret =
+		__do_sys_pwritev2((unsigned long)regs->regs[0], (const struct iovec *)regs->regs[1],
+				  (unsigned long)regs->regs[2], (unsigned long)regs->regs[3],
+				  (unsigned long)regs->regs[4], (rwf_t)regs->regs[5]);
+	return ret;
 }
 
 /*
@@ -1468,9 +1468,8 @@ done:
 }
 EXPORT_SYMBOL(vfs_copy_file_range);
 
-SYSCALL_DEFINE6(copy_file_range, int, fd_in, loff_t __user *, off_in,
-		int, fd_out, loff_t __user *, off_out,
-		size_t, len, unsigned int, flags)
+static inline long __do_sys_copy_file_range(int fd_in, loff_t *off_in, int fd_out, loff_t *off_out,
+					    size_t len, unsigned int flags)
 {
 	loff_t pos_in;
 	loff_t pos_out;
@@ -1531,6 +1530,14 @@ out:
 out1:
 	fdput(f_in);
 out2:
+	return ret;
+}
+
+long __arm64_sys_copy_file_range(const struct pt_regs *regs)
+{
+	long ret = __do_sys_copy_file_range((int)regs->regs[0], (loff_t *)regs->regs[1],
+					    (int)regs->regs[2], (loff_t *)regs->regs[3],
+					    (size_t)regs->regs[4], (unsigned int)regs->regs[5]);
 	return ret;
 }
 

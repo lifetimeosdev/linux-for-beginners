@@ -2042,11 +2042,18 @@ out:
 	return err;
 }
 
-SYSCALL_DEFINE6(sendto, int, fd, void __user *, buff, size_t, len,
-		unsigned int, flags, struct sockaddr __user *, addr,
-		int, addr_len)
+static inline long __do_sys_sendto(int fd, void *buff, size_t len, unsigned int flags,
+				   struct sockaddr *addr, int addr_len)
 {
 	return __sys_sendto(fd, buff, len, flags, addr, addr_len);
+}
+
+long __arm64_sys_sendto(const struct pt_regs *regs)
+{
+	long ret = __do_sys_sendto((int)regs->regs[0], (void *)regs->regs[1], (size_t)regs->regs[2],
+				   (unsigned int)regs->regs[3], (struct sockaddr *)regs->regs[4],
+				   (int)regs->regs[5]);
+	return ret;
 }
 
 /*
@@ -2110,11 +2117,18 @@ out:
 	return err;
 }
 
-SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, ubuf, size_t, size,
-		unsigned int, flags, struct sockaddr __user *, addr,
-		int __user *, addr_len)
+static inline long __do_sys_recvfrom(int fd, void *ubuf, size_t size, unsigned int flags,
+				     struct sockaddr *addr, int *addr_len)
 {
 	return __sys_recvfrom(fd, ubuf, size, flags, addr, addr_len);
+}
+
+long __arm64_sys_recvfrom(const struct pt_regs *regs)
+{
+	long ret = __do_sys_recvfrom((int)regs->regs[0], (void *)regs->regs[1],
+				     (size_t)regs->regs[2], (unsigned int)regs->regs[3],
+				     (struct sockaddr *)regs->regs[4], (int *)regs->regs[5]);
+	return ret;
 }
 
 /*
@@ -2192,10 +2206,16 @@ out_put:
 	return err;
 }
 
-SYSCALL_DEFINE5(setsockopt, int, fd, int, level, int, optname,
-		char __user *, optval, int, optlen)
+static inline long __do_sys_setsockopt(int fd, int level, int optname, char *optval, int optlen)
 {
 	return __sys_setsockopt(fd, level, optname, optval, optlen);
+}
+
+long __arm64_sys_setsockopt(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setsockopt((int)regs->regs[0], (int)regs->regs[1], (int)regs->regs[2],
+				       (char *)regs->regs[3], (int)regs->regs[4]);
+	return ret;
 }
 
 INDIRECT_CALLABLE_DECLARE(bool tcp_bpf_bypass_getsockopt(int level,
@@ -2240,10 +2260,16 @@ out_put:
 	return err;
 }
 
-SYSCALL_DEFINE5(getsockopt, int, fd, int, level, int, optname,
-		char __user *, optval, int __user *, optlen)
+static inline long __do_sys_getsockopt(int fd, int level, int optname, char *optval, int *optlen)
 {
 	return __sys_getsockopt(fd, level, optname, optval, optlen);
+}
+
+long __arm64_sys_getsockopt(const struct pt_regs *regs)
+{
+	long ret = __do_sys_getsockopt((int)regs->regs[0], (int)regs->regs[1], (int)regs->regs[2],
+				       (char *)regs->regs[3], (int *)regs->regs[4]);
+	return ret;
 }
 
 /*
@@ -2891,14 +2917,21 @@ int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg,
 	return datagrams;
 }
 
-SYSCALL_DEFINE5(recvmmsg, int, fd, struct mmsghdr __user *, mmsg,
-		unsigned int, vlen, unsigned int, flags,
-		struct __kernel_timespec __user *, timeout)
+static inline long __do_sys_recvmmsg(int fd, struct mmsghdr *mmsg, unsigned int vlen,
+				     unsigned int flags, struct __kernel_timespec *timeout)
 {
 	if (flags & MSG_CMSG_COMPAT)
 		return -EINVAL;
 
 	return __sys_recvmmsg(fd, mmsg, vlen, flags, timeout, NULL);
+}
+
+long __arm64_sys_recvmmsg(const struct pt_regs *regs)
+{
+	long ret = __do_sys_recvmmsg((int)regs->regs[0], (struct mmsghdr *)regs->regs[1],
+				     (unsigned int)regs->regs[2], (unsigned int)regs->regs[3],
+				     (struct __kernel_timespec *)regs->regs[4]);
+	return ret;
 }
 
 /**

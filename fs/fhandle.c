@@ -90,9 +90,8 @@ static long do_sys_name_to_handle(struct path *path,
  * enough space, the field is updated to return the minimum
  * value required.
  */
-SYSCALL_DEFINE5(name_to_handle_at, int, dfd, const char __user *, name,
-		struct file_handle __user *, handle, int __user *, mnt_id,
-		int, flag)
+static inline long __do_sys_name_to_handle_at(int dfd, const char *name, struct file_handle *handle,
+					      int *mnt_id, int flag)
 {
 	struct path path;
 	int lookup_flags;
@@ -110,6 +109,14 @@ SYSCALL_DEFINE5(name_to_handle_at, int, dfd, const char __user *, name,
 		path_put(&path);
 	}
 	return err;
+}
+
+long __arm64_sys_name_to_handle_at(const struct pt_regs *regs)
+{
+	long ret = __do_sys_name_to_handle_at((int)regs->regs[0], (const char *)regs->regs[1],
+					      (struct file_handle *)regs->regs[2],
+					      (int *)regs->regs[3], (int)regs->regs[4]);
+	return ret;
 }
 
 static struct vfsmount *get_vfsmount_from_fd(int fd)

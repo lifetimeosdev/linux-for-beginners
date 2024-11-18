@@ -1945,15 +1945,20 @@ long __arm64_sys_execve(const struct pt_regs *regs)
 	return ret;
 }
 
-SYSCALL_DEFINE5(execveat,
-		int, fd, const char __user *, filename,
-		const char __user *const __user *, argv,
-		const char __user *const __user *, envp,
-		int, flags)
+static inline long __do_sys_execveat(int fd, const char *filename, const char *const *argv,
+				     const char *const *envp, int flags)
 {
 	int lookup_flags = (flags & AT_EMPTY_PATH) ? LOOKUP_EMPTY : 0;
 
 	return do_execveat(fd,
 			   getname_flags(filename, lookup_flags, NULL),
 			   argv, envp, flags);
+}
+
+long __arm64_sys_execveat(const struct pt_regs *regs)
+{
+	long ret = __do_sys_execveat((int)regs->regs[0], (const char *)regs->regs[1],
+				     (const char *const *)regs->regs[2],
+				     (const char *const *)regs->regs[3], (int)regs->regs[4]);
+	return ret;
 }

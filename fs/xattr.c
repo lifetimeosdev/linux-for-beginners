@@ -575,22 +575,34 @@ retry:
 	return error;
 }
 
-SYSCALL_DEFINE5(setxattr, const char __user *, pathname,
-		const char __user *, name, const void __user *, value,
-		size_t, size, int, flags)
+static inline long __do_sys_setxattr(const char *pathname, const char *name, const void *value,
+				     size_t size, int flags)
 {
 	return path_setxattr(pathname, name, value, size, flags, LOOKUP_FOLLOW);
 }
 
-SYSCALL_DEFINE5(lsetxattr, const char __user *, pathname,
-		const char __user *, name, const void __user *, value,
-		size_t, size, int, flags)
+long __arm64_sys_setxattr(const struct pt_regs *regs)
+{
+	long ret = __do_sys_setxattr((const char *)regs->regs[0], (const char *)regs->regs[1],
+				     (const void *)regs->regs[2], (size_t)regs->regs[3], (int)regs->regs[4]);
+	return ret;
+}
+
+static inline long __do_sys_lsetxattr(const char *pathname, const char *name, const void *value,
+				      size_t size, int flags)
 {
 	return path_setxattr(pathname, name, value, size, flags, 0);
 }
 
-SYSCALL_DEFINE5(fsetxattr, int, fd, const char __user *, name,
-		const void __user *,value, size_t, size, int, flags)
+long __arm64_sys_lsetxattr(const struct pt_regs *regs)
+{
+	long ret = __do_sys_lsetxattr((const char *)regs->regs[0], (const char *)regs->regs[1],
+				      (const void *)regs->regs[2], (size_t)regs->regs[3], (int)regs->regs[4]);
+	return ret;
+}
+
+static inline long __do_sys_fsetxattr(int fd, const char *name, const void *value, size_t size,
+				      int flags)
 {
 	struct fd f = fdget(fd);
 	int error = -EBADF;
@@ -605,6 +617,13 @@ SYSCALL_DEFINE5(fsetxattr, int, fd, const char __user *, name,
 	}
 	fdput(f);
 	return error;
+}
+
+long __arm64_sys_fsetxattr(const struct pt_regs *regs)
+{
+	long ret = __do_sys_fsetxattr((int)regs->regs[0], (const char *)regs->regs[1], (const void *)regs->regs[2],
+				      (size_t)regs->regs[3], (int)regs->regs[4]);
+	return ret;
 }
 
 /*

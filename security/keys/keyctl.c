@@ -71,11 +71,8 @@ static int key_get_type_from_user(char *type,
  * If successful, the new key's serial number is returned, otherwise an error
  * code is returned.
  */
-SYSCALL_DEFINE5(add_key, const char __user *, _type,
-		const char __user *, _description,
-		const void __user *, _payload,
-		size_t, plen,
-		key_serial_t, ringid)
+static inline long __do_sys_add_key(const char *_type, const char *_description,
+				    const void *_payload, size_t plen, key_serial_t ringid)
 {
 	key_ref_t keyring_ref, key_ref;
 	char type[32], *description;
@@ -148,6 +145,14 @@ SYSCALL_DEFINE5(add_key, const char __user *, _type,
  error2:
 	kfree(description);
  error:
+	return ret;
+}
+
+long __arm64_sys_add_key(const struct pt_regs *regs)
+{
+	long ret = __do_sys_add_key((const char *)regs->regs[0], (const char *)regs->regs[1],
+				    (const void *)regs->regs[2], (size_t)regs->regs[3],
+				    (key_serial_t)regs->regs[4]);
 	return ret;
 }
 
@@ -1876,8 +1881,8 @@ long keyctl_capabilities(unsigned char __user *_buffer, size_t buflen)
 /*
  * The key control system call
  */
-SYSCALL_DEFINE5(keyctl, int, option, unsigned long, arg2, unsigned long, arg3,
-		unsigned long, arg4, unsigned long, arg5)
+static inline long __do_sys_keyctl(int option, unsigned long arg2, unsigned long arg3,
+				   unsigned long arg4, unsigned long arg5)
 {
 	switch (option) {
 	case KEYCTL_GET_KEYRING_ID:
@@ -2028,4 +2033,12 @@ SYSCALL_DEFINE5(keyctl, int, option, unsigned long, arg2, unsigned long, arg3,
 	default:
 		return -EOPNOTSUPP;
 	}
+}
+
+long __arm64_sys_keyctl(const struct pt_regs *regs)
+{
+	long ret = __do_sys_keyctl((int)regs->regs[0], (unsigned long)regs->regs[1],
+				   (unsigned long)regs->regs[2], (unsigned long)regs->regs[3],
+				   (unsigned long)regs->regs[4]);
+	return ret;
 }

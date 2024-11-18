@@ -2402,9 +2402,8 @@ long __arm64_sys_epoll_wait(const struct pt_regs *regs)
  * Implement the event wait interface for the eventpoll file. It is the kernel
  * part of the user space epoll_pwait(2).
  */
-SYSCALL_DEFINE6(epoll_pwait, int, epfd, struct epoll_event __user *, events,
-		int, maxevents, int, timeout, const sigset_t __user *, sigmask,
-		size_t, sigsetsize)
+static inline long __do_sys_epoll_pwait(int epfd, struct epoll_event *events, int maxevents,
+					int timeout, const sigset_t *sigmask, size_t sigsetsize)
 {
 	int error;
 
@@ -2420,6 +2419,14 @@ SYSCALL_DEFINE6(epoll_pwait, int, epfd, struct epoll_event __user *, events,
 	restore_saved_sigmask_unless(error == -EINTR);
 
 	return error;
+}
+
+long __arm64_sys_epoll_pwait(const struct pt_regs *regs)
+{
+	long ret = __do_sys_epoll_pwait((int)regs->regs[0], (struct epoll_event *)regs->regs[1],
+					(int)regs->regs[2], (int)regs->regs[3],
+					(const sigset_t *)regs->regs[4], (size_t)regs->regs[5]);
+	return ret;
 }
 
 static int __init eventpoll_init(void)
