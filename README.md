@@ -4,7 +4,7 @@
 
 - Make Linux source code easy to read and debug to follow the code path.
 
-### Quick start
+### Quick start (Dev on Ubuntu 24.04)
 
 1. Install `VSCode`, `C/C++ extension` and `gdb-multiarch` on a Linux distro.
 2. Using `./build.sh` to build the source code.

@@ -8,3 +8,5 @@ export CROSS_COMPILE=/usr/bin/aarch64-linux-gnu-
 make clean
 make defconfig
 make -j28
+
+./make_initramfs.sh
