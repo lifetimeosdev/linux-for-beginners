@@ -417,8 +417,8 @@ static int asids_init(void)
 	 * caps are not finalized yet, so it is safer to assume KPTI
 	 * and reserve kernel ASID's from beginning.
 	 */
-	if (IS_ENABLED(CONFIG_UNMAP_KERNEL_AT_EL0))
-		set_kpti_asid_bits(asid_map);
+	// if (IS_ENABLED(CONFIG_UNMAP_KERNEL_AT_EL0))
+	// 	set_kpti_asid_bits(asid_map);
 	return 0;
 }
 early_initcall(asids_init);

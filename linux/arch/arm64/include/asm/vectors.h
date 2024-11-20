@@ -55,9 +55,7 @@ enum arm64_bp_harden_el1_vectors {
 /* The vectors to use on return from EL0. e.g. to remap the kernel */
 DECLARE_PER_CPU_READ_MOSTLY(const char *, this_cpu_vector);
 
-#ifndef CONFIG_UNMAP_KERNEL_AT_EL0
 #define TRAMP_VALIAS	0ul
-#endif
 
 static inline const char *
 arm64_get_bp_hardening_vector(enum arm64_bp_harden_el1_vectors slot)

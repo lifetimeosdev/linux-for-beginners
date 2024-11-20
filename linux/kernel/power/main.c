@@ -120,110 +120,6 @@ static ssize_t pm_async_store(struct kobject *kobj, struct kobj_attribute *attr,
 
 power_attr(pm_async);
 
-#ifdef CONFIG_SUSPEND
-static ssize_t mem_sleep_show(struct kobject *kobj, struct kobj_attribute *attr,
-			      char *buf)
-{
-	char *s = buf;
-	suspend_state_t i;
-
-	for (i = PM_SUSPEND_MIN; i < PM_SUSPEND_MAX; i++)
-		if (mem_sleep_states[i]) {
-			const char *label = mem_sleep_states[i];
-
-			if (mem_sleep_current == i)
-				s += sprintf(s, "[%s] ", label);
-			else
-				s += sprintf(s, "%s ", label);
-		}
-
-	/* Convert the last space to a newline if needed. */
-	if (s != buf)
-		*(s-1) = '\n';
-
-	return (s - buf);
-}
-
-static suspend_state_t decode_suspend_state(const char *buf, size_t n)
-{
-	suspend_state_t state;
-	char *p;
-	int len;
-
-	p = memchr(buf, '\n', n);
-	len = p ? p - buf : n;
-
-	for (state = PM_SUSPEND_MIN; state < PM_SUSPEND_MAX; state++) {
-		const char *label = mem_sleep_states[state];
-
-		if (label && len == strlen(label) && !strncmp(buf, label, len))
-			return state;
-	}
-
-	return PM_SUSPEND_ON;
-}
-
-static ssize_t mem_sleep_store(struct kobject *kobj, struct kobj_attribute *attr,
-			       const char *buf, size_t n)
-{
-	suspend_state_t state;
-	int error;
-
-	error = pm_autosleep_lock();
-	if (error)
-		return error;
-
-	if (pm_autosleep_state() > PM_SUSPEND_ON) {
-		error = -EBUSY;
-		goto out;
-	}
-
-	state = decode_suspend_state(buf, n);
-	if (state < PM_SUSPEND_MAX && state > PM_SUSPEND_ON)
-		mem_sleep_current = state;
-	else
-		error = -EINVAL;
-
- out:
-	pm_autosleep_unlock();
-	return error ? error : n;
-}
-
-power_attr(mem_sleep);
-
-/*
- * sync_on_suspend: invoke ksys_sync_helper() before suspend.
- *
- * show() returns whether ksys_sync_helper() is invoked before suspend.
- * store() accepts 0 or 1.  0 disables ksys_sync_helper() and 1 enables it.
- */
-bool sync_on_suspend_enabled = !IS_ENABLED(CONFIG_SUSPEND_SKIP_SYNC);
-
-static ssize_t sync_on_suspend_show(struct kobject *kobj,
-				   struct kobj_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%d\n", sync_on_suspend_enabled);
-}
-
-static ssize_t sync_on_suspend_store(struct kobject *kobj,
-				    struct kobj_attribute *attr,
-				    const char *buf, size_t n)
-{
-	unsigned long val;
-
-	if (kstrtoul(buf, 10, &val))
-		return -EINVAL;
-
-	if (val > 1)
-		return -EINVAL;
-
-	sync_on_suspend_enabled = !!val;
-	return n;
-}
-
-power_attr(sync_on_suspend);
-#endif /* CONFIG_SUSPEND */
-
 #ifdef CONFIG_PM_SLEEP_DEBUG
 int pm_test_level = TEST_NONE;
 
@@ -595,14 +491,6 @@ static ssize_t state_show(struct kobject *kobj, struct kobj_attribute *attr,
 			  char *buf)
 {
 	char *s = buf;
-#ifdef CONFIG_SUSPEND
-	suspend_state_t i;
-
-	for (i = PM_SUSPEND_MIN; i < PM_SUSPEND_MAX; i++)
-		if (pm_states[i])
-			s += sprintf(s,"%s ", pm_states[i]);
-
-#endif
 	if (hibernation_available())
 		s += sprintf(s, "disk ");
 	if (s != buf)
@@ -613,9 +501,6 @@ static ssize_t state_show(struct kobject *kobj, struct kobj_attribute *attr,
 
 static suspend_state_t decode_state(const char *buf, size_t n)
 {
-#ifdef CONFIG_SUSPEND
-	suspend_state_t state;
-#endif
 	char *p;
 	int len;
 
@@ -625,15 +510,6 @@ static suspend_state_t decode_state(const char *buf, size_t n)
 	/* Check hibernation first. */
 	if (len == 4 && str_has_prefix(buf, "disk"))
 		return PM_SUSPEND_MAX;
-
-#ifdef CONFIG_SUSPEND
-	for (state = PM_SUSPEND_MIN; state < PM_SUSPEND_MAX; state++) {
-		const char *label = pm_states[state];
-
-		if (label && len == strlen(label) && !strncmp(buf, label, len))
-			return state;
-	}
-#endif
 
 	return PM_SUSPEND_ON;
 }
@@ -741,49 +617,6 @@ static ssize_t wakeup_count_store(struct kobject *kobj,
 }
 
 power_attr(wakeup_count);
-
-#ifdef CONFIG_PM_AUTOSLEEP
-static ssize_t autosleep_show(struct kobject *kobj,
-			      struct kobj_attribute *attr,
-			      char *buf)
-{
-	suspend_state_t state = pm_autosleep_state();
-
-	if (state == PM_SUSPEND_ON)
-		return sprintf(buf, "off\n");
-
-#ifdef CONFIG_SUSPEND
-	if (state < PM_SUSPEND_MAX)
-		return sprintf(buf, "%s\n", pm_states[state] ?
-					pm_states[state] : "error");
-#endif
-#ifdef CONFIG_HIBERNATION
-	return sprintf(buf, "disk\n");
-#else
-	return sprintf(buf, "error");
-#endif
-}
-
-static ssize_t autosleep_store(struct kobject *kobj,
-			       struct kobj_attribute *attr,
-			       const char *buf, size_t n)
-{
-	suspend_state_t state = decode_state(buf, n);
-	int error;
-
-	if (state == PM_SUSPEND_ON
-	    && strcmp(buf, "off") && strcmp(buf, "off\n"))
-		return -EINVAL;
-
-	if (state == PM_SUSPEND_MEM)
-		state = mem_sleep_current;
-
-	error = pm_autosleep_set_state(state);
-	return error ? error : n;
-}
-
-power_attr(autosleep);
-#endif /* CONFIG_PM_AUTOSLEEP */
 
 #ifdef CONFIG_PM_WAKELOCKS
 static ssize_t wake_lock_show(struct kobject *kobj,
@@ -895,13 +728,6 @@ static struct attribute * g[] = {
 #ifdef CONFIG_PM_SLEEP
 	&pm_async_attr.attr,
 	&wakeup_count_attr.attr,
-#ifdef CONFIG_SUSPEND
-	&mem_sleep_attr.attr,
-	&sync_on_suspend_attr.attr,
-#endif
-#ifdef CONFIG_PM_AUTOSLEEP
-	&autosleep_attr.attr,
-#endif
 #ifdef CONFIG_PM_WAKELOCKS
 	&wake_lock_attr.attr,
 	&wake_unlock_attr.attr,

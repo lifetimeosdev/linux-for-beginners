@@ -50,27 +50,6 @@ jiffies = jiffies_64;
 	*(.idmap.text)					\
 	__idmap_text_end = .;
 
-#ifdef CONFIG_HIBERNATION
-#define HIBERNATE_TEXT					\
-	. = ALIGN(SZ_4K);				\
-	__hibernate_exit_text_start = .;		\
-	*(.hibernate_exit.text)				\
-	__hibernate_exit_text_end = .;
-#else
-#define HIBERNATE_TEXT
-#endif
-
-#ifdef CONFIG_UNMAP_KERNEL_AT_EL0
-#define TRAMP_TEXT					\
-	. = ALIGN(PAGE_SIZE);				\
-	__entry_tramp_text_start = .;			\
-	*(.entry.tramp.text)				\
-	. = ALIGN(PAGE_SIZE);				\
-	__entry_tramp_text_end = .;
-#else
-#define TRAMP_TEXT
-#endif
-
 /*
  * The size of the PE/COFF section that covers the kernel image, which
  * runs from _stext to _edata, must be a round multiple of the PE/COFF
@@ -114,8 +93,6 @@ SECTIONS
 			KPROBES_TEXT
 			HYPERVISOR_TEXT
 			IDMAP_TEXT
-			HIBERNATE_TEXT
-			TRAMP_TEXT
 			*(.fixup)
 			*(.gnu.warning)
 		. = ALIGN(16);
@@ -139,11 +116,6 @@ SECTIONS
 	idmap_pg_dir = .;
 	. += IDMAP_DIR_SIZE;
 	idmap_pg_end = .;
-
-#ifdef CONFIG_UNMAP_KERNEL_AT_EL0
-	tramp_pg_dir = .;
-	. += PAGE_SIZE;
-#endif
 
 	reserved_pg_dir = .;
 	. += PAGE_SIZE;
@@ -195,15 +167,6 @@ SECTIONS
 
 	__rela_offset	= ABSOLUTE(ADDR(.rela.dyn) - KIMAGE_VADDR);
 	__rela_size	= SIZEOF(.rela.dyn);
-
-#ifdef CONFIG_RELR
-	.relr.dyn : ALIGN(8) {
-		*(.relr.dyn)
-	}
-
-	__relr_offset	= ABSOLUTE(ADDR(.relr.dyn) - KIMAGE_VADDR);
-	__relr_size	= SIZEOF(.relr.dyn);
-#endif
 
 	. = ALIGN(SEGMENT_ALIGN);
 	__initdata_end = .;
@@ -275,14 +238,6 @@ ASSERT(__hyp_idmap_text_end - (__hyp_idmap_text_start & ~(SZ_4K - 1)) <= SZ_4K,
 	"HYP init code too big or misaligned")
 ASSERT(__idmap_text_end - (__idmap_text_start & ~(SZ_4K - 1)) <= SZ_4K,
 	"ID map text too big or misaligned")
-#ifdef CONFIG_HIBERNATION
-ASSERT(__hibernate_exit_text_end - (__hibernate_exit_text_start & ~(SZ_4K - 1))
-	<= SZ_4K, "Hibernate exit text too big or misaligned")
-#endif
-#ifdef CONFIG_UNMAP_KERNEL_AT_EL0
-ASSERT((__entry_tramp_text_end - __entry_tramp_text_start) <= 3*PAGE_SIZE,
-	"Entry trampoline text too big")
-#endif
 /*
  * If padding is applied before .head.text, virt<->phys conversions will fail.
  */

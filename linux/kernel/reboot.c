@@ -382,12 +382,6 @@ static inline long __do_sys_reboot(int magic1, int magic2, unsigned int cmd, voi
 		break;
 #endif
 
-#ifdef CONFIG_HIBERNATION
-	case LINUX_REBOOT_CMD_SW_SUSPEND:
-		ret = hibernate();
-		break;
-#endif
-
 	default:
 		ret = -EINVAL;
 		break;

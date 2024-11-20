@@ -12,6 +12,3 @@ make defconfig
 make -j28
 
 popd
-
-./make_initramfs.sh
-

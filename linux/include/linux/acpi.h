@@ -501,10 +501,6 @@ acpi_status acpi_release_memory(acpi_handle handle, struct resource *res,
 
 int acpi_resources_are_enforced(void);
 
-#ifdef CONFIG_HIBERNATION
-void __init acpi_no_s4_hw_signature(void);
-#endif
-
 #ifdef CONFIG_PM_SLEEP
 void __init acpi_old_suspend_ordering(void);
 void __init acpi_nvs_nosave(void);

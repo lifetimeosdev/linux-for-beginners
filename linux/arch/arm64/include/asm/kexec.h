@@ -80,15 +80,9 @@ static inline void crash_setup_regs(struct pt_regs *newregs,
 	}
 }
 
-#if defined(CONFIG_KEXEC_CORE) && defined(CONFIG_HIBERNATION)
-extern bool crash_is_nosave(unsigned long pfn);
-extern void crash_prepare_suspend(void);
-extern void crash_post_resume(void);
-#else
 static inline bool crash_is_nosave(unsigned long pfn) {return false; }
 static inline void crash_prepare_suspend(void) {}
 static inline void crash_post_resume(void) {}
-#endif
 
 #ifdef CONFIG_KEXEC_FILE
 #define ARCH_HAS_KIMAGE_ARCH

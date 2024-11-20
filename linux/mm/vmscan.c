@@ -3993,45 +3993,6 @@ void wakeup_kswapd(struct zone *zone, gfp_t gfp_flags, int order,
 	wake_up_interruptible(&pgdat->kswapd_wait);
 }
 
-#ifdef CONFIG_HIBERNATION
-/*
- * Try to free `nr_to_reclaim' of memory, system-wide, and return the number of
- * freed pages.
- *
- * Rather than trying to age LRUs the aim is to preserve the overall
- * LRU order by reclaiming preferentially
- * inactive > active > active referenced > active mapped
- */
-unsigned long shrink_all_memory(unsigned long nr_to_reclaim)
-{
-	struct scan_control sc = {
-		.nr_to_reclaim = nr_to_reclaim,
-		.gfp_mask = GFP_HIGHUSER_MOVABLE,
-		.reclaim_idx = MAX_NR_ZONES - 1,
-		.priority = DEF_PRIORITY,
-		.may_writepage = 1,
-		.may_unmap = 1,
-		.may_swap = 1,
-		.hibernation_mode = 1,
-	};
-	struct zonelist *zonelist = node_zonelist(numa_node_id(), sc.gfp_mask);
-	unsigned long nr_reclaimed;
-	unsigned int noreclaim_flag;
-
-	fs_reclaim_acquire(sc.gfp_mask);
-	noreclaim_flag = memalloc_noreclaim_save();
-	set_task_reclaim_state(current, &sc.reclaim_state);
-
-	nr_reclaimed = do_try_to_free_pages(zonelist, &sc);
-
-	set_task_reclaim_state(current, NULL);
-	memalloc_noreclaim_restore(noreclaim_flag);
-	fs_reclaim_release(sc.gfp_mask);
-
-	return nr_reclaimed;
-}
-#endif /* CONFIG_HIBERNATION */
-
 /*
  * This kswapd start function will be called by init and node-hot-add.
  * On node-hot-add, kswapd will moved to proper cpus if cpus are hot-added.

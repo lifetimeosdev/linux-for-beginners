@@ -197,140 +197,6 @@ struct platform_s2idle_ops {
 	void (*end)(void);
 };
 
-#ifdef CONFIG_SUSPEND
-extern suspend_state_t mem_sleep_current;
-extern suspend_state_t mem_sleep_default;
-
-/**
- * suspend_set_ops - set platform dependent suspend operations
- * @ops: The new suspend operations to set.
- */
-extern void suspend_set_ops(const struct platform_suspend_ops *ops);
-extern int suspend_valid_only_mem(suspend_state_t state);
-
-extern unsigned int pm_suspend_global_flags;
-
-#define PM_SUSPEND_FLAG_FW_SUSPEND	BIT(0)
-#define PM_SUSPEND_FLAG_FW_RESUME	BIT(1)
-#define PM_SUSPEND_FLAG_NO_PLATFORM	BIT(2)
-
-static inline void pm_suspend_clear_flags(void)
-{
-	pm_suspend_global_flags = 0;
-}
-
-static inline void pm_set_suspend_via_firmware(void)
-{
-	pm_suspend_global_flags |= PM_SUSPEND_FLAG_FW_SUSPEND;
-}
-
-static inline void pm_set_resume_via_firmware(void)
-{
-	pm_suspend_global_flags |= PM_SUSPEND_FLAG_FW_RESUME;
-}
-
-static inline void pm_set_suspend_no_platform(void)
-{
-	pm_suspend_global_flags |= PM_SUSPEND_FLAG_NO_PLATFORM;
-}
-
-/**
- * pm_suspend_via_firmware - Check if platform firmware will suspend the system.
- *
- * To be called during system-wide power management transitions to sleep states
- * or during the subsequent system-wide transitions back to the working state.
- *
- * Return 'true' if the platform firmware is going to be invoked at the end of
- * the system-wide power management transition (to a sleep state) in progress in
- * order to complete it, or if the platform firmware has been invoked in order
- * to complete the last (or preceding) transition of the system to a sleep
- * state.
- *
- * This matters if the caller needs or wants to carry out some special actions
- * depending on whether or not control will be passed to the platform firmware
- * subsequently (for example, the device may need to be reset before letting the
- * platform firmware manipulate it, which is not necessary when the platform
- * firmware is not going to be invoked) or when such special actions may have
- * been carried out during the preceding transition of the system to a sleep
- * state (as they may need to be taken into account).
- */
-static inline bool pm_suspend_via_firmware(void)
-{
-	return !!(pm_suspend_global_flags & PM_SUSPEND_FLAG_FW_SUSPEND);
-}
-
-/**
- * pm_resume_via_firmware - Check if platform firmware has woken up the system.
- *
- * To be called during system-wide power management transitions from sleep
- * states.
- *
- * Return 'true' if the platform firmware has passed control to the kernel at
- * the beginning of the system-wide power management transition in progress, so
- * the event that woke up the system from sleep has been handled by the platform
- * firmware.
- */
-static inline bool pm_resume_via_firmware(void)
-{
-	return !!(pm_suspend_global_flags & PM_SUSPEND_FLAG_FW_RESUME);
-}
-
-/**
- * pm_suspend_no_platform - Check if platform may change device power states.
- *
- * To be called during system-wide power management transitions to sleep states
- * or during the subsequent system-wide transitions back to the working state.
- *
- * Return 'true' if the power states of devices remain under full control of the
- * kernel throughout the system-wide suspend and resume cycle in progress (that
- * is, if a device is put into a certain power state during suspend, it can be
- * expected to remain in that state during resume).
- */
-static inline bool pm_suspend_no_platform(void)
-{
-	return !!(pm_suspend_global_flags & PM_SUSPEND_FLAG_NO_PLATFORM);
-}
-
-/* Suspend-to-idle state machnine. */
-enum s2idle_states {
-	S2IDLE_STATE_NONE,      /* Not suspended/suspending. */
-	S2IDLE_STATE_ENTER,     /* Enter suspend-to-idle. */
-	S2IDLE_STATE_WAKE,      /* Wake up from suspend-to-idle. */
-};
-
-extern enum s2idle_states __read_mostly s2idle_state;
-
-static inline bool idle_should_enter_s2idle(void)
-{
-	return unlikely(s2idle_state == S2IDLE_STATE_ENTER);
-}
-
-extern bool pm_suspend_default_s2idle(void);
-extern void __init pm_states_init(void);
-extern void s2idle_set_ops(const struct platform_s2idle_ops *ops);
-extern void s2idle_wake(void);
-
-/**
- * arch_suspend_disable_irqs - disable IRQs for suspend
- *
- * Disables IRQs (in the default case). This is a weak symbol in the common
- * code and thus allows architectures to override it if more needs to be
- * done. Not called for suspend to disk.
- */
-extern void arch_suspend_disable_irqs(void);
-
-/**
- * arch_suspend_enable_irqs - enable IRQs after suspend
- *
- * Enables IRQs (in the default case). This is a weak symbol in the common
- * code and thus allows architectures to override it if more needs to be
- * done. Not called for suspend to disk.
- */
-extern void arch_suspend_enable_irqs(void);
-
-extern int pm_suspend(suspend_state_t state);
-extern bool sync_on_suspend_enabled;
-#else /* !CONFIG_SUSPEND */
 #define suspend_valid_only_mem	NULL
 
 static inline void pm_suspend_clear_flags(void) {}
@@ -348,7 +214,6 @@ static inline bool idle_should_enter_s2idle(void) { return false; }
 static inline void __init pm_states_init(void) {}
 static inline void s2idle_set_ops(const struct platform_s2idle_ops *ops) {}
 static inline void s2idle_wake(void) {}
-#endif /* !CONFIG_SUSPEND */
 
 /* struct pbe is used for creating lists of pages that should be restored
  * atomically during the resume from disk, because the page frames they have
@@ -428,26 +293,6 @@ struct platform_hibernation_ops {
 	void (*recover)(void);
 };
 
-#ifdef CONFIG_HIBERNATION
-/* kernel/power/snapshot.c */
-extern void register_nosave_region(unsigned long b, unsigned long e);
-extern int swsusp_page_is_forbidden(struct page *);
-extern void swsusp_set_page_free(struct page *);
-extern void swsusp_unset_page_free(struct page *);
-extern unsigned long get_safe_page(gfp_t gfp_mask);
-extern asmlinkage int swsusp_arch_suspend(void);
-extern asmlinkage int swsusp_arch_resume(void);
-
-extern void hibernation_set_ops(const struct platform_hibernation_ops *ops);
-extern int hibernate(void);
-extern bool system_entering_hibernation(void);
-extern bool hibernation_available(void);
-asmlinkage int swsusp_save(void);
-extern struct pbe *restore_pblist;
-int pfn_is_nosave(unsigned long pfn);
-
-int hibernate_quiet_exec(int (*func)(void *data), void *data);
-#else /* CONFIG_HIBERNATION */
 static inline void register_nosave_region(unsigned long b, unsigned long e) {}
 static inline int swsusp_page_is_forbidden(struct page *p) { return 0; }
 static inline void swsusp_set_page_free(struct page *p) {}
@@ -461,7 +306,6 @@ static inline bool hibernation_available(void) { return false; }
 static inline int hibernate_quiet_exec(int (*func)(void *data), void *data) {
 	return -ENOTSUPP;
 }
-#endif /* CONFIG_HIBERNATION */
 
 #ifdef CONFIG_HIBERNATION_SNAPSHOT_DEV
 int is_hibernate_resume_dev(dev_t dev);
@@ -558,15 +402,6 @@ extern __printf(2, 3) void __pm_pr_dbg(bool defer, const char *fmt, ...);
 #define pm_deferred_pr_dbg(fmt, ...) \
 	__pm_pr_dbg(true, fmt, ##__VA_ARGS__)
 
-#ifdef CONFIG_PM_AUTOSLEEP
-
-/* kernel/power/autosleep.c */
-void queue_up_suspend_work(void);
-
-#else /* !CONFIG_PM_AUTOSLEEP */
-
 static inline void queue_up_suspend_work(void) {}
-
-#endif /* !CONFIG_PM_AUTOSLEEP */
 
 #endif /* _LINUX_SUSPEND_H */

@@ -323,15 +323,6 @@ alternative_if_not ARM64_UNMAP_KERNEL_AT_EL0
 	add	sp, sp, #S_FRAME_SIZE		// restore sp
 	eret
 alternative_else_nop_endif
-#ifdef CONFIG_UNMAP_KERNEL_AT_EL0
-	bne	4f
-	msr	far_el1, x29
-	tramp_alias	x30, tramp_exit_native, x29
-	br	x30
-4:
-	tramp_alias	x30, tramp_exit_compat, x29
-	br	x30
-#endif
 	.else
 	ldr	lr, [sp, #S_LR]
 	add	sp, sp, #S_FRAME_SIZE		// restore sp
@@ -777,35 +768,6 @@ alternative_else_nop_endif
 	tramp_ventry	.Lvector_start\@, 32, \kpti, \bhb
 	.endr
 	.endm
-
-#ifdef CONFIG_UNMAP_KERNEL_AT_EL0
-/*
- * Exception vectors trampoline.
- * The order must match __bp_harden_el1_vectors and the
- * arm64_bp_harden_el1_vectors enum.
- */
-	.pushsection ".entry.tramp.text", "ax"
-	.align	11
-SYM_CODE_START_NOALIGN(tramp_vectors)
-#ifdef CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY
-	generate_tramp_vector	kpti=1, bhb=BHB_MITIGATION_LOOP
-	generate_tramp_vector	kpti=1, bhb=BHB_MITIGATION_FW
-	generate_tramp_vector	kpti=1, bhb=BHB_MITIGATION_INSN
-#endif /* CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY */
-	generate_tramp_vector	kpti=1, bhb=BHB_MITIGATION_NONE
-SYM_CODE_END(tramp_vectors)
-
-SYM_CODE_START(tramp_exit_native)
-	tramp_exit
-SYM_CODE_END(tramp_exit_native)
-
-SYM_CODE_START(tramp_exit_compat)
-	tramp_exit	32
-SYM_CODE_END(tramp_exit_compat)
-
-	.ltorg
-	.popsection				// .entry.tramp.text
-#endif /* CONFIG_UNMAP_KERNEL_AT_EL0 */
 
 /*
  * Exception vectors for spectre mitigations on entry from EL1 when
