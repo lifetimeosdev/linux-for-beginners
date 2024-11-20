@@ -2,20 +2,21 @@
 
 set -exo pipefail
 
-pushd ./busybox-1.28.4
+pushd ./busybox
 export ARCH=arm64
 export CROSS_COMPILE=/usr/bin/aarch64-linux-gnu-
 make clean
 
 OUTPUT_PATH=./busybox_rootfs
 make defconfig
-cp ../busybox_config .config
+cp ../misc/busybox_config .config
 
+rm -rf $OUTPUT_PATH
 make -j28 CONFIG_PREFIX=$OUTPUT_PATH install
+cp ./busybox_unstripped $OUTPUT_PATH/bin/busybox*
 
 pushd $OUTPUT_PATH
-touch ./init
-chmod +x ./init
+
 cat >./init <<EOF
 #!/bin/sh
 
@@ -30,9 +31,11 @@ exec /sbin/init
 
 EOF
 
-find . -print0 | cpio --null -ov --format=newc > ../../qemu/initramfs.cpio
+chmod +x ./init
+
+find . -print0 | cpio --null -ov --format=newc > ../../misc/initramfs.cpio
 
 popd
 popd
 
-gzip -f ./qemu/initramfs.cpio
+gzip -f ./misc/initramfs.cpio
