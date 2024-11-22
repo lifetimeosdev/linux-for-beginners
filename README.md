@@ -7,8 +7,10 @@
 ### Quick start (Dev on Ubuntu 24.04)
 
 1. Install `VSCode`, `C/C++ extension` and `gdb-multiarch` on a Linux distro.
-2. Using `./build.sh` to build the source code.
-3. Using `./run.sh` to start the qemu and press F5 to start the debugger.
+1. Using `./build.sh` to build the linux source code.
+1. Using `./build_musl_libc.sh` to build the musl libc source code.
+1. Using `./make_initramfs.sh` to make initramfs including busybox.
+1. Using `./run.sh` to start the qemu and press F5 to start the debugger.
 
 ### Disclaimer
 
