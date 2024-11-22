@@ -2,9 +2,10 @@
 
 set -exo pipefail
 
-pushd ./busybox
 export ARCH=arm64
 export CROSS_COMPILE=/usr/bin/aarch64-linux-gnu-
+
+pushd ./busybox
 make clean
 
 OUTPUT_PATH=./busybox_rootfs
