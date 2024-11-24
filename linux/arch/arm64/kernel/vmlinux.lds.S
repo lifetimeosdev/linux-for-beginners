@@ -26,24 +26,6 @@ jiffies = jiffies_64;
 #define HYPERVISOR_EXTABLE
 #define HYPERVISOR_PERCPU_SECTION
 
-#define HYPERVISOR_TEXT					\
-	/*						\
-	 * Align to 4 KB so that			\
-	 * a) the HYP vector table is at its minimum	\
-	 *    alignment of 2048 bytes			\
-	 * b) the HYP init code will not cross a page	\
-	 *    boundary if its size does not exceed	\
-	 *    4 KB (see related ASSERT() below)		\
-	 */						\
-	. = ALIGN(SZ_4K);				\
-	__hyp_idmap_text_start = .;			\
-	*(.hyp.idmap.text)				\
-	__hyp_idmap_text_end = .;			\
-	__hyp_text_start = .;				\
-	*(.hyp.text)					\
-	HYPERVISOR_EXTABLE				\
-	__hyp_text_end = .;
-
 #define IDMAP_TEXT					\
 	. = ALIGN(SZ_4K);				\
 	__idmap_text_start = .;				\
@@ -91,7 +73,6 @@ SECTIONS
 			CPUIDLE_TEXT
 			LOCK_TEXT
 			KPROBES_TEXT
-			HYPERVISOR_TEXT
 			IDMAP_TEXT
 			*(.fixup)
 			*(.gnu.warning)
@@ -234,8 +215,6 @@ SECTIONS
  * The HYP init code and ID map text can't be longer than a page each,
  * and should not cross a page boundary.
  */
-ASSERT(__hyp_idmap_text_end - (__hyp_idmap_text_start & ~(SZ_4K - 1)) <= SZ_4K,
-	"HYP init code too big or misaligned")
 ASSERT(__idmap_text_end - (__idmap_text_start & ~(SZ_4K - 1)) <= SZ_4K,
 	"ID map text too big or misaligned")
 /*

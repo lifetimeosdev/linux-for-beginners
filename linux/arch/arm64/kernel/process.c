@@ -402,10 +402,7 @@ int copy_thread(unsigned long clone_flags, unsigned long stack_start,
 		*task_user_tls(p) = read_sysreg(tpidr_el0);
 
 		if (stack_start) {
-			if (is_compat_thread(task_thread_info(p)))
-				childregs->compat_sp = stack_start;
-			else
-				childregs->sp = stack_start;
+			childregs->sp = stack_start;
 		}
 
 		/*
@@ -446,9 +443,7 @@ static void tls_thread_switch(struct task_struct *next)
 {
 	tls_preserve_current_state();
 
-	if (is_compat_thread(task_thread_info(next)))
-		write_sysreg(next->thread.uw.tp_value, tpidrro_el0);
-	else if (!arm64_kernel_unmapped_at_el0())
+	if (!arm64_kernel_unmapped_at_el0())
 		write_sysreg(0, tpidrro_el0);
 
 	write_sysreg(*task_user_tls(next), tpidr_el0);
@@ -513,10 +508,7 @@ static void erratum_1418040_thread_switch(struct task_struct *next)
 	    !this_cpu_has_cap(ARM64_WORKAROUND_1418040))
 		return;
 
-	if (is_compat_thread(task_thread_info(next)))
-		sysreg_clear_set(cntkctl_el1, ARCH_TIMER_USR_VCT_ACCESS_EN, 0);
-	else
-		sysreg_clear_set(cntkctl_el1, 0, ARCH_TIMER_USR_VCT_ACCESS_EN);
+	sysreg_clear_set(cntkctl_el1, 0, ARCH_TIMER_USR_VCT_ACCESS_EN);
 }
 
 static void erratum_1418040_new_exec(void)
@@ -626,12 +618,6 @@ long set_tagged_addr_ctrl(struct task_struct *task, unsigned long arg)
 	unsigned long valid_mask = PR_TAGGED_ADDR_ENABLE;
 	struct thread_info *ti = task_thread_info(task);
 
-	if (is_compat_thread(ti))
-		return -EINVAL;
-
-	if (system_supports_mte())
-		valid_mask |= PR_MTE_TCF_MASK | PR_MTE_TAG_MASK;
-
 	if (arg & ~valid_mask)
 		return -EINVAL;
 
@@ -654,9 +640,6 @@ long get_tagged_addr_ctrl(struct task_struct *task)
 {
 	long ret = 0;
 	struct thread_info *ti = task_thread_info(task);
-
-	if (is_compat_thread(ti))
-		return -EINVAL;
 
 	if (test_ti_thread_flag(ti, TIF_TAGGED_ADDR))
 		ret = PR_TAGGED_ADDR_ENABLE;

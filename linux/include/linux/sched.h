@@ -1025,15 +1025,6 @@ struct task_struct {
 	int				non_block_count;
 #endif
 
-#ifdef CONFIG_TRACE_IRQFLAGS
-	struct irqtrace_events		irqtrace;
-	unsigned int			hardirq_threaded;
-	u64				hardirq_chain_key;
-	int				softirqs_enabled;
-	int				softirq_context;
-	int				irq_config;
-#endif
-
 #if defined(CONFIG_UBSAN) && !defined(CONFIG_UBSAN_TRAP)
 	unsigned int			in_ubsan;
 #endif
@@ -1172,9 +1163,6 @@ struct task_struct {
 
 #ifdef CONFIG_KCSAN
 	struct kcsan_ctx		kcsan_ctx;
-#ifdef CONFIG_TRACE_IRQFLAGS
-	struct irqtrace_events		kcsan_save_irqtrace;
-#endif
 #endif
 
 #if IS_ENABLED(CONFIG_KUNIT)

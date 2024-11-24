@@ -986,8 +986,5 @@ int valid_user_regs(struct user_pt_regs *regs, struct task_struct *task)
 	/* https://lore.kernel.org/lkml/20191118131525.GA4180@willie-the-truck */
 	user_regs_reset_single_step(regs, task);
 
-	if (is_compat_thread(task_thread_info(task)))
-		return valid_compat_regs(regs);
-	else
-		return valid_native_regs(regs);
+	return valid_native_regs(regs);
 }

@@ -33,9 +33,6 @@
  * Context tracking and irqflag tracing need to instrument transitions between
  * user and kernel mode.
  */
-	.macro user_exit_irqoff
-	.endm
-
 	.macro user_enter_irqoff
 	.endm
 
@@ -382,27 +379,7 @@ tsk	.req	x28		// current thread_info
 	irq_stack_exit
 	.endm
 
-#ifdef CONFIG_ARM64_PSEUDO_NMI
-	/*
-	 * Set res to 0 if irqs were unmasked in interrupted context.
-	 * Otherwise set res to non-0 value.
-	 */
-	.macro	test_irqs_unmasked res:req, pmr:req
-alternative_if ARM64_HAS_IRQ_PRIO_MASKING
-	sub	\res, \pmr, #GIC_PRIO_IRQON
-alternative_else
-	mov	\res, xzr
-alternative_endif
-	.endm
-#endif
-
 	.macro	gic_prio_kentry_setup, tmp:req
-#ifdef CONFIG_ARM64_PSEUDO_NMI
-	alternative_if ARM64_HAS_IRQ_PRIO_MASKING
-	mov	\tmp, #(GIC_PRIO_PSR_I_SET | GIC_PRIO_IRQON)
-	msr_s	SYS_ICC_PMR_EL1, \tmp
-	alternative_else_nop_endif
-#endif
 	.endm
 
 	.macro el1_interrupt_handler, handler:req
@@ -433,7 +410,6 @@ alternative_else_nop_endif
 	.endm
 
 	.macro el0_interrupt_handler, handler:req
-	user_exit_irqoff
 	enable_da_f
 
 	tbz	x22, #55, 1f
@@ -594,7 +570,6 @@ SYM_CODE_START_LOCAL(el0_error)
 	kernel_entry 0
 el0_error_naked:
 	mrs	x25, esr_el1
-	user_exit_irqoff
 	enable_dbg
 	mov	x0, sp
 	mov	x1, x25
@@ -609,9 +584,6 @@ SYM_CODE_END(el0_error)
 SYM_CODE_START_LOCAL(ret_to_user)
 	disable_daif
 	gic_prio_kentry_setup tmp=x3
-#ifdef CONFIG_TRACE_IRQFLAGS
-	bl	trace_hardirqs_off
-#endif
 	ldr	x19, [tsk, #TSK_TI_FLAGS]
 	and	x2, x19, #_TIF_WORK_MASK
 	cbnz	x2, work_pending
@@ -644,18 +616,6 @@ SYM_CODE_END(ret_to_user)
 	add	\tmp, \tmp, #(2 * PAGE_SIZE)
 	bic	\tmp, \tmp, #USER_ASID_FLAG
 	msr	ttbr1_el1, \tmp
-#ifdef CONFIG_QCOM_FALKOR_ERRATUM_1003
-alternative_if ARM64_WORKAROUND_QCOM_FALKOR_E1003
-	/* ASID already in \tmp[63:48] */
-	movk	\tmp, #:abs_g2_nc:(TRAMP_VALIAS >> 12)
-	movk	\tmp, #:abs_g1_nc:(TRAMP_VALIAS >> 12)
-	/* 2MB boundary containing the vectors, so we nobble the walk cache */
-	movk	\tmp, #:abs_g0_nc:((TRAMP_VALIAS & ~(SZ_2M - 1)) >> 12)
-	isb
-	tlbi	vae1, \tmp
-	dsb	nsh
-alternative_else_nop_endif
-#endif /* CONFIG_QCOM_FALKOR_ERRATUM_1003 */
 	.endm
 
 	// Move from swapper_pg_dir to tramp_pg_dir
@@ -692,19 +652,6 @@ alternative_else_nop_endif
 	msr	tpidrro_el0, x30	// Restored in kernel_ventry
 	.endif
 
-	.if	\bhb == BHB_MITIGATION_LOOP
-	/*
-	 * This sequence must appear before the first indirect branch. i.e. the
-	 * ret out of tramp_ventry. It appears here because x30 is free.
-	 */
-	__mitigate_spectre_bhb_loop	x30
-	.endif // \bhb == BHB_MITIGATION_LOOP
-
-	.if	\bhb == BHB_MITIGATION_INSN
-	clearbhb
-	isb
-	.endif // \bhb == BHB_MITIGATION_INSN
-
 	.if	\kpti == 1
 	/*
 	 * Defend against branch aliasing attacks by pushing a dummy
@@ -727,15 +674,6 @@ alternative_else_nop_endif
 	ldr	x30, =vectors
 	.endif // \kpti == 1
 
-	.if	\bhb == BHB_MITIGATION_FW
-	/*
-	 * The firmware sequence must appear before the first indirect branch.
-	 * i.e. the ret out of tramp_ventry. But it also needs the stack to be
-	 * mapped to save/restore the registers the SMC clobbers.
-	 */
-	__mitigate_spectre_bhb_fw
-	.endif // \bhb == BHB_MITIGATION_FW
-
 	add	x30, x30, #(1b - \vector_start + 4)
 	ret
 .org 1b + 128	// Did we overflow the ventry slot?
@@ -757,51 +695,10 @@ alternative_else_nop_endif
 	sb
 	.endm
 
-	.macro	generate_tramp_vector,	kpti, bhb
-.Lvector_start\@:
-	.space	0x400
-
-	.rept	4
-	tramp_ventry	.Lvector_start\@, 64, \kpti, \bhb
-	.endr
-	.rept	4
-	tramp_ventry	.Lvector_start\@, 32, \kpti, \bhb
-	.endr
-	.endm
-
-/*
- * Exception vectors for spectre mitigations on entry from EL1 when
- * kpti is not in use.
- */
-	.macro generate_el1_vector, bhb
-.Lvector_start\@:
-	kernel_ventry	1, sync_invalid			// Synchronous EL1t
-	kernel_ventry	1, irq_invalid			// IRQ EL1t
-	kernel_ventry	1, fiq_invalid			// FIQ EL1t
-	kernel_ventry	1, error_invalid		// Error EL1t
-
-	kernel_ventry	1, sync				// Synchronous EL1h
-	kernel_ventry	1, irq				// IRQ EL1h
-	kernel_ventry	1, fiq_invalid			// FIQ EL1h
-	kernel_ventry	1, error			// Error EL1h
-
-	.rept	4
-	tramp_ventry	.Lvector_start\@, 64, 0, \bhb
-	.endr
-	.rept 4
-	tramp_ventry	.Lvector_start\@, 32, 0, \bhb
-	.endr
-	.endm
-
 /* The order must match tramp_vecs and the arm64_bp_harden_el1_vectors enum. */
 	.pushsection ".entry.text", "ax"
 	.align	11
 SYM_CODE_START(__bp_harden_el1_vectors)
-#ifdef CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY
-	generate_el1_vector	bhb=BHB_MITIGATION_LOOP
-	generate_el1_vector	bhb=BHB_MITIGATION_FW
-	generate_el1_vector	bhb=BHB_MITIGATION_INSN
-#endif /* CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY */
 SYM_CODE_END(__bp_harden_el1_vectors)
 	.popsection
 

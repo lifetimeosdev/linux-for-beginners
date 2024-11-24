@@ -32,20 +32,10 @@ DECLARE_EVENT_CLASS(preemptirq_template,
 		  (void *)((unsigned long)(_stext) + __entry->parent_offs))
 );
 
-#ifdef CONFIG_TRACE_IRQFLAGS
-DEFINE_EVENT(preemptirq_template, irq_disable,
-	     TP_PROTO(unsigned long ip, unsigned long parent_ip),
-	     TP_ARGS(ip, parent_ip));
-
-DEFINE_EVENT(preemptirq_template, irq_enable,
-	     TP_PROTO(unsigned long ip, unsigned long parent_ip),
-	     TP_ARGS(ip, parent_ip));
-#else
 #define trace_irq_enable(...)
 #define trace_irq_disable(...)
 #define trace_irq_enable_rcuidle(...)
 #define trace_irq_disable_rcuidle(...)
-#endif
 
 #ifdef CONFIG_TRACE_PREEMPT_TOGGLE
 DEFINE_EVENT(preemptirq_template, preempt_disable,

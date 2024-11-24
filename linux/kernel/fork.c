@@ -1951,9 +1951,6 @@ static __latent_entropy struct task_struct *copy_process(
 	rt_mutex_init_task(p);
 
 	lockdep_assert_irqs_enabled();
-#ifdef CONFIG_PROVE_LOCKING
-	DEBUG_LOCKS_WARN_ON(!p->softirqs_enabled);
-#endif
 	retval = -EAGAIN;
 	if (atomic_read(&p->real_cred->user->processes) >=
 			task_rlimit(p, RLIMIT_NPROC)) {
@@ -2025,13 +2022,6 @@ static __latent_entropy struct task_struct *copy_process(
 	p->cpuset_mem_spread_rotor = NUMA_NO_NODE;
 	p->cpuset_slab_spread_rotor = NUMA_NO_NODE;
 	seqcount_spinlock_init(&p->mems_allowed_seq, &p->alloc_lock);
-#endif
-#ifdef CONFIG_TRACE_IRQFLAGS
-	memset(&p->irqtrace, 0, sizeof(p->irqtrace));
-	p->irqtrace.hardirq_disable_ip	= _THIS_IP_;
-	p->irqtrace.softirq_enable_ip	= _THIS_IP_;
-	p->softirqs_enabled		= 1;
-	p->softirq_context		= 0;
 #endif
 
 	p->pagefault_disabled = 0;

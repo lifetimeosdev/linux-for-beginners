@@ -106,44 +106,6 @@ static bool ksoftirqd_running(unsigned long pending)
  * This one is for softirq.c-internal use,
  * where hardirqs are disabled legitimately:
  */
-#ifdef CONFIG_TRACE_IRQFLAGS
-
-DEFINE_PER_CPU(int, hardirqs_enabled);
-DEFINE_PER_CPU(int, hardirq_context);
-EXPORT_PER_CPU_SYMBOL_GPL(hardirqs_enabled);
-EXPORT_PER_CPU_SYMBOL_GPL(hardirq_context);
-
-void __local_bh_disable_ip(unsigned long ip, unsigned int cnt)
-{
-	unsigned long flags;
-
-	WARN_ON_ONCE(in_irq());
-
-	raw_local_irq_save(flags);
-	/*
-	 * The preempt tracer hooks into preempt_count_add and will break
-	 * lockdep because it calls back into lockdep after SOFTIRQ_OFFSET
-	 * is set and before current->softirq_enabled is cleared.
-	 * We must manually increment preempt_count here and manually
-	 * call the trace_preempt_off later.
-	 */
-	__preempt_count_add(cnt);
-	/*
-	 * Were softirqs turned off above:
-	 */
-	if (softirq_count() == (cnt & SOFTIRQ_MASK))
-		lockdep_softirqs_off(ip);
-	raw_local_irq_restore(flags);
-
-	if (preempt_count() == cnt) {
-#ifdef CONFIG_DEBUG_PREEMPT
-		current->preempt_disable_ip = get_lock_parent_ip();
-#endif
-		trace_preempt_off(CALLER_ADDR0, get_lock_parent_ip());
-	}
-}
-EXPORT_SYMBOL(__local_bh_disable_ip);
-#endif /* CONFIG_TRACE_IRQFLAGS */
 
 static void __local_bh_enable(unsigned int cnt)
 {
@@ -151,9 +113,6 @@ static void __local_bh_enable(unsigned int cnt)
 
 	if (preempt_count() == cnt)
 		trace_preempt_on(CALLER_ADDR0, get_lock_parent_ip());
-
-	if (softirq_count() == (cnt & SOFTIRQ_MASK))
-		lockdep_softirqs_on(_RET_IP_);
 
 	__preempt_count_sub(cnt);
 }
@@ -173,14 +132,10 @@ void __local_bh_enable_ip(unsigned long ip, unsigned int cnt)
 {
 	WARN_ON_ONCE(in_irq());
 	lockdep_assert_irqs_enabled();
-#ifdef CONFIG_TRACE_IRQFLAGS
-	local_irq_disable();
-#endif
 	/*
 	 * Are softirqs going to be turned on now:
 	 */
-	if (softirq_count() == SOFTIRQ_DISABLE_OFFSET)
-		lockdep_softirqs_on(ip);
+
 	/*
 	 * Keep preemption disabled until we are done with
 	 * softirq processing:
@@ -196,9 +151,6 @@ void __local_bh_enable_ip(unsigned long ip, unsigned int cnt)
 	}
 
 	preempt_count_dec();
-#ifdef CONFIG_TRACE_IRQFLAGS
-	local_irq_enable();
-#endif
 	preempt_check_resched();
 }
 EXPORT_SYMBOL(__local_bh_enable_ip);
@@ -219,38 +171,8 @@ EXPORT_SYMBOL(__local_bh_enable_ip);
 #define MAX_SOFTIRQ_TIME  msecs_to_jiffies(2)
 #define MAX_SOFTIRQ_RESTART 10
 
-#ifdef CONFIG_TRACE_IRQFLAGS
-/*
- * When we run softirqs from irq_exit() and thus on the hardirq stack we need
- * to keep the lockdep irq context tracking as tight as possible in order to
- * not miss-qualify lock contexts and miss possible deadlocks.
- */
-
-static inline bool lockdep_softirq_start(void)
-{
-	bool in_hardirq = false;
-
-	if (lockdep_hardirq_context()) {
-		in_hardirq = true;
-		lockdep_hardirq_exit();
-	}
-
-	lockdep_softirq_enter();
-
-	return in_hardirq;
-}
-
-static inline void lockdep_softirq_end(bool in_hardirq)
-{
-	lockdep_softirq_exit();
-
-	if (in_hardirq)
-		lockdep_hardirq_enter();
-}
-#else
 static inline bool lockdep_softirq_start(void) { return false; }
 static inline void lockdep_softirq_end(bool in_hardirq) { }
-#endif
 
 asmlinkage __visible void __softirq_entry __do_softirq(void)
 {

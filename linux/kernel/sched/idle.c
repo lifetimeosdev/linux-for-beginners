@@ -105,9 +105,7 @@ void __cpuidle default_idle_call(void)
 		 * last -- this is very similar to the entry code.
 		 */
 		trace_hardirqs_on_prepare();
-		lockdep_hardirqs_on_prepare(_THIS_IP_);
 		rcu_idle_enter();
-		lockdep_hardirqs_on(_THIS_IP_);
 
 		arch_cpu_idle();
 
@@ -118,9 +116,7 @@ void __cpuidle default_idle_call(void)
 		 * make it 'work'.
 		 */
 		raw_local_irq_disable();
-		lockdep_hardirqs_off(_THIS_IP_);
 		rcu_idle_exit();
-		lockdep_hardirqs_on(_THIS_IP_);
 		raw_local_irq_enable();
 
 		start_critical_timings();

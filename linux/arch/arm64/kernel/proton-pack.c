@@ -881,19 +881,6 @@ static bool is_spectre_bhb_fw_affected(int scope)
 	return false;
 }
 
-static bool supports_ecbhb(int scope)
-{
-	u64 mmfr1;
-
-	if (scope == SCOPE_LOCAL_CPU)
-		mmfr1 = read_sysreg_s(SYS_ID_AA64MMFR1_EL1);
-	else
-		mmfr1 = read_sanitised_ftr_reg(SYS_ID_AA64MMFR1_EL1);
-
-	return cpuid_feature_extract_unsigned_field(mmfr1,
-						    ID_AA64MMFR1_ECBHB_SHIFT);
-}
-
 bool is_spectre_bhb_affected(const struct arm64_cpu_capabilities *entry,
 			     int scope)
 {
@@ -914,83 +901,11 @@ bool is_spectre_bhb_affected(const struct arm64_cpu_capabilities *entry,
 	return false;
 }
 
-static void this_cpu_set_vectors(enum arm64_bp_harden_el1_vectors slot)
-{
-	const char *v = arm64_get_bp_hardening_vector(slot);
-
-	if (slot < 0)
-		return;
-
-	__this_cpu_write(this_cpu_vector, v);
-
-	/*
-	 * When KPTI is in use, the vectors are switched when exiting to
-	 * user-space.
-	 */
-	if (arm64_kernel_unmapped_at_el0())
-		return;
-
-	write_sysreg(v, vbar_el1);
-	isb();
-}
-
 #define __smccc_workaround_3_smc NULL
 #define __spectre_bhb_loop_k8 NULL
 #define __spectre_bhb_loop_k24 NULL
 #define __spectre_bhb_loop_k32 NULL
 #define __spectre_bhb_clearbhb NULL
-
-static void kvm_setup_bhb_slot(const char *hyp_vecs_start) { }
-
-void spectre_bhb_enable_mitigation(const struct arm64_cpu_capabilities *entry)
-{
-	enum mitigation_state fw_state, state = SPECTRE_VULNERABLE;
-
-	if (!is_spectre_bhb_affected(entry, SCOPE_LOCAL_CPU))
-		return;
-
-	if (arm64_get_spectre_v2_state() == SPECTRE_VULNERABLE) {
-		/* No point mitigating Spectre-BHB alone. */
-	} else if (!IS_ENABLED(CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY)) {
-		pr_info_once("spectre-bhb mitigation disabled by compile time option\n");
-	} else if (cpu_mitigations_off()) {
-		pr_info_once("spectre-bhb mitigation disabled by command line option\n");
-	} else if (supports_ecbhb(SCOPE_LOCAL_CPU)) {
-		state = SPECTRE_MITIGATED;
-	} else if (supports_clearbhb(SCOPE_LOCAL_CPU)) {
-		kvm_setup_bhb_slot(__spectre_bhb_clearbhb);
-		this_cpu_set_vectors(EL1_VECTOR_BHB_CLEAR_INSN);
-
-		state = SPECTRE_MITIGATED;
-	} else if (spectre_bhb_loop_affected(SCOPE_LOCAL_CPU)) {
-		switch (spectre_bhb_loop_affected(SCOPE_SYSTEM)) {
-		case 8:
-			kvm_setup_bhb_slot(__spectre_bhb_loop_k8);
-			break;
-		case 24:
-			kvm_setup_bhb_slot(__spectre_bhb_loop_k24);
-			break;
-		case 32:
-			kvm_setup_bhb_slot(__spectre_bhb_loop_k32);
-			break;
-		default:
-			WARN_ON_ONCE(1);
-		}
-		this_cpu_set_vectors(EL1_VECTOR_BHB_LOOP);
-
-		state = SPECTRE_MITIGATED;
-	} else if (is_spectre_bhb_fw_affected(SCOPE_LOCAL_CPU)) {
-		fw_state = spectre_bhb_get_cpu_fw_mitigation_state();
-		if (fw_state == SPECTRE_MITIGATED) {
-			kvm_setup_bhb_slot(__smccc_workaround_3_smc);
-			this_cpu_set_vectors(EL1_VECTOR_BHB_FW);
-
-			state = SPECTRE_MITIGATED;
-		}
-	}
-
-	update_mitigation_state(&spectre_bhb_state, state);
-}
 
 /* Patched to correct the immediate */
 void noinstr spectre_bhb_patch_loop_iter(struct alt_instr *alt,

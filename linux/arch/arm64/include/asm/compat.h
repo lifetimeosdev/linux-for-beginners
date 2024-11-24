@@ -7,9 +7,4 @@
 
 #include <asm-generic/compat.h>
 
-static inline int is_compat_thread(struct thread_info *thread)
-{
-	return 0;
-}
-
 #endif /* __ASM_COMPAT_H */

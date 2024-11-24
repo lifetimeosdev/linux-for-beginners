@@ -3,5 +3,23 @@
 		"*.h": "c",
 		"*.c": "c",
 		"typeinfo": "c"
-	}
+	},
+	"search.exclude": {
+		"**/musl-cross-make/**": true,
+		"**/.git/objects/**": true,
+	},
+	"files.watcherExclude": {
+		"**/musl-cross-make/**": true,
+		"**/.git/**": true,
+	},
+	"C_Cpp.files.exclude": {
+		"**/musl-cross-make/**": true,
+		"**/.git/**": true,
+	},
+	"C_Cpp.default.includePath": [
+		"${workspaceFolder}/linux/**",
+	],
+	"C_Cpp.default.browse.path": [
+		"${workspaceFolder}/linux/**",
+	],
 }

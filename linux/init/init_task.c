@@ -174,9 +174,6 @@ struct task_struct init_task
 		.scoped_accesses	= {LIST_POISON1, NULL},
 	},
 #endif
-#ifdef CONFIG_TRACE_IRQFLAGS
-	.softirqs_enabled = 1,
-#endif
 #ifdef CONFIG_FUNCTION_GRAPH_TRACER
 	.ret_stack		= NULL,
 	.tracing_graph_pause	= ATOMIC_INIT(0),

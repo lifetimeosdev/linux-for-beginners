@@ -621,7 +621,7 @@ config ARM64_ERRATUM_1286807
 
 config ARM64_ERRATUM_1463225
 	bool "Cortex-A76: Software Step might prevent interrupt recognition"
-	default y
+	default n
 	help
 	  This option adds a workaround for Arm Cortex-A76 erratum 1463225.
 
@@ -1222,7 +1222,7 @@ config UNMAP_KERNEL_AT_EL0
 
 config MITIGATE_SPECTRE_BRANCH_HISTORY
 	bool "Mitigate Spectre style attacks against branch history" if EXPERT
-	default y
+	default n
 	help
 	  Speculation attacks against some high-performance processors can
 	  make use of branch history to influence future speculation.

@@ -1899,15 +1899,6 @@ static struct ctl_table kern_table[] = {
 		.extra2		= SYSCTL_ONE,
 	},
 #endif
-#ifdef CONFIG_PROVE_LOCKING
-	{
-		.procname	= "prove_locking",
-		.data		= &prove_locking,
-		.maxlen		= sizeof(int),
-		.mode		= 0644,
-		.proc_handler	= proc_dointvec,
-	},
-#endif
 #ifdef CONFIG_LOCK_STAT
 	{
 		.procname	= "lock_stat",

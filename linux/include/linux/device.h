@@ -494,9 +494,6 @@ struct device {
 					   core doesn't touch it */
 	void		*driver_data;	/* Driver data, set and get with
 					   dev_set_drvdata/dev_get_drvdata */
-#ifdef CONFIG_PROVE_LOCKING
-	struct mutex		lockdep_mutex;
-#endif
 	struct mutex		mutex;	/* mutex to synchronize calls to
 					 * its driver.
 					 */

@@ -217,7 +217,6 @@ asmlinkage notrace void secondary_start_kernel(void)
 		init_gic_priority_masking();
 
 	rcu_cpu_starting(cpu);
-	trace_hardirqs_off();
 
 	/*
 	 * If the system has established the capabilities, make sure

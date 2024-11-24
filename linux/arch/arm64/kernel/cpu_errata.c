@@ -106,17 +106,6 @@ cpu_enable_trap_ctr_access(const struct arm64_cpu_capabilities *cap)
 		sysreg_clear_set(sctlr_el1, SCTLR_EL1_UCT, 0);
 }
 
-#ifdef CONFIG_ARM64_ERRATUM_1463225
-DEFINE_PER_CPU(int, __in_cortex_a76_erratum_1463225_wa);
-
-static bool
-has_cortex_a76_erratum_1463225(const struct arm64_cpu_capabilities *entry,
-			       int scope)
-{
-	return is_affected_midr_range_list(entry, scope) && is_kernel_in_hyp_mode();
-}
-#endif
-
 static void __maybe_unused
 cpu_enable_cache_maint_trap(const struct arm64_cpu_capabilities *__unused)
 {
@@ -242,19 +231,6 @@ static const struct midr_range cavium_erratum_30115_cpus[] = {
 };
 #endif
 
-#ifdef CONFIG_QCOM_FALKOR_ERRATUM_1003
-static const struct arm64_cpu_capabilities qcom_erratum_1003_list[] = {
-	{
-		ERRATA_MIDR_REV(MIDR_QCOM_FALKOR_V1, 0, 0),
-	},
-	{
-		.midr_range.model = MIDR_QCOM_KRYO,
-		.matches = is_kryo_midr,
-	},
-	{},
-};
-#endif
-
 #ifdef CONFIG_ARM64_WORKAROUND_CLEAN_CACHE
 static const struct midr_range workaround_clean_cache[] = {
 #if	defined(CONFIG_ARM64_ERRATUM_826319) || \
@@ -332,16 +308,6 @@ static const struct midr_range erratum_speculative_at_list[] = {
 	/* Kryo4xx Silver (rdpe => r1p0) */
 	MIDR_REV(MIDR_QCOM_KRYO_4XX_SILVER, 0xd, 0xe),
 #endif
-	{},
-};
-#endif
-
-#ifdef CONFIG_ARM64_ERRATUM_1463225
-static const struct midr_range erratum_1463225[] = {
-	/* Cortex-A76 r0p0 - r3p1 */
-	MIDR_RANGE(MIDR_CORTEX_A76, 0, 0, 3, 1),
-	/* Kryo4xx Gold (rcpe to rfpf) => (r0p0 to r3p1) */
-	MIDR_RANGE(MIDR_QCOM_KRYO_4XX_GOLD, 0xc, 0xe, 0xf, 0xf),
 	{},
 };
 #endif
@@ -428,15 +394,6 @@ const struct arm64_cpu_capabilities arm64_errata[] = {
 		.type = ARM64_CPUCAP_LOCAL_CPU_ERRATUM,
 		.cpu_enable = cpu_enable_trap_ctr_access,
 	},
-#ifdef CONFIG_QCOM_FALKOR_ERRATUM_1003
-	{
-		.desc = "Qualcomm Technologies Falkor/Kryo erratum 1003",
-		.capability = ARM64_WORKAROUND_QCOM_FALKOR_E1003,
-		.type = ARM64_CPUCAP_LOCAL_CPU_ERRATUM,
-		.matches = cpucap_multi_entry_cap_matches,
-		.match_list = qcom_erratum_1003_list,
-	},
-#endif
 #ifdef CONFIG_ARM64_WORKAROUND_REPEAT_TLBI
 	{
 		.desc = "Qualcomm erratum 1009, or ARM erratum 1286807",
@@ -454,27 +411,6 @@ const struct arm64_cpu_capabilities arm64_errata[] = {
 		ERRATA_MIDR_ALL_VERSIONS(MIDR_CORTEX_A73),
 	},
 #endif
-	{
-		.desc = "Spectre-v2",
-		.capability = ARM64_SPECTRE_V2,
-		.type = ARM64_CPUCAP_LOCAL_CPU_ERRATUM,
-		.matches = has_spectre_v2,
-		.cpu_enable = spectre_v2_enable_mitigation,
-	},
-	{
-		.desc = "Spectre-v4",
-		.capability = ARM64_SPECTRE_V4,
-		.type = ARM64_CPUCAP_LOCAL_CPU_ERRATUM,
-		.matches = has_spectre_v4,
-		.cpu_enable = spectre_v4_enable_mitigation,
-	},
-	{
-		.desc = "Spectre-BHB",
-		.capability = ARM64_SPECTRE_BHB,
-		.type = ARM64_CPUCAP_LOCAL_CPU_ERRATUM,
-		.matches = is_spectre_bhb_affected,
-		.cpu_enable = spectre_bhb_enable_mitigation,
-	},
 #ifdef CONFIG_ARM64_ERRATUM_1418040
 	{
 		.desc = "ARM erratum 1418040",
@@ -493,15 +429,6 @@ const struct arm64_cpu_capabilities arm64_errata[] = {
 		.desc = "ARM errata 1165522, 1319367, or 1530923",
 		.capability = ARM64_WORKAROUND_SPECULATIVE_AT,
 		ERRATA_MIDR_RANGE_LIST(erratum_speculative_at_list),
-	},
-#endif
-#ifdef CONFIG_ARM64_ERRATUM_1463225
-	{
-		.desc = "ARM erratum 1463225",
-		.capability = ARM64_WORKAROUND_1463225,
-		.type = ARM64_CPUCAP_LOCAL_CPU_ERRATUM,
-		.matches = has_cortex_a76_erratum_1463225,
-		.midr_range_list = erratum_1463225,
 	},
 #endif
 #ifdef CONFIG_CAVIUM_TX2_ERRATUM_219

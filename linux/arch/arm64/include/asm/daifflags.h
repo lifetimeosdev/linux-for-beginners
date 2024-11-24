@@ -34,8 +34,6 @@ static inline void local_daif_mask(void)
 	/* Don't really care for a dsb here, we don't intend to enable IRQs */
 	if (system_uses_irq_prio_masking())
 		gic_write_pmr(GIC_PRIO_IRQON | GIC_PRIO_PSR_I_SET);
-
-	trace_hardirqs_off();
 }
 
 static inline unsigned long local_daif_save_flags(void)
@@ -72,8 +70,6 @@ static inline void local_daif_restore(unsigned long flags)
 		!(read_sysreg(daif) & PSR_I_BIT));
 
 	if (!irq_disabled) {
-		trace_hardirqs_on();
-
 		if (system_uses_irq_prio_masking()) {
 			gic_write_pmr(GIC_PRIO_IRQON);
 			pmr_sync();
@@ -115,9 +111,6 @@ static inline void local_daif_restore(unsigned long flags)
 	}
 
 	write_sysreg(flags, daif);
-
-	if (irq_disabled)
-		trace_hardirqs_off();
 }
 
 /*
@@ -127,9 +120,6 @@ static inline void local_daif_restore(unsigned long flags)
 static inline void local_daif_inherit(struct pt_regs *regs)
 {
 	unsigned long flags = regs->pstate & DAIF_MASK;
-
-	if (interrupts_enabled(regs))
-		trace_hardirqs_on();
 
 	if (system_uses_irq_prio_masking())
 		gic_write_pmr(regs->pmr_save);

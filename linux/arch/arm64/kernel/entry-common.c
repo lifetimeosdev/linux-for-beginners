@@ -26,17 +26,13 @@ static void noinstr enter_from_kernel_mode(struct pt_regs *regs)
 	regs->exit_rcu = false;
 
 	if (!IS_ENABLED(CONFIG_TINY_RCU) && is_idle_task(current)) {
-		lockdep_hardirqs_off(CALLER_ADDR0);
 		rcu_irq_enter();
-		trace_hardirqs_off_finish();
 
 		regs->exit_rcu = true;
 		return;
 	}
 
-	lockdep_hardirqs_off(CALLER_ADDR0);
 	rcu_irq_enter_check_tick();
-	trace_hardirqs_off_finish();
 }
 
 /*
@@ -50,13 +46,9 @@ static void noinstr exit_to_kernel_mode(struct pt_regs *regs)
 	if (interrupts_enabled(regs)) {
 		if (regs->exit_rcu) {
 			trace_hardirqs_on_prepare();
-			lockdep_hardirqs_on_prepare(CALLER_ADDR0);
 			rcu_irq_exit();
-			lockdep_hardirqs_on(CALLER_ADDR0);
 			return;
 		}
-
-		trace_hardirqs_on();
 	} else {
 		if (regs->exit_rcu)
 			rcu_irq_exit();
@@ -68,11 +60,9 @@ void noinstr arm64_enter_nmi(struct pt_regs *regs)
 	regs->lockdep_hardirqs = lockdep_hardirqs_enabled();
 
 	__nmi_enter();
-	lockdep_hardirqs_off(CALLER_ADDR0);
 	lockdep_hardirq_enter();
 	rcu_nmi_enter();
 
-	trace_hardirqs_off_finish();
 	ftrace_nmi_enter();
 }
 
@@ -83,13 +73,10 @@ void noinstr arm64_exit_nmi(struct pt_regs *regs)
 	ftrace_nmi_exit();
 	if (restore) {
 		trace_hardirqs_on_prepare();
-		lockdep_hardirqs_on_prepare(CALLER_ADDR0);
 	}
 
 	rcu_nmi_exit();
 	lockdep_hardirq_exit();
-	if (restore)
-		lockdep_hardirqs_on(CALLER_ADDR0);
 	__nmi_exit();
 }
 
@@ -163,10 +150,7 @@ static void noinstr arm64_enter_el1_dbg(struct pt_regs *regs)
 {
 	regs->lockdep_hardirqs = lockdep_hardirqs_enabled();
 
-	lockdep_hardirqs_off(CALLER_ADDR0);
 	rcu_nmi_enter();
-
-	trace_hardirqs_off_finish();
 }
 
 static void noinstr arm64_exit_el1_dbg(struct pt_regs *regs)
@@ -175,12 +159,9 @@ static void noinstr arm64_exit_el1_dbg(struct pt_regs *regs)
 
 	if (restore) {
 		trace_hardirqs_on_prepare();
-		lockdep_hardirqs_on_prepare(CALLER_ADDR0);
 	}
 
 	rcu_nmi_exit();
-	if (restore)
-		lockdep_hardirqs_on(CALLER_ADDR0);
 }
 
 static void noinstr el1_dbg(struct pt_regs *regs, unsigned long esr)
@@ -240,18 +221,13 @@ asmlinkage void noinstr el1_sync_handler(struct pt_regs *regs)
 
 asmlinkage void noinstr enter_from_user_mode(void)
 {
-	lockdep_hardirqs_off(CALLER_ADDR0);
 	CT_WARN_ON(ct_state() != CONTEXT_USER);
-	user_exit_irqoff();
-	trace_hardirqs_off_finish();
 }
 
 asmlinkage void noinstr exit_to_user_mode(void)
 {
 	trace_hardirqs_on_prepare();
-	lockdep_hardirqs_on_prepare(CALLER_ADDR0);
 	user_enter_irqoff();
-	lockdep_hardirqs_on(CALLER_ADDR0);
 }
 
 static void noinstr el0_da(struct pt_regs *regs, unsigned long esr)

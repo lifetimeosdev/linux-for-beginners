@@ -157,20 +157,6 @@ enum hw_breakpoint_ops {
 	HW_BREAKPOINT_RESTORE
 };
 
-static int is_compat_bp(struct perf_event *bp)
-{
-	struct task_struct *tsk = bp->hw.target;
-
-	/*
-	 * tsk can be NULL for per-cpu (non-ptrace) breakpoints.
-	 * In this case, use the native interface, since we don't have
-	 * the notion of a "compat CPU" and could end up relying on
-	 * deprecated behaviour if we use unaligned watchpoints in
-	 * AArch64 state.
-	 */
-	return tsk && is_compat_thread(task_thread_info(tsk));
-}
-
 /**
  * hw_breakpoint_slot_setup - Find and setup a perf slot according to
  *			      operations
@@ -467,11 +453,7 @@ static int arch_build_bp_info(struct perf_event *bp,
 	 * Watchpoints can be of length 1, 2, 4 or 8 bytes.
 	 */
 	if (hw->ctrl.type == ARM_BREAKPOINT_EXECUTE) {
-		if (is_compat_bp(bp)) {
-			if (hw->ctrl.len != ARM_BREAKPOINT_LEN_2 &&
-			    hw->ctrl.len != ARM_BREAKPOINT_LEN_4)
-				return -EINVAL;
-		} else if (hw->ctrl.len != ARM_BREAKPOINT_LEN_4) {
+		if (hw->ctrl.len != ARM_BREAKPOINT_LEN_4) {
 			/*
 			 * FIXME: Some tools (I'm looking at you perf) assume
 			 *	  that breakpoints should be sizeof(long). This
@@ -525,33 +507,7 @@ int hw_breakpoint_arch_parse(struct perf_event *bp,
 	 * AArch32 tasks expect some simple alignment fixups, so emulate
 	 * that here.
 	 */
-	if (is_compat_bp(bp)) {
-		if (hw->ctrl.len == ARM_BREAKPOINT_LEN_8)
-			alignment_mask = 0x7;
-		else
-			alignment_mask = 0x3;
-		offset = hw->address & alignment_mask;
-		switch (offset) {
-		case 0:
-			/* Aligned */
-			break;
-		case 1:
-		case 2:
-			/* Allow halfword watchpoints and breakpoints. */
-			if (hw->ctrl.len == ARM_BREAKPOINT_LEN_2)
-				break;
-
-			fallthrough;
-		case 3:
-			/* Allow single byte watchpoint. */
-			if (hw->ctrl.len == ARM_BREAKPOINT_LEN_1)
-				break;
-
-			fallthrough;
-		default:
-			return -EINVAL;
-		}
-	} else {
+	{
 		if (hw->ctrl.type == ARM_BREAKPOINT_EXECUTE)
 			alignment_mask = 0x3;
 		else
