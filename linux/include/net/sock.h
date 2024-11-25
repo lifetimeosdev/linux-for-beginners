@@ -499,9 +499,6 @@ struct sock {
 
 	struct socket		*sk_socket;
 	void			*sk_user_data;
-#ifdef CONFIG_SECURITY
-	void			*sk_security;
-#endif
 	struct sock_cgroup_data	sk_cgrp_data;
 	struct mem_cgroup	*sk_memcg;
 	void			(*sk_state_change)(struct sock *sk);

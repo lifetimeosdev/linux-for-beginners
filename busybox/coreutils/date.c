@@ -303,9 +303,9 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		ts.tv_sec = validate_tm_time(date_str, &tm_time);
 
 		/* if setting time, set it */
-		//TODO: lifetimeosdev if ((opt & OPT_SET) && stime(&ts.tv_sec) < 0) {
-		// 	bb_perror_msg("can't set date");
-		// }
+		if ((opt & OPT_SET) && stime(&ts.tv_sec) < 0) {
+			bb_perror_msg("can't set date");
+		}
 	}
 
 	/* Display output */

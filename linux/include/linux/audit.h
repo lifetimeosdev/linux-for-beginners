@@ -151,65 +151,6 @@ struct filename;
 #define AUDIT_OFF	0
 #define AUDIT_ON	1
 #define AUDIT_LOCKED	2
-#ifdef CONFIG_AUDIT
-/* These are defined in audit.c */
-				/* Public API */
-extern __printf(4, 5)
-void audit_log(struct audit_context *ctx, gfp_t gfp_mask, int type,
-	       const char *fmt, ...);
-
-extern struct audit_buffer *audit_log_start(struct audit_context *ctx, gfp_t gfp_mask, int type);
-extern __printf(2, 3)
-void audit_log_format(struct audit_buffer *ab, const char *fmt, ...);
-extern void		    audit_log_end(struct audit_buffer *ab);
-extern bool		    audit_string_contains_control(const char *string,
-							  size_t len);
-extern void		    audit_log_n_hex(struct audit_buffer *ab,
-					  const unsigned char *buf,
-					  size_t len);
-extern void		    audit_log_n_string(struct audit_buffer *ab,
-					       const char *buf,
-					       size_t n);
-extern void		    audit_log_n_untrustedstring(struct audit_buffer *ab,
-							const char *string,
-							size_t n);
-extern void		    audit_log_untrustedstring(struct audit_buffer *ab,
-						      const char *string);
-extern void		    audit_log_d_path(struct audit_buffer *ab,
-					     const char *prefix,
-					     const struct path *path);
-extern void		    audit_log_key(struct audit_buffer *ab,
-					  char *key);
-extern void		    audit_log_path_denied(int type,
-						  const char *operation);
-extern void		    audit_log_lost(const char *message);
-
-extern int audit_log_task_context(struct audit_buffer *ab);
-extern void audit_log_task_info(struct audit_buffer *ab);
-
-extern int		    audit_update_lsm_rules(void);
-
-				/* Private API (for audit.c only) */
-extern int audit_rule_change(int type, int seq, void *data, size_t datasz);
-extern int audit_list_rules_send(struct sk_buff *request_skb, int seq);
-
-extern int audit_set_loginuid(kuid_t loginuid);
-
-static inline kuid_t audit_get_loginuid(struct task_struct *tsk)
-{
-	return tsk->loginuid;
-}
-
-static inline unsigned int audit_get_sessionid(struct task_struct *tsk)
-{
-	return tsk->sessionid;
-}
-
-extern u32 audit_enabled;
-
-extern int audit_signal_info(int sig, struct task_struct *t);
-
-#else /* CONFIG_AUDIT */
 static inline __printf(4, 5)
 void audit_log(struct audit_context *ctx, gfp_t gfp_mask, int type,
 	       const char *fmt, ...)
@@ -267,8 +208,6 @@ static inline int audit_signal_info(int sig, struct task_struct *t)
 {
 	return 0;
 }
-
-#endif /* CONFIG_AUDIT */
 
 #ifdef CONFIG_AUDIT_COMPAT_GENERIC
 #define audit_is_compat(arch)  (!((arch) & __AUDIT_ARCH_64BIT))

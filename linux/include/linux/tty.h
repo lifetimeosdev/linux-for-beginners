@@ -655,11 +655,6 @@ static inline void n_tty_init(void) { }
 #endif
 
 /* tty_audit.c */
-#ifdef CONFIG_AUDIT
-extern void tty_audit_exit(void);
-extern void tty_audit_fork(struct signal_struct *sig);
-extern int tty_audit_push(void);
-#else
 static inline void tty_audit_exit(void)
 {
 }
@@ -670,7 +665,6 @@ static inline int tty_audit_push(void)
 {
 	return 0;
 }
-#endif
 
 /* tty_ioctl.c */
 extern int n_tty_ioctl_helper(struct tty_struct *tty, struct file *file,

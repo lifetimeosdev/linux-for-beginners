@@ -29,110 +29,7 @@
 #include "xattr.h"
 #include "acl.h"
 
-#ifdef CONFIG_FS_DAX
-static ssize_t ext2_dax_read_iter(struct kiocb *iocb, struct iov_iter *to)
-{
-	struct inode *inode = iocb->ki_filp->f_mapping->host;
-	ssize_t ret;
-
-	if (!iov_iter_count(to))
-		return 0; /* skip atime */
-
-	inode_lock_shared(inode);
-	ret = dax_iomap_rw(iocb, to, &ext2_iomap_ops);
-	inode_unlock_shared(inode);
-
-	file_accessed(iocb->ki_filp);
-	return ret;
-}
-
-static ssize_t ext2_dax_write_iter(struct kiocb *iocb, struct iov_iter *from)
-{
-	struct file *file = iocb->ki_filp;
-	struct inode *inode = file->f_mapping->host;
-	ssize_t ret;
-
-	inode_lock(inode);
-	ret = generic_write_checks(iocb, from);
-	if (ret <= 0)
-		goto out_unlock;
-	ret = file_remove_privs(file);
-	if (ret)
-		goto out_unlock;
-	ret = file_update_time(file);
-	if (ret)
-		goto out_unlock;
-
-	ret = dax_iomap_rw(iocb, from, &ext2_iomap_ops);
-	if (ret > 0 && iocb->ki_pos > i_size_read(inode)) {
-		i_size_write(inode, iocb->ki_pos);
-		mark_inode_dirty(inode);
-	}
-
-out_unlock:
-	inode_unlock(inode);
-	if (ret > 0)
-		ret = generic_write_sync(iocb, ret);
-	return ret;
-}
-
-/*
- * The lock ordering for ext2 DAX fault paths is:
- *
- * mmap_lock (MM)
- *   sb_start_pagefault (vfs, freeze)
- *     ext2_inode_info->dax_sem
- *       address_space->i_mmap_rwsem or page_lock (mutually exclusive in DAX)
- *         ext2_inode_info->truncate_mutex
- *
- * The default page_lock and i_size verification done by non-DAX fault paths
- * is sufficient because ext2 doesn't support hole punching.
- */
-static vm_fault_t ext2_dax_fault(struct vm_fault *vmf)
-{
-	struct inode *inode = file_inode(vmf->vma->vm_file);
-	struct ext2_inode_info *ei = EXT2_I(inode);
-	vm_fault_t ret;
-	bool write = (vmf->flags & FAULT_FLAG_WRITE) &&
-		(vmf->vma->vm_flags & VM_SHARED);
-
-	if (write) {
-		sb_start_pagefault(inode->i_sb);
-		file_update_time(vmf->vma->vm_file);
-	}
-	down_read(&ei->dax_sem);
-
-	ret = dax_iomap_fault(vmf, PE_SIZE_PTE, NULL, NULL, &ext2_iomap_ops);
-
-	up_read(&ei->dax_sem);
-	if (write)
-		sb_end_pagefault(inode->i_sb);
-	return ret;
-}
-
-static const struct vm_operations_struct ext2_dax_vm_ops = {
-	.fault		= ext2_dax_fault,
-	/*
-	 * .huge_fault is not supported for DAX because allocation in ext2
-	 * cannot be reliably aligned to huge page sizes and so pmd faults
-	 * will always fail and fail back to regular faults.
-	 */
-	.page_mkwrite	= ext2_dax_fault,
-	.pfn_mkwrite	= ext2_dax_fault,
-};
-
-static int ext2_file_mmap(struct file *file, struct vm_area_struct *vma)
-{
-	if (!IS_DAX(file_inode(file)))
-		return generic_file_mmap(file, vma);
-
-	file_accessed(file);
-	vma->vm_ops = &ext2_dax_vm_ops;
-	return 0;
-}
-#else
 #define ext2_file_mmap	generic_file_mmap
-#endif
 
 /*
  * Called when filp is released. This happens when all file descriptors
@@ -164,19 +61,11 @@ int ext2_fsync(struct file *file, loff_t start, loff_t end, int datasync)
 
 static ssize_t ext2_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 {
-#ifdef CONFIG_FS_DAX
-	if (IS_DAX(iocb->ki_filp->f_mapping->host))
-		return ext2_dax_read_iter(iocb, to);
-#endif
 	return generic_file_read_iter(iocb, to);
 }
 
 static ssize_t ext2_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
 {
-#ifdef CONFIG_FS_DAX
-	if (IS_DAX(iocb->ki_filp->f_mapping->host))
-		return ext2_dax_write_iter(iocb, from);
-#endif
 	return generic_file_write_iter(iocb, from);
 }
 

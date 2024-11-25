@@ -56,26 +56,6 @@ struct ext2_xattr_entry {
 
 struct mb_cache;
 
-# ifdef CONFIG_EXT2_FS_XATTR
-
-extern const struct xattr_handler ext2_xattr_user_handler;
-extern const struct xattr_handler ext2_xattr_trusted_handler;
-extern const struct xattr_handler ext2_xattr_security_handler;
-
-extern ssize_t ext2_listxattr(struct dentry *, char *, size_t);
-
-extern int ext2_xattr_get(struct inode *, int, const char *, void *, size_t);
-extern int ext2_xattr_set(struct inode *, int, const char *, const void *, size_t, int);
-
-extern void ext2_xattr_delete_inode(struct inode *);
-
-extern struct mb_cache *ext2_xattr_create_cache(void);
-extern void ext2_xattr_destroy_cache(struct mb_cache *cache);
-
-extern const struct xattr_handler *ext2_xattr_handlers[];
-
-# else  /* CONFIG_EXT2_FS_XATTR */
-
 static inline int
 ext2_xattr_get(struct inode *inode, int name_index,
 	       const char *name, void *buffer, size_t size)
@@ -102,15 +82,8 @@ static inline void ext2_xattr_destroy_cache(struct mb_cache *cache)
 #define ext2_xattr_handlers NULL
 #define ext2_listxattr NULL
 
-# endif  /* CONFIG_EXT2_FS_XATTR */
-
-#ifdef CONFIG_EXT2_FS_SECURITY
-extern int ext2_init_security(struct inode *inode, struct inode *dir,
-			      const struct qstr *qstr);
-#else
 static inline int ext2_init_security(struct inode *inode, struct inode *dir,
 				     const struct qstr *qstr)
 {
 	return 0;
 }
-#endif

@@ -625,10 +625,6 @@ struct inode {
 	struct super_block	*i_sb;
 	struct address_space	*i_mapping;
 
-#ifdef CONFIG_SECURITY
-	void			*i_security;
-#endif
-
 	/* Stat data, not accessed from path walking */
 	unsigned long		i_ino;
 	/*
@@ -940,9 +936,6 @@ struct file {
 	struct file_ra_state	f_ra;
 
 	u64			f_version;
-#ifdef CONFIG_SECURITY
-	void			*f_security;
-#endif
 	/* needed for tty driver, and maybe others */
 	void			*private_data;
 
@@ -1439,9 +1432,6 @@ struct super_block {
 	struct rw_semaphore	s_umount;
 	int			s_count;
 	atomic_t		s_active;
-#ifdef CONFIG_SECURITY
-	void                    *s_security;
-#endif
 	const struct xattr_handler **s_xattr;
 #ifdef CONFIG_FS_ENCRYPTION
 	const struct fscrypt_operations	*s_cop;
@@ -2011,11 +2001,6 @@ struct super_operations {
 	int (*show_devname)(struct seq_file *, struct dentry *);
 	int (*show_path)(struct seq_file *, struct dentry *);
 	int (*show_stats)(struct seq_file *, struct dentry *);
-#ifdef CONFIG_QUOTA
-	ssize_t (*quota_read)(struct super_block *, int, char *, size_t, loff_t);
-	ssize_t (*quota_write)(struct super_block *, int, const char *, size_t, loff_t);
-	struct dquot **(*get_dquots)(struct inode *);
-#endif
 	int (*bdev_try_to_free_page)(struct super_block*, struct page*, gfp_t);
 	long (*nr_cached_objects)(struct super_block *,
 				  struct shrink_control *);
@@ -2039,11 +2024,7 @@ struct super_operations {
 #define S_IMA		(1 << 10) /* Inode has an associated IMA struct */
 #define S_AUTOMOUNT	(1 << 11) /* Automount/referral quasi-directory */
 #define S_NOSEC		(1 << 12) /* no suid or xattr security attributes */
-#ifdef CONFIG_FS_DAX
-#define S_DAX		(1 << 13) /* Direct Access, avoiding the page cache */
-#else
 #define S_DAX		0	  /* Make all the DAX code disappear */
-#endif
 #define S_ENCRYPTED	(1 << 14) /* Encrypted file (using fs/crypto/) */
 #define S_CASEFOLD	(1 << 15) /* Casefolded file */
 #define S_VERITY	(1 << 16) /* Verity file (using fs/verity/) */

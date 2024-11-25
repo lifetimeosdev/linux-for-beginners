@@ -278,10 +278,6 @@ struct cred *prepare_creds(void)
 	key_get(new->request_key_auth);
 #endif
 
-#ifdef CONFIG_SECURITY
-	new->security = NULL;
-#endif
-
 	if (security_prepare_creds(new, old, GFP_KERNEL_ACCOUNT) < 0)
 		goto error;
 	validate_creds(new);
@@ -713,9 +709,6 @@ struct cred *prepare_kernel_cred(struct task_struct *daemon)
 	new->jit_keyring = KEY_REQKEY_DEFL_THREAD_KEYRING;
 #endif
 
-#ifdef CONFIG_SECURITY
-	new->security = NULL;
-#endif
 	if (security_prepare_creds(new, old, GFP_KERNEL_ACCOUNT) < 0)
 		goto error;
 
@@ -822,15 +815,6 @@ static void dump_invalid_creds(const struct cred *cred, const char *label,
 		from_kgid_munged(&init_user_ns, cred->egid),
 		from_kgid_munged(&init_user_ns, cred->sgid),
 		from_kgid_munged(&init_user_ns, cred->fsgid));
-#ifdef CONFIG_SECURITY
-	printk(KERN_ERR "CRED: ->security is %p\n", cred->security);
-	if ((unsigned long) cred->security >= PAGE_SIZE &&
-	    (((unsigned long) cred->security & 0xffffff00) !=
-	     (POISON_FREE << 24 | POISON_FREE << 16 | POISON_FREE << 8)))
-		printk(KERN_ERR "CRED: ->security {%x, %x}\n",
-		       ((u32*)cred->security)[0],
-		       ((u32*)cred->security)[1]);
-#endif
 }
 
 /*

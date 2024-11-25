@@ -1243,96 +1243,6 @@ static const struct file_operations proc_oom_score_adj_operations = {
 	.llseek		= default_llseek,
 };
 
-#ifdef CONFIG_AUDIT
-#define TMPBUFLEN 11
-static ssize_t proc_loginuid_read(struct file * file, char __user * buf,
-				  size_t count, loff_t *ppos)
-{
-	struct inode * inode = file_inode(file);
-	struct task_struct *task = get_proc_task(inode);
-	ssize_t length;
-	char tmpbuf[TMPBUFLEN];
-
-	if (!task)
-		return -ESRCH;
-	length = scnprintf(tmpbuf, TMPBUFLEN, "%u",
-			   from_kuid(file->f_cred->user_ns,
-				     audit_get_loginuid(task)));
-	put_task_struct(task);
-	return simple_read_from_buffer(buf, count, ppos, tmpbuf, length);
-}
-
-static ssize_t proc_loginuid_write(struct file * file, const char __user * buf,
-				   size_t count, loff_t *ppos)
-{
-	struct inode * inode = file_inode(file);
-	uid_t loginuid;
-	kuid_t kloginuid;
-	int rv;
-
-	/* Don't let kthreads write their own loginuid */
-	if (current->flags & PF_KTHREAD)
-		return -EPERM;
-
-	rcu_read_lock();
-	if (current != pid_task(proc_pid(inode), PIDTYPE_PID)) {
-		rcu_read_unlock();
-		return -EPERM;
-	}
-	rcu_read_unlock();
-
-	if (*ppos != 0) {
-		/* No partial writes. */
-		return -EINVAL;
-	}
-
-	rv = kstrtou32_from_user(buf, count, 10, &loginuid);
-	if (rv < 0)
-		return rv;
-
-	/* is userspace tring to explicitly UNSET the loginuid? */
-	if (loginuid == AUDIT_UID_UNSET) {
-		kloginuid = INVALID_UID;
-	} else {
-		kloginuid = make_kuid(file->f_cred->user_ns, loginuid);
-		if (!uid_valid(kloginuid))
-			return -EINVAL;
-	}
-
-	rv = audit_set_loginuid(kloginuid);
-	if (rv < 0)
-		return rv;
-	return count;
-}
-
-static const struct file_operations proc_loginuid_operations = {
-	.read		= proc_loginuid_read,
-	.write		= proc_loginuid_write,
-	.llseek		= generic_file_llseek,
-};
-
-static ssize_t proc_sessionid_read(struct file * file, char __user * buf,
-				  size_t count, loff_t *ppos)
-{
-	struct inode * inode = file_inode(file);
-	struct task_struct *task = get_proc_task(inode);
-	ssize_t length;
-	char tmpbuf[TMPBUFLEN];
-
-	if (!task)
-		return -ESRCH;
-	length = scnprintf(tmpbuf, TMPBUFLEN, "%u",
-				audit_get_sessionid(task));
-	put_task_struct(task);
-	return simple_read_from_buffer(buf, count, ppos, tmpbuf, length);
-}
-
-static const struct file_operations proc_sessionid_operations = {
-	.read		= proc_sessionid_read,
-	.llseek		= generic_file_llseek,
-};
-#endif
-
 #ifdef CONFIG_FAULT_INJECTION
 static ssize_t proc_fault_inject_read(struct file * file, char __user * buf,
 				      size_t count, loff_t *ppos)
@@ -2702,167 +2612,6 @@ out:
 	return 0;
 }
 
-#ifdef CONFIG_SECURITY
-static int proc_pid_attr_open(struct inode *inode, struct file *file)
-{
-	file->private_data = NULL;
-	__mem_open(inode, file, PTRACE_MODE_READ_FSCREDS);
-	return 0;
-}
-
-static ssize_t proc_pid_attr_read(struct file * file, char __user * buf,
-				  size_t count, loff_t *ppos)
-{
-	struct inode * inode = file_inode(file);
-	char *p = NULL;
-	ssize_t length;
-	struct task_struct *task = get_proc_task(inode);
-
-	if (!task)
-		return -ESRCH;
-
-	length = security_getprocattr(task, PROC_I(inode)->op.lsm,
-				      (char*)file->f_path.dentry->d_name.name,
-				      &p);
-	put_task_struct(task);
-	if (length > 0)
-		length = simple_read_from_buffer(buf, count, ppos, p, length);
-	kfree(p);
-	return length;
-}
-
-static ssize_t proc_pid_attr_write(struct file * file, const char __user * buf,
-				   size_t count, loff_t *ppos)
-{
-	struct inode * inode = file_inode(file);
-	struct task_struct *task;
-	void *page;
-	int rv;
-
-	/* A task may only write when it was the opener. */
-	if (file->private_data != current->mm)
-		return -EPERM;
-
-	rcu_read_lock();
-	task = pid_task(proc_pid(inode), PIDTYPE_PID);
-	if (!task) {
-		rcu_read_unlock();
-		return -ESRCH;
-	}
-	/* A task may only write its own attributes. */
-	if (current != task) {
-		rcu_read_unlock();
-		return -EACCES;
-	}
-	/* Prevent changes to overridden credentials. */
-	if (current_cred() != current_real_cred()) {
-		rcu_read_unlock();
-		return -EBUSY;
-	}
-	rcu_read_unlock();
-
-	if (count > PAGE_SIZE)
-		count = PAGE_SIZE;
-
-	/* No partial writes. */
-	if (*ppos != 0)
-		return -EINVAL;
-
-	page = memdup_user(buf, count);
-	if (IS_ERR(page)) {
-		rv = PTR_ERR(page);
-		goto out;
-	}
-
-	/* Guard against adverse ptrace interaction */
-	rv = mutex_lock_interruptible(&current->signal->cred_guard_mutex);
-	if (rv < 0)
-		goto out_free;
-
-	rv = security_setprocattr(PROC_I(inode)->op.lsm,
-				  file->f_path.dentry->d_name.name, page,
-				  count);
-	mutex_unlock(&current->signal->cred_guard_mutex);
-out_free:
-	kfree(page);
-out:
-	return rv;
-}
-
-static const struct file_operations proc_pid_attr_operations = {
-	.open		= proc_pid_attr_open,
-	.read		= proc_pid_attr_read,
-	.write		= proc_pid_attr_write,
-	.llseek		= generic_file_llseek,
-	.release	= mem_release,
-};
-
-#define LSM_DIR_OPS(LSM) \
-static int proc_##LSM##_attr_dir_iterate(struct file *filp, \
-			     struct dir_context *ctx) \
-{ \
-	return proc_pident_readdir(filp, ctx, \
-				   LSM##_attr_dir_stuff, \
-				   ARRAY_SIZE(LSM##_attr_dir_stuff)); \
-} \
-\
-static const struct file_operations proc_##LSM##_attr_dir_ops = { \
-	.read		= generic_read_dir, \
-	.iterate	= proc_##LSM##_attr_dir_iterate, \
-	.llseek		= default_llseek, \
-}; \
-\
-static struct dentry *proc_##LSM##_attr_dir_lookup(struct inode *dir, \
-				struct dentry *dentry, unsigned int flags) \
-{ \
-	return proc_pident_lookup(dir, dentry, \
-				  LSM##_attr_dir_stuff, \
-				  LSM##_attr_dir_stuff + ARRAY_SIZE(LSM##_attr_dir_stuff)); \
-} \
-\
-static const struct inode_operations proc_##LSM##_attr_dir_inode_ops = { \
-	.lookup		= proc_##LSM##_attr_dir_lookup, \
-	.getattr	= pid_getattr, \
-	.setattr	= proc_setattr, \
-}
-
-static const struct pid_entry attr_dir_stuff[] = {
-	ATTR(NULL, "current",		0666),
-	ATTR(NULL, "prev",		0444),
-	ATTR(NULL, "exec",		0666),
-	ATTR(NULL, "fscreate",		0666),
-	ATTR(NULL, "keycreate",		0666),
-	ATTR(NULL, "sockcreate",	0666),
-};
-
-static int proc_attr_dir_readdir(struct file *file, struct dir_context *ctx)
-{
-	return proc_pident_readdir(file, ctx, 
-				   attr_dir_stuff, ARRAY_SIZE(attr_dir_stuff));
-}
-
-static const struct file_operations proc_attr_dir_operations = {
-	.read		= generic_read_dir,
-	.iterate_shared	= proc_attr_dir_readdir,
-	.llseek		= generic_file_llseek,
-};
-
-static struct dentry *proc_attr_dir_lookup(struct inode *dir,
-				struct dentry *dentry, unsigned int flags)
-{
-	return proc_pident_lookup(dir, dentry,
-				  attr_dir_stuff,
-				  attr_dir_stuff + ARRAY_SIZE(attr_dir_stuff));
-}
-
-static const struct inode_operations proc_attr_dir_inode_operations = {
-	.lookup		= proc_attr_dir_lookup,
-	.getattr	= pid_getattr,
-	.setattr	= proc_setattr,
-};
-
-#endif
-
 #ifdef CONFIG_ELF_CORE
 static ssize_t proc_coredump_filter_read(struct file *file, char __user *buf,
 					 size_t count, loff_t *ppos)
@@ -3217,9 +2966,6 @@ static const struct pid_entry tgid_base_stuff[] = {
 	REG("smaps_rollup", S_IRUGO, proc_pid_smaps_rollup_operations),
 	REG("pagemap",    S_IRUSR, proc_pagemap_operations),
 #endif
-#ifdef CONFIG_SECURITY
-	DIR("attr",       S_IRUGO|S_IXUGO, proc_attr_dir_inode_operations, proc_attr_dir_operations),
-#endif
 #ifdef CONFIG_KALLSYMS
 	ONE("wchan",      S_IRUGO, proc_pid_wchan),
 #endif
@@ -3244,10 +2990,6 @@ static const struct pid_entry tgid_base_stuff[] = {
 	ONE("oom_score",  S_IRUGO, proc_oom_score),
 	REG("oom_adj",    S_IRUGO|S_IWUSR, proc_oom_adj_operations),
 	REG("oom_score_adj", S_IRUGO|S_IWUSR, proc_oom_score_adj_operations),
-#ifdef CONFIG_AUDIT
-	REG("loginuid",   S_IWUSR|S_IRUGO, proc_loginuid_operations),
-	REG("sessionid",  S_IRUGO, proc_sessionid_operations),
-#endif
 #ifdef CONFIG_FAULT_INJECTION
 	REG("make-it-fail", S_IRUGO|S_IWUSR, proc_fault_inject_operations),
 	REG("fail-nth", 0644, proc_fail_nth_operations),
@@ -3555,9 +3297,6 @@ static const struct pid_entry tid_base_stuff[] = {
 	REG("smaps_rollup", S_IRUGO, proc_pid_smaps_rollup_operations),
 	REG("pagemap",    S_IRUSR, proc_pagemap_operations),
 #endif
-#ifdef CONFIG_SECURITY
-	DIR("attr",      S_IRUGO|S_IXUGO, proc_attr_dir_inode_operations, proc_attr_dir_operations),
-#endif
 #ifdef CONFIG_KALLSYMS
 	ONE("wchan",     S_IRUGO, proc_pid_wchan),
 #endif
@@ -3582,10 +3321,6 @@ static const struct pid_entry tid_base_stuff[] = {
 	ONE("oom_score", S_IRUGO, proc_oom_score),
 	REG("oom_adj",   S_IRUGO|S_IWUSR, proc_oom_adj_operations),
 	REG("oom_score_adj", S_IRUGO|S_IWUSR, proc_oom_score_adj_operations),
-#ifdef CONFIG_AUDIT
-	REG("loginuid",  S_IWUSR|S_IRUGO, proc_loginuid_operations),
-	REG("sessionid",  S_IRUGO, proc_sessionid_operations),
-#endif
 #ifdef CONFIG_FAULT_INJECTION
 	REG("make-it-fail", S_IRUGO|S_IWUSR, proc_fault_inject_operations),
 	REG("fail-nth", 0644, proc_fail_nth_operations),

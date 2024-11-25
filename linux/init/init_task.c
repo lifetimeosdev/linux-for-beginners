@@ -126,10 +126,6 @@ struct task_struct init_task
 	.thread_pid	= &init_struct_pid,
 	.thread_group	= LIST_HEAD_INIT(init_task.thread_group),
 	.thread_node	= LIST_HEAD_INIT(init_signals.thread_head),
-#ifdef CONFIG_AUDIT
-	.loginuid	= INVALID_UID,
-	.sessionid	= AUDIT_SID_UNSET,
-#endif
 #ifdef CONFIG_PERF_EVENTS
 	.perf_event_mutex = __MUTEX_INITIALIZER(init_task.perf_event_mutex),
 	.perf_event_list = LIST_HEAD_INIT(init_task.perf_event_list),
@@ -183,9 +179,6 @@ struct task_struct init_task
 #endif
 #ifdef CONFIG_LIVEPATCH
 	.patch_state	= KLP_UNDEFINED,
-#endif
-#ifdef CONFIG_SECURITY
-	.security	= NULL,
 #endif
 };
 EXPORT_SYMBOL(init_task);

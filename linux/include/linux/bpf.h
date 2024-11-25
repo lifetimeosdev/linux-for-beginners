@@ -149,9 +149,6 @@ struct bpf_map {
 	 */
 	const struct bpf_map_ops *ops ____cacheline_aligned;
 	struct bpf_map *inner_map_meta;
-#ifdef CONFIG_SECURITY
-	void *security;
-#endif
 	enum bpf_map_type map_type;
 	u32 key_size;
 	u32 value_size;
@@ -823,9 +820,6 @@ struct bpf_prog_aux {
 	u64 load_time; /* ns since boottime */
 	struct bpf_map *cgroup_storage[MAX_BPF_CGROUP_STORAGE_TYPE];
 	char name[BPF_OBJ_NAME_LEN];
-#ifdef CONFIG_SECURITY
-	void *security;
-#endif
 	struct bpf_prog_offload *offload;
 	struct btf *btf;
 	struct bpf_func_info *func_info;

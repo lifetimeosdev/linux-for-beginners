@@ -986,13 +986,6 @@ struct task_struct {
 
 	struct callback_head		*task_works;
 
-#ifdef CONFIG_AUDIT
-#ifdef CONFIG_AUDITSYSCALL
-	struct audit_context		*audit_context;
-#endif
-	kuid_t				loginuid;
-	unsigned int			sessionid;
-#endif
 	struct seccomp			seccomp;
 
 	/* Thread group tracking: */
@@ -1263,10 +1256,6 @@ struct task_struct {
 #endif
 #ifdef CONFIG_LIVEPATCH
 	int patch_state;
-#endif
-#ifdef CONFIG_SECURITY
-	/* Used by LSM modules for access restriction: */
-	void				*security;
 #endif
 
 #ifdef CONFIG_GCC_PLUGIN_STACKLEAK

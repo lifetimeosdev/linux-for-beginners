@@ -253,19 +253,8 @@
 #define EARLYCON_TABLE()
 #endif
 
-#ifdef CONFIG_SECURITY
-#define LSM_TABLE()	. = ALIGN(8);					\
-			__start_lsm_info = .;				\
-			KEEP(*(.lsm_info.init))				\
-			__end_lsm_info = .;
-#define EARLY_LSM_TABLE()	. = ALIGN(8);				\
-			__start_early_lsm_info = .;			\
-			KEEP(*(.early_lsm_info.init))			\
-			__end_early_lsm_info = .;
-#else
 #define LSM_TABLE()
 #define EARLY_LSM_TABLE()
-#endif
 
 #define ___OF_TABLE(cfg, name)	_OF_TABLE_##cfg(name)
 #define __OF_TABLE(cfg, name)	___OF_TABLE(cfg, name)

@@ -260,15 +260,6 @@ LSM_HOOK(int, 0, inode_setsecctx, struct dentry *dentry, void *ctx, u32 ctxlen)
 LSM_HOOK(int, -EOPNOTSUPP, inode_getsecctx, struct inode *inode, void **ctx,
 	 u32 *ctxlen)
 
-#if defined(CONFIG_SECURITY) && defined(CONFIG_WATCH_QUEUE)
-LSM_HOOK(int, 0, post_notification, const struct cred *w_cred,
-	 const struct cred *cred, struct watch_notification *n)
-#endif /* CONFIG_SECURITY && CONFIG_WATCH_QUEUE */
-
-#if defined(CONFIG_SECURITY) && defined(CONFIG_KEY_NOTIFICATIONS)
-LSM_HOOK(int, 0, watch_key, struct key *key)
-#endif /* CONFIG_SECURITY && CONFIG_KEY_NOTIFICATIONS */
-
 #ifdef CONFIG_SECURITY_NETWORK
 LSM_HOOK(int, 0, unix_stream_connect, struct sock *sock, struct sock *other,
 	 struct sock *newsk)
@@ -367,14 +358,6 @@ LSM_HOOK(int, 0, key_permission, key_ref_t key_ref, const struct cred *cred,
 	 enum key_need_perm need_perm)
 LSM_HOOK(int, 0, key_getsecurity, struct key *key, char **_buffer)
 #endif /* CONFIG_KEYS */
-
-#ifdef CONFIG_AUDIT
-LSM_HOOK(int, 0, audit_rule_init, u32 field, u32 op, char *rulestr,
-	 void **lsmrule)
-LSM_HOOK(int, 0, audit_rule_known, struct audit_krule *krule)
-LSM_HOOK(int, 0, audit_rule_match, u32 secid, u32 field, u32 op, void *lsmrule)
-LSM_HOOK(void, LSM_RET_VOID, audit_rule_free, void *lsmrule)
-#endif /* CONFIG_AUDIT */
 
 #ifdef CONFIG_BPF_SYSCALL
 LSM_HOOK(int, 0, bpf, int cmd, union bpf_attr *attr, unsigned int size)

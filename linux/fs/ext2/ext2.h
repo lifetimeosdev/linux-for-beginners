@@ -647,20 +647,7 @@ struct ext2_inode_info {
 	struct ext2_block_alloc_info *i_block_alloc_info;
 
 	__u32	i_dir_start_lookup;
-#ifdef CONFIG_EXT2_FS_XATTR
-	/*
-	 * Extended attributes can be read independently of the main file
-	 * data. Taking i_mutex even when reading would cause contention
-	 * between readers of EAs and writers of regular file data, so
-	 * instead we synchronize on xattr_sem when reading or changing
-	 * EAs.
-	 */
-	struct rw_semaphore xattr_sem;
-#endif
 	rwlock_t i_meta_lock;
-#ifdef CONFIG_FS_DAX
-	struct rw_semaphore dax_sem;
-#endif
 
 	/*
 	 * truncate_mutex is for serialising ext2_truncate() against
@@ -671,18 +658,10 @@ struct ext2_inode_info {
 	struct mutex truncate_mutex;
 	struct inode	vfs_inode;
 	struct list_head i_orphan;	/* unlinked but open inodes */
-#ifdef CONFIG_QUOTA
-	struct dquot *i_dquot[MAXQUOTAS];
-#endif
 };
 
-#ifdef CONFIG_FS_DAX
-#define dax_sem_down_write(ext2_inode)	down_write(&(ext2_inode)->dax_sem)
-#define dax_sem_up_write(ext2_inode)	up_write(&(ext2_inode)->dax_sem)
-#else
 #define dax_sem_down_write(ext2_inode)
 #define dax_sem_up_write(ext2_inode)
-#endif
 
 /*
  * Inode dynamic state flags

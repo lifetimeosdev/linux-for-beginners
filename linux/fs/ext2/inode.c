@@ -799,63 +799,8 @@ int ext2_get_block(struct inode *inode, sector_t iblock,
 
 }
 
-#ifdef CONFIG_FS_DAX
-static int ext2_iomap_begin(struct inode *inode, loff_t offset, loff_t length,
-		unsigned flags, struct iomap *iomap, struct iomap *srcmap)
-{
-	unsigned int blkbits = inode->i_blkbits;
-	unsigned long first_block = offset >> blkbits;
-	unsigned long max_blocks = (length + (1 << blkbits) - 1) >> blkbits;
-	struct ext2_sb_info *sbi = EXT2_SB(inode->i_sb);
-	bool new = false, boundary = false;
-	u32 bno;
-	int ret;
-
-	ret = ext2_get_blocks(inode, first_block, max_blocks,
-			&bno, &new, &boundary, flags & IOMAP_WRITE);
-	if (ret < 0)
-		return ret;
-
-	iomap->flags = 0;
-	iomap->bdev = inode->i_sb->s_bdev;
-	iomap->offset = (u64)first_block << blkbits;
-	iomap->dax_dev = sbi->s_daxdev;
-
-	if (ret == 0) {
-		iomap->type = IOMAP_HOLE;
-		iomap->addr = IOMAP_NULL_ADDR;
-		iomap->length = 1 << blkbits;
-	} else {
-		iomap->type = IOMAP_MAPPED;
-		iomap->addr = (u64)bno << blkbits;
-		iomap->length = (u64)ret << blkbits;
-		iomap->flags |= IOMAP_F_MERGED;
-	}
-
-	if (new)
-		iomap->flags |= IOMAP_F_NEW;
-	return 0;
-}
-
-static int
-ext2_iomap_end(struct inode *inode, loff_t offset, loff_t length,
-		ssize_t written, unsigned flags, struct iomap *iomap)
-{
-	if (iomap->type == IOMAP_MAPPED &&
-	    written < length &&
-	    (flags & IOMAP_WRITE))
-		ext2_write_failed(inode->i_mapping, offset + length);
-	return 0;
-}
-
-const struct iomap_ops ext2_iomap_ops = {
-	.iomap_begin		= ext2_iomap_begin,
-	.iomap_end		= ext2_iomap_end,
-};
-#else
 /* Define empty ops for !CONFIG_FS_DAX case to avoid ugly ifdefs */
 const struct iomap_ops ext2_iomap_ops;
-#endif /* CONFIG_FS_DAX */
 
 int ext2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 		u64 start, u64 len)
@@ -1190,10 +1135,6 @@ static void __ext2_truncate_blocks(struct inode *inode, loff_t offset)
 	unsigned blocksize;
 	blocksize = inode->i_sb->s_blocksize;
 	iblock = (offset + blocksize-1) >> EXT2_BLOCK_SIZE_BITS(inode->i_sb);
-
-#ifdef CONFIG_FS_DAX
-	WARN_ON(!rwsem_is_locked(&ei->dax_sem));
-#endif
 
 	n = ext2_block_to_path(inode, iblock, offsets, NULL);
 	if (n == 0)

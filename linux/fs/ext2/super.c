@@ -125,21 +125,9 @@ void ext2_update_dynamic_rev(struct super_block *sb)
 	 */
 }
 
-#ifdef CONFIG_QUOTA
-static int ext2_quota_off(struct super_block *sb, int type);
-
-static void ext2_quota_off_umount(struct super_block *sb)
-{
-	int type;
-
-	for (type = 0; type < MAXQUOTAS; type++)
-		ext2_quota_off(sb, type);
-}
-#else
 static inline void ext2_quota_off_umount(struct super_block *sb)
 {
 }
-#endif
 
 static void ext2_put_super (struct super_block * sb)
 {
@@ -185,9 +173,6 @@ static struct inode *ext2_alloc_inode(struct super_block *sb)
 		return NULL;
 	ei->i_block_alloc_info = NULL;
 	inode_set_iversion(&ei->vfs_inode, 1);
-#ifdef CONFIG_QUOTA
-	memset(&ei->i_dquot, 0, sizeof(ei->i_dquot));
-#endif
 
 	return &ei->vfs_inode;
 }
@@ -202,13 +187,7 @@ static void init_once(void *foo)
 	struct ext2_inode_info *ei = (struct ext2_inode_info *) foo;
 
 	rwlock_init(&ei->i_meta_lock);
-#ifdef CONFIG_EXT2_FS_XATTR
-	init_rwsem(&ei->xattr_sem);
-#endif
 	mutex_init(&ei->truncate_mutex);
-#ifdef CONFIG_FS_DAX
-	init_rwsem(&ei->dax_sem);
-#endif
 	inode_init_once(&ei->vfs_inode);
 }
 
@@ -283,21 +262,6 @@ static int ext2_show_options(struct seq_file *seq, struct dentry *root)
 	if (test_opt(sb, OLDALLOC))
 		seq_puts(seq, ",oldalloc");
 
-#ifdef CONFIG_EXT2_FS_XATTR
-	if (test_opt(sb, XATTR_USER))
-		seq_puts(seq, ",user_xattr");
-	if (!test_opt(sb, XATTR_USER) &&
-	    (def_mount_opts & EXT2_DEFM_XATTR_USER)) {
-		seq_puts(seq, ",nouser_xattr");
-	}
-#endif
-
-#ifdef CONFIG_EXT2_FS_POSIX_ACL
-	if (test_opt(sb, POSIX_ACL))
-		seq_puts(seq, ",acl");
-	if (!test_opt(sb, POSIX_ACL) && (def_mount_opts & EXT2_DEFM_ACL))
-		seq_puts(seq, ",noacl");
-#endif
 
 	if (test_opt(sb, NOBH))
 		seq_puts(seq, ",nobh");
@@ -321,28 +285,6 @@ static int ext2_show_options(struct seq_file *seq, struct dentry *root)
 	return 0;
 }
 
-#ifdef CONFIG_QUOTA
-static ssize_t ext2_quota_read(struct super_block *sb, int type, char *data, size_t len, loff_t off);
-static ssize_t ext2_quota_write(struct super_block *sb, int type, const char *data, size_t len, loff_t off);
-static int ext2_quota_on(struct super_block *sb, int type, int format_id,
-			 const struct path *path);
-static struct dquot **ext2_get_dquots(struct inode *inode)
-{
-	return EXT2_I(inode)->i_dquot;
-}
-
-static const struct quotactl_ops ext2_quotactl_ops = {
-	.quota_on	= ext2_quota_on,
-	.quota_off	= ext2_quota_off,
-	.quota_sync	= dquot_quota_sync,
-	.get_state	= dquot_get_state,
-	.set_info	= dquot_set_dqinfo,
-	.get_dqblk	= dquot_get_dqblk,
-	.set_dqblk	= dquot_set_dqblk,
-	.get_nextdqblk	= dquot_get_next_dqblk,
-};
-#endif
-
 static const struct super_operations ext2_sops = {
 	.alloc_inode	= ext2_alloc_inode,
 	.free_inode	= ext2_free_in_core_inode,
@@ -355,11 +297,6 @@ static const struct super_operations ext2_sops = {
 	.statfs		= ext2_statfs,
 	.remount_fs	= ext2_remount,
 	.show_options	= ext2_show_options,
-#ifdef CONFIG_QUOTA
-	.quota_read	= ext2_quota_read,
-	.quota_write	= ext2_quota_write,
-	.get_dquots	= ext2_get_dquots,
-#endif
 };
 
 static struct inode *ext2_nfs_get_inode(struct super_block *sb,
@@ -556,46 +493,22 @@ static int parse_options(char *options, struct super_block *sb,
 		case Opt_nobh:
 			set_opt (opts->s_mount_opt, NOBH);
 			break;
-#ifdef CONFIG_EXT2_FS_XATTR
-		case Opt_user_xattr:
-			set_opt (opts->s_mount_opt, XATTR_USER);
-			break;
-		case Opt_nouser_xattr:
-			clear_opt (opts->s_mount_opt, XATTR_USER);
-			break;
-#else
 		case Opt_user_xattr:
 		case Opt_nouser_xattr:
 			ext2_msg(sb, KERN_INFO, "(no)user_xattr options"
 				"not supported");
 			break;
-#endif
-#ifdef CONFIG_EXT2_FS_POSIX_ACL
-		case Opt_acl:
-			set_opt(opts->s_mount_opt, POSIX_ACL);
-			break;
-		case Opt_noacl:
-			clear_opt(opts->s_mount_opt, POSIX_ACL);
-			break;
-#else
 		case Opt_acl:
 		case Opt_noacl:
 			ext2_msg(sb, KERN_INFO,
 				"(no)acl options not supported");
 			break;
-#endif
 		case Opt_xip:
 			ext2_msg(sb, KERN_INFO, "use dax instead of xip");
 			set_opt(opts->s_mount_opt, XIP);
 			fallthrough;
 		case Opt_dax:
-#ifdef CONFIG_FS_DAX
-			ext2_msg(sb, KERN_WARNING,
-		"DAX enabled. Warning: EXPERIMENTAL, use at your own risk");
-			set_opt(opts->s_mount_opt, DAX);
-#else
 			ext2_msg(sb, KERN_INFO, "dax option not supported");
-#endif
 			break;
 
 #if defined(CONFIG_QUOTA)
@@ -891,14 +804,6 @@ static int ext2_fill_super(struct super_block *sb, void *data, int silent)
 		set_opt(opts.s_mount_opt, GRPID);
 	if (def_mount_opts & EXT2_DEFM_UID16)
 		set_opt(opts.s_mount_opt, NO_UID32);
-#ifdef CONFIG_EXT2_FS_XATTR
-	if (def_mount_opts & EXT2_DEFM_XATTR_USER)
-		set_opt(opts.s_mount_opt, XATTR_USER);
-#endif
-#ifdef CONFIG_EXT2_FS_POSIX_ACL
-	if (def_mount_opts & EXT2_DEFM_ACL)
-		set_opt(opts.s_mount_opt, POSIX_ACL);
-#endif
 	
 	if (le16_to_cpu(sbi->s_es->s_errors) == EXT2_ERRORS_PANIC)
 		set_opt(opts.s_mount_opt, ERRORS_PANIC);
@@ -1139,26 +1044,12 @@ static int ext2_fill_super(struct super_block *sb, void *data, int silent)
 		goto failed_mount3;
 	}
 
-#ifdef CONFIG_EXT2_FS_XATTR
-	sbi->s_ea_block_cache = ext2_xattr_create_cache();
-	if (!sbi->s_ea_block_cache) {
-		ret = -ENOMEM;
-		ext2_msg(sb, KERN_ERR, "Failed to create ea_block_cache");
-		goto failed_mount3;
-	}
-#endif
 	/*
 	 * set up enough so that it can read an inode
 	 */
 	sb->s_op = &ext2_sops;
 	sb->s_export_op = &ext2_export_ops;
 	sb->s_xattr = ext2_xattr_handlers;
-
-#ifdef CONFIG_QUOTA
-	sb->dq_op = &dquot_operations;
-	sb->s_qcop = &ext2_quotactl_ops;
-	sb->s_quota_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
-#endif
 
 	root = ext2_iget(sb, EXT2_ROOT_INO);
 	if (IS_ERR(root)) {
@@ -1469,156 +1360,6 @@ static struct dentry *ext2_mount(struct file_system_type *fs_type,
 {
 	return mount_bdev(fs_type, flags, dev_name, data, ext2_fill_super);
 }
-
-#ifdef CONFIG_QUOTA
-
-/* Read data from quotafile - avoid pagecache and such because we cannot afford
- * acquiring the locks... As quota files are never truncated and quota code
- * itself serializes the operations (and no one else should touch the files)
- * we don't have to be afraid of races */
-static ssize_t ext2_quota_read(struct super_block *sb, int type, char *data,
-			       size_t len, loff_t off)
-{
-	struct inode *inode = sb_dqopt(sb)->files[type];
-	sector_t blk = off >> EXT2_BLOCK_SIZE_BITS(sb);
-	int err = 0;
-	int offset = off & (sb->s_blocksize - 1);
-	int tocopy;
-	size_t toread;
-	struct buffer_head tmp_bh;
-	struct buffer_head *bh;
-	loff_t i_size = i_size_read(inode);
-
-	if (off > i_size)
-		return 0;
-	if (off+len > i_size)
-		len = i_size-off;
-	toread = len;
-	while (toread > 0) {
-		tocopy = sb->s_blocksize - offset < toread ?
-				sb->s_blocksize - offset : toread;
-
-		tmp_bh.b_state = 0;
-		tmp_bh.b_size = sb->s_blocksize;
-		err = ext2_get_block(inode, blk, &tmp_bh, 0);
-		if (err < 0)
-			return err;
-		if (!buffer_mapped(&tmp_bh))	/* A hole? */
-			memset(data, 0, tocopy);
-		else {
-			bh = sb_bread(sb, tmp_bh.b_blocknr);
-			if (!bh)
-				return -EIO;
-			memcpy(data, bh->b_data+offset, tocopy);
-			brelse(bh);
-		}
-		offset = 0;
-		toread -= tocopy;
-		data += tocopy;
-		blk++;
-	}
-	return len;
-}
-
-/* Write to quotafile */
-static ssize_t ext2_quota_write(struct super_block *sb, int type,
-				const char *data, size_t len, loff_t off)
-{
-	struct inode *inode = sb_dqopt(sb)->files[type];
-	sector_t blk = off >> EXT2_BLOCK_SIZE_BITS(sb);
-	int err = 0;
-	int offset = off & (sb->s_blocksize - 1);
-	int tocopy;
-	size_t towrite = len;
-	struct buffer_head tmp_bh;
-	struct buffer_head *bh;
-
-	while (towrite > 0) {
-		tocopy = sb->s_blocksize - offset < towrite ?
-				sb->s_blocksize - offset : towrite;
-
-		tmp_bh.b_state = 0;
-		tmp_bh.b_size = sb->s_blocksize;
-		err = ext2_get_block(inode, blk, &tmp_bh, 1);
-		if (err < 0)
-			goto out;
-		if (offset || tocopy != EXT2_BLOCK_SIZE(sb))
-			bh = sb_bread(sb, tmp_bh.b_blocknr);
-		else
-			bh = sb_getblk(sb, tmp_bh.b_blocknr);
-		if (unlikely(!bh)) {
-			err = -EIO;
-			goto out;
-		}
-		lock_buffer(bh);
-		memcpy(bh->b_data+offset, data, tocopy);
-		flush_dcache_page(bh->b_page);
-		set_buffer_uptodate(bh);
-		mark_buffer_dirty(bh);
-		unlock_buffer(bh);
-		brelse(bh);
-		offset = 0;
-		towrite -= tocopy;
-		data += tocopy;
-		blk++;
-	}
-out:
-	if (len == towrite)
-		return err;
-	if (inode->i_size < off+len-towrite)
-		i_size_write(inode, off+len-towrite);
-	inode_inc_iversion(inode);
-	inode->i_mtime = inode->i_ctime = current_time(inode);
-	mark_inode_dirty(inode);
-	return len - towrite;
-}
-
-static int ext2_quota_on(struct super_block *sb, int type, int format_id,
-			 const struct path *path)
-{
-	int err;
-	struct inode *inode;
-
-	err = dquot_quota_on(sb, type, format_id, path);
-	if (err)
-		return err;
-
-	inode = d_inode(path->dentry);
-	inode_lock(inode);
-	EXT2_I(inode)->i_flags |= EXT2_NOATIME_FL | EXT2_IMMUTABLE_FL;
-	inode_set_flags(inode, S_NOATIME | S_IMMUTABLE,
-			S_NOATIME | S_IMMUTABLE);
-	inode_unlock(inode);
-	mark_inode_dirty(inode);
-
-	return 0;
-}
-
-static int ext2_quota_off(struct super_block *sb, int type)
-{
-	struct inode *inode = sb_dqopt(sb)->files[type];
-	int err;
-
-	if (!inode || !igrab(inode))
-		goto out;
-
-	err = dquot_quota_off(sb, type);
-	if (err)
-		goto out_put;
-
-	inode_lock(inode);
-	EXT2_I(inode)->i_flags &= ~(EXT2_NOATIME_FL | EXT2_IMMUTABLE_FL);
-	inode_set_flags(inode, 0, S_NOATIME | S_IMMUTABLE);
-	inode_unlock(inode);
-	mark_inode_dirty(inode);
-out_put:
-	iput(inode);
-	return err;
-out:
-	return dquot_quota_off(sb, type);
-}
-
-#endif
 
 static struct file_system_type ext2_fs_type = {
 	.owner		= THIS_MODULE,
