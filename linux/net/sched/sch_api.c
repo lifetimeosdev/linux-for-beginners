@@ -2256,7 +2256,6 @@ done:
 	return skb->len;
 }
 
-#ifdef CONFIG_PROC_FS
 static int psched_show(struct seq_file *seq, void *v)
 {
 	seq_printf(seq, "%08x %08x %08x %08x\n",
@@ -2282,16 +2281,6 @@ static void __net_exit psched_net_exit(struct net *net)
 {
 	remove_proc_entry("psched", net->proc_net);
 }
-#else
-static int __net_init psched_net_init(struct net *net)
-{
-	return 0;
-}
-
-static void __net_exit psched_net_exit(struct net *net)
-{
-}
-#endif
 
 static struct pernet_operations psched_net_ops = {
 	.init = psched_net_init,

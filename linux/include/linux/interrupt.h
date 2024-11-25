@@ -750,14 +750,8 @@ extern int probe_irq_off(unsigned long);	/* returns 0 or negative on failure */
 extern unsigned int probe_irq_mask(unsigned long);	/* returns mask of ISA interrupts */
 #endif
 
-#ifdef CONFIG_PROC_FS
 /* Initialize /proc/irq/ */
 extern void init_irq_proc(void);
-#else
-static inline void init_irq_proc(void)
-{
-}
-#endif
 
 #ifdef CONFIG_IRQ_TIMINGS
 void irq_timings_enable(void);

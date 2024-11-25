@@ -12,15 +12,6 @@
 
 extern int sysctl_stat_interval;
 
-#ifdef CONFIG_NUMA
-#define ENABLE_NUMA_STAT   1
-#define DISABLE_NUMA_STAT   0
-extern int sysctl_vm_numa_stat;
-DECLARE_STATIC_KEY_TRUE(vm_numa_stat_key);
-int sysctl_vm_numa_stat_handler(struct ctl_table *table, int write,
-		void *buffer, size_t *length, loff_t *ppos);
-#endif
-
 struct reclaim_stat {
 	unsigned nr_dirty;
 	unsigned nr_unqueued_dirty;
@@ -136,34 +127,6 @@ extern atomic_long_t vm_zone_stat[NR_VM_ZONE_STAT_ITEMS];
 extern atomic_long_t vm_numa_stat[NR_VM_NUMA_STAT_ITEMS];
 extern atomic_long_t vm_node_stat[NR_VM_NODE_STAT_ITEMS];
 
-#ifdef CONFIG_NUMA
-static inline void zone_numa_state_add(long x, struct zone *zone,
-				 enum numa_stat_item item)
-{
-	atomic_long_add(x, &zone->vm_numa_stat[item]);
-	atomic_long_add(x, &vm_numa_stat[item]);
-}
-
-static inline unsigned long global_numa_state(enum numa_stat_item item)
-{
-	long x = atomic_long_read(&vm_numa_stat[item]);
-
-	return x;
-}
-
-static inline unsigned long zone_numa_state_snapshot(struct zone *zone,
-					enum numa_stat_item item)
-{
-	long x = atomic_long_read(&zone->vm_numa_stat[item]);
-	int cpu;
-
-	for_each_online_cpu(cpu)
-		x += per_cpu_ptr(zone->pageset, cpu)->vm_numa_stat_diff[item];
-
-	return x;
-}
-#endif /* CONFIG_NUMA */
-
 static inline void zone_page_state_add(long x, struct zone *zone,
 				 enum zone_stat_item item)
 {
@@ -239,20 +202,9 @@ static inline unsigned long zone_page_state_snapshot(struct zone *zone,
 	return x;
 }
 
-#ifdef CONFIG_NUMA
-extern void __inc_numa_state(struct zone *zone, enum numa_stat_item item);
-extern unsigned long sum_zone_node_page_state(int node,
-					      enum zone_stat_item item);
-extern unsigned long sum_zone_numa_state(int node, enum numa_stat_item item);
-extern unsigned long node_page_state(struct pglist_data *pgdat,
-						enum node_stat_item item);
-extern unsigned long node_page_state_pages(struct pglist_data *pgdat,
-					   enum node_stat_item item);
-#else
 #define sum_zone_node_page_state(node, item) global_zone_page_state(item)
 #define node_page_state(node, item) global_node_page_state(item)
 #define node_page_state_pages(node, item) global_node_page_state_pages(item)
-#endif /* CONFIG_NUMA */
 
 #ifdef CONFIG_SMP
 void __mod_zone_page_state(struct zone *, enum zone_stat_item item, long);
@@ -405,14 +357,6 @@ static inline const char *zone_stat_name(enum zone_stat_item item)
 {
 	return vmstat_text[item];
 }
-
-#ifdef CONFIG_NUMA
-static inline const char *numa_stat_name(enum numa_stat_item item)
-{
-	return vmstat_text[NR_VM_ZONE_STAT_ITEMS +
-			   item];
-}
-#endif /* CONFIG_NUMA */
 
 static inline const char *node_stat_name(enum node_stat_item item)
 {

@@ -528,7 +528,8 @@ unsigned long vm_mmap_pgoff(struct file *file, unsigned long addr,
 	unsigned long populate;
 	LIST_HEAD(uf);
 
-	ret = security_mmap_file(file, prot, flag);
+	// ret = security_mmap_file(file, prot, flag);
+	ret = 0;
 	if (!ret) {
 		if (mmap_write_lock_killable(mm))
 			return -EINTR;

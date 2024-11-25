@@ -15,11 +15,9 @@
 #include <linux/refcount.h>
 #include <uapi/linux/atmdev.h>
 
-#ifdef CONFIG_PROC_FS
 #include <linux/proc_fs.h>
 
 extern struct proc_dir_entry *atm_proc_root;
-#endif
 
 struct k_atm_aal_stats {
 #define __HANDLE_ITEM(i) atomic_t i
@@ -154,10 +152,8 @@ struct atm_dev {
 	int		link_rate;	/* link rate (default: OC3) */
 	refcount_t	refcnt;		/* reference count */
 	spinlock_t	lock;		/* protect internal members */
-#ifdef CONFIG_PROC_FS
 	struct proc_dir_entry *proc_entry; /* proc entry */
 	char *proc_name;		/* proc entry name */
-#endif
 	struct device class_dev;	/* sysfs device */
 	struct list_head dev_list;	/* linkage */
 };

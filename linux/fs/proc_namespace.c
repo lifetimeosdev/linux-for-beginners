@@ -58,7 +58,8 @@ static int show_sb_opts(struct seq_file *m, struct super_block *sb)
 			seq_puts(m, fs_infop->str);
 	}
 
-	return security_sb_show_options(m, sb);
+	// return security_sb_show_options(m, sb);
+	return 0;
 }
 
 static void show_mnt_opts(struct seq_file *m, struct vfsmount *mnt)

@@ -48,21 +48,8 @@ enum {
 	PROC_TIME_INIT_INO	= 0xEFFFFFFAU,
 };
 
-#ifdef CONFIG_PROC_FS
-
 extern int proc_alloc_inum(unsigned int *pino);
 extern void proc_free_inum(unsigned int inum);
-
-#else /* CONFIG_PROC_FS */
-
-static inline int proc_alloc_inum(unsigned int *inum)
-{
-	*inum = 1;
-	return 0;
-}
-static inline void proc_free_inum(unsigned int inum) {}
-
-#endif /* CONFIG_PROC_FS */
 
 static inline int ns_alloc_inum(struct ns_common *ns)
 {

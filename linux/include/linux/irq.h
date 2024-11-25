@@ -144,9 +144,6 @@ struct irq_domain;
  */
 struct irq_common_data {
 	unsigned int		__private state_use_accessors;
-#ifdef CONFIG_NUMA
-	unsigned int		node;
-#endif
 	void			*handler_data;
 	struct msi_desc		*msi_desc;
 	cpumask_var_t		affinity;
@@ -862,11 +859,7 @@ static inline u32 irq_get_trigger_type(unsigned int irq)
 
 static inline int irq_common_data_get_node(struct irq_common_data *d)
 {
-#ifdef CONFIG_NUMA
-	return d->node;
-#else
 	return 0;
-#endif
 }
 
 static inline int irq_data_get_node(struct irq_data *d)

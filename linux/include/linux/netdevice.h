@@ -4781,11 +4781,7 @@ static inline void netdev_rx_csum_fault(struct net_device *dev,
 void net_enable_timestamp(void);
 void net_disable_timestamp(void);
 
-#ifdef CONFIG_PROC_FS
 int __init dev_proc_init(void);
-#else
-#define dev_proc_init() 0
-#endif
 
 static inline netdev_tx_t __netdev_start_xmit(const struct net_device_ops *ops,
 					      struct sk_buff *skb, struct net_device *dev,

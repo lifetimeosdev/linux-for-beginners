@@ -2015,10 +2015,8 @@ static inline bool tcp_stream_memory_free(const struct sock *sk, int wake)
 	return (notsent_bytes << wake) < tcp_notsent_lowat(tp);
 }
 
-#ifdef CONFIG_PROC_FS
 int tcp4_proc_init(void);
 void tcp4_proc_exit(void);
-#endif
 
 int tcp_rtx_synack(const struct sock *sk, struct request_sock *req);
 int tcp_conn_request(struct request_sock_ops *rsk_ops,

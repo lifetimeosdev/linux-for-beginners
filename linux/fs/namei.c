@@ -468,7 +468,8 @@ int inode_permission(struct inode *inode, int mask)
 	if (retval)
 		return retval;
 
-	return security_inode_permission(inode, mask);
+	// return security_inode_permission(inode, mask);
+	return 0;
 }
 EXPORT_SYMBOL(inode_permission);
 
@@ -1649,10 +1650,10 @@ static const char *pick_link(struct nameidata *nd, struct path *link,
 		touch_atime(&last->link);
 	}
 
-	error = security_inode_follow_link(link->dentry, inode,
-					   nd->flags & LOOKUP_RCU);
-	if (unlikely(error))
-		return ERR_PTR(error);
+	// error = security_inode_follow_link(link->dentry, inode,
+	// 				   nd->flags & LOOKUP_RCU);
+	// if (unlikely(error))
+	// 	return ERR_PTR(error);
 
 	res = READ_ONCE(inode->i_link);
 	if (!res) {
@@ -2860,9 +2861,9 @@ int vfs_create(struct inode *dir, struct dentry *dentry, umode_t mode,
 		return -EACCES;	/* shouldn't it be ENOSYS? */
 
 	mode = vfs_prepare_mode(dir, mode, S_IALLUGO, S_IFREG);
-	error = security_inode_create(dir, dentry, mode);
-	if (error)
-		return error;
+	// error = security_inode_create(dir, dentry, mode);
+	// if (error)
+	// 	return error;
 	error = dir->i_op->create(dir, dentry, mode, want_excl);
 	if (!error)
 		fsnotify_create(dir, dentry);
@@ -2881,9 +2882,9 @@ int vfs_mkobj(struct dentry *dentry, umode_t mode,
 
 	mode &= S_IALLUGO;
 	mode |= S_IFREG;
-	error = security_inode_create(dir, dentry, mode);
-	if (error)
-		return error;
+	// error = security_inode_create(dir, dentry, mode);
+	// if (error)
+	// 	return error;
 	error = f(dentry, mode, arg);
 	if (!error)
 		fsnotify_create(dir, dentry);
@@ -2998,7 +2999,8 @@ static int may_o_create(const struct path *dir, struct dentry *dentry, umode_t m
 	if (error)
 		return error;
 
-	return security_inode_create(dir->dentry->d_inode, dentry, mode);
+	// return security_inode_create(dir->dentry->d_inode, dentry, mode);
+	return 0;
 }
 
 /*
@@ -3602,9 +3604,9 @@ int vfs_mknod(struct inode *dir, struct dentry *dentry, umode_t mode, dev_t dev)
 	if (error)
 		return error;
 
-	error = security_inode_mknod(dir, dentry, mode, dev);
-	if (error)
-		return error;
+	// error = security_inode_mknod(dir, dentry, mode, dev);
+	// if (error)
+	// 	return error;
 
 	error = dir->i_op->mknod(dir, dentry, mode, dev);
 	if (!error)
@@ -3708,9 +3710,9 @@ int vfs_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
 		return -EPERM;
 
 	mode = vfs_prepare_mode(dir, mode, S_IRWXUGO | S_ISVTX, 0);
-	error = security_inode_mkdir(dir, dentry, mode);
-	if (error)
-		return error;
+	// error = security_inode_mkdir(dir, dentry, mode);
+	// if (error)
+	// 	return error;
 
 	if (max_links && dir->i_nlink >= max_links)
 		return -EMLINK;
@@ -3785,9 +3787,9 @@ int vfs_rmdir(struct inode *dir, struct dentry *dentry)
 	if (is_local_mountpoint(dentry))
 		goto out;
 
-	error = security_inode_rmdir(dir, dentry);
-	if (error)
-		goto out;
+	// error = security_inode_rmdir(dir, dentry);
+	// if (error)
+	// 	goto out;
 
 	error = dir->i_op->rmdir(dir, dentry);
 	if (error)
@@ -3909,7 +3911,8 @@ int vfs_unlink(struct inode *dir, struct dentry *dentry, struct inode **delegate
 	if (is_local_mountpoint(dentry))
 		error = -EBUSY;
 	else {
-		error = security_inode_unlink(dir, dentry);
+		// error = security_inode_unlink(dir, dentry);
+		error = 0;
 		if (!error) {
 			error = try_break_deleg(target, delegated_inode);
 			if (error)
@@ -4050,9 +4053,9 @@ int vfs_symlink(struct inode *dir, struct dentry *dentry, const char *oldname)
 	if (!dir->i_op->symlink)
 		return -EPERM;
 
-	error = security_inode_symlink(dir, dentry, oldname);
-	if (error)
-		return error;
+	// error = security_inode_symlink(dir, dentry, oldname);
+	// if (error)
+	// 	return error;
 
 	error = dir->i_op->symlink(dir, dentry, oldname);
 	if (!error)
@@ -4166,9 +4169,9 @@ int vfs_link(struct dentry *old_dentry, struct inode *dir, struct dentry *new_de
 	if (S_ISDIR(inode->i_mode))
 		return -EPERM;
 
-	error = security_inode_link(old_dentry, dir, new_dentry);
-	if (error)
-		return error;
+	// error = security_inode_link(old_dentry, dir, new_dentry);
+	// if (error)
+	// 	return error;
 
 	inode_lock(inode);
 	/* Make sure we don't allow creating hardlink to an unlinked file */
@@ -4396,10 +4399,10 @@ int vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 		}
 	}
 
-	error = security_inode_rename(old_dir, old_dentry, new_dir, new_dentry,
-				      flags);
-	if (error)
-		return error;
+	// error = security_inode_rename(old_dir, old_dentry, new_dir, new_dentry,
+	// 			      flags);
+	// if (error)
+	// 	return error;
 
 	take_dentry_name_snapshot(&old_name, old_dentry);
 	dget(new_dentry);
@@ -4746,7 +4749,8 @@ const char *vfs_get_link(struct dentry *dentry, struct delayed_call *done)
 	struct inode *inode = d_inode(dentry);
 
 	if (d_is_symlink(dentry)) {
-		res = ERR_PTR(security_inode_readlink(dentry));
+		// res = ERR_PTR(security_inode_readlink(dentry));
+		res = 0;
 		if (!res)
 			res = inode->i_op->get_link(dentry, inode, done);
 	}

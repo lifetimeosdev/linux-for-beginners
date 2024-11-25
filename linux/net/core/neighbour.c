@@ -58,9 +58,7 @@ static void neigh_update_notify(struct neighbour *neigh, u32 nlmsg_pid);
 static int pneigh_ifdown_and_unlock(struct neigh_table *tbl,
 				    struct net_device *dev);
 
-#ifdef CONFIG_PROC_FS
 static const struct seq_operations neigh_stat_seq_ops;
-#endif
 
 /*
    Neighbour hash table buckets are protected with rwlock tbl->lock.
@@ -1709,11 +1707,9 @@ void neigh_table_init(int index, struct neigh_table *tbl)
 	if (!tbl->stats)
 		panic("cannot create neighbour cache statistics");
 
-#ifdef CONFIG_PROC_FS
 	if (!proc_create_seq_data(tbl->id, 0, init_net.proc_net_stat,
 			      &neigh_stat_seq_ops, tbl))
 		panic("cannot create neighbour proc dir entry");
-#endif
 
 	RCU_INIT_POINTER(tbl->nht, neigh_hash_alloc(3));
 
@@ -3045,8 +3041,6 @@ out_kfree_skb:
 }
 EXPORT_SYMBOL(neigh_xmit);
 
-#ifdef CONFIG_PROC_FS
-
 static struct neighbour *neigh_get_first(struct seq_file *seq)
 {
 	struct neigh_seq_state *state = seq->private;
@@ -3363,7 +3357,6 @@ static const struct seq_operations neigh_stat_seq_ops = {
 	.stop	= neigh_stat_seq_stop,
 	.show	= neigh_stat_seq_show,
 };
-#endif /* CONFIG_PROC_FS */
 
 static void __neigh_notify(struct neighbour *n, int type, int flags,
 			   u32 pid)

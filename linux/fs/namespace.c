@@ -1263,7 +1263,6 @@ struct vfsmount *mnt_clone_internal(const struct path *path)
 	return &p->mnt;
 }
 
-#ifdef CONFIG_PROC_FS
 static struct mount *mnt_list_next(struct mnt_namespace *ns,
 				   struct list_head *p)
 {
@@ -1347,7 +1346,6 @@ void mnt_cursor_del(struct mnt_namespace *ns, struct mount *cursor)
 	unlock_ns_list(ns);
 	up_read(&namespace_sem);
 }
-#endif  /* CONFIG_PROC_FS */
 
 /**
  * may_umount_tree - check if a mount tree is busy
@@ -1561,9 +1559,9 @@ static int do_umount(struct mount *mnt, int flags)
 	struct super_block *sb = mnt->mnt.mnt_sb;
 	int retval;
 
-	retval = security_sb_umount(&mnt->mnt, flags);
-	if (retval)
-		return retval;
+	// retval = security_sb_umount(&mnt->mnt, flags);
+	// if (retval)
+	// 	return retval;
 
 	/*
 	 * Allow userspace to request a mountpoint be expired rather than
@@ -2827,7 +2825,8 @@ static int do_new_mount_fc(struct fs_context *fc, struct path *mountpoint,
 	struct super_block *sb = fc->root->d_sb;
 	int error;
 
-	error = security_sb_kern_mount(sb);
+	// error = security_sb_kern_mount(sb);
+	error = 0;
 	if (!error && mount_too_revealing(sb, &mnt_flags))
 		error = -EPERM;
 
@@ -3166,7 +3165,7 @@ int path_mount(const char *dev_name, struct path *path,
 		const char *type_page, unsigned long flags, void *data_page)
 {
 	unsigned int mnt_flags = 0, sb_flags;
-	int ret;
+	// int ret;
 
 	/* Discard magic */
 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
@@ -3179,9 +3178,9 @@ int path_mount(const char *dev_name, struct path *path,
 	if (flags & MS_NOUSER)
 		return -EINVAL;
 
-	ret = security_sb_mount(dev_name, path, type_page, flags, data_page);
-	if (ret)
-		return ret;
+	// ret = security_sb_mount(dev_name, path, type_page, flags, data_page);
+	// if (ret)
+	// 	return ret;
 	if (!may_mount())
 		return -EPERM;
 	if ((flags & SB_MANDLOCK) && !may_mandlock())
@@ -3664,13 +3663,13 @@ static inline long __do_sys_move_mount(int from_dfd, const char *from_pathname, 
 	if (ret < 0)
 		goto out_from;
 
-	ret = security_move_mount(&from_path, &to_path);
-	if (ret < 0)
-		goto out_to;
+	// ret = security_move_mount(&from_path, &to_path);
+	// if (ret < 0)
+	// 	goto out_to;
 
 	ret = do_move_mount(&from_path, &to_path);
 
-out_to:
+// out_to:
 	path_put(&to_path);
 out_from:
 	path_put(&from_path);
@@ -3754,9 +3753,9 @@ static inline long __do_sys_pivot_root(const char *new_root, const char *put_old
 	if (error)
 		goto out1;
 
-	error = security_sb_pivotroot(&old, &new);
-	if (error)
-		goto out2;
+	// error = security_sb_pivotroot(&old, &new);
+	// if (error)
+	// 	goto out2;
 
 	get_fs_root(current->fs, &root);
 	old_mp = lock_mount(&old);
@@ -3824,7 +3823,7 @@ out4:
 		mntput_no_expire(ex_parent);
 out3:
 	path_put(&root);
-out2:
+// out2:
 	path_put(&old);
 out1:
 	path_put(&new);

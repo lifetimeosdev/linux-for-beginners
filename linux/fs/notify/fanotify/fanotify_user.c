@@ -708,9 +708,9 @@ static int fanotify_find_path(int dfd, const char __user *filename,
 		goto out;
 	}
 
-	ret = security_path_notify(path, mask, obj_type);
-	if (ret)
-		path_put(path);
+	// ret = security_path_notify(path, mask, obj_type);
+	// if (ret)
+	// 	path_put(path);
 
 out:
 	return ret;

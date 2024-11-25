@@ -3437,7 +3437,6 @@ void pcpu_free_vm_areas(struct vm_struct **vms, int nr_vms)
 }
 #endif	/* CONFIG_SMP */
 
-#ifdef CONFIG_PROC_FS
 static void *s_start(struct seq_file *m, loff_t *pos)
 	__acquires(&vmap_purge_lock)
 	__acquires(&vmap_area_lock)
@@ -3585,5 +3584,3 @@ static int __init proc_vmalloc_init(void)
 	return 0;
 }
 module_init(proc_vmalloc_init);
-
-#endif

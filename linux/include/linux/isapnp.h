@@ -66,13 +66,8 @@ int isapnp_cfg_end(void);
 unsigned char isapnp_read_byte(unsigned char idx);
 void isapnp_write_byte(unsigned char idx, unsigned char val);
 
-#ifdef CONFIG_PROC_FS
 int isapnp_proc_init(void);
 int isapnp_proc_done(void);
-#else
-static inline int isapnp_proc_init(void) { return 0; }
-static inline int isapnp_proc_done(void) { return 0; }
-#endif
 
 /* compat */
 struct pnp_dev *pnp_find_dev(struct pnp_card *card,

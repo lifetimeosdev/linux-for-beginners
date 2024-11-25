@@ -21,11 +21,10 @@
  * @ptr address of access
  * @size size of access
  */
-static __always_inline void instrument_read(const volatile void *v, size_t size)
-{
-	kasan_check_read(v, size);
-	kcsan_check_read(v, size);
-}
+// static __always_inline void instrument_read(const volatile void *v, size_t size)
+// {
+// 	kcsan_check_read(v, size);
+// }
 
 /**
  * instrument_write - instrument regular write access
@@ -36,11 +35,10 @@ static __always_inline void instrument_read(const volatile void *v, size_t size)
  * @ptr address of access
  * @size size of access
  */
-static __always_inline void instrument_write(const volatile void *v, size_t size)
-{
-	kasan_check_write(v, size);
-	kcsan_check_write(v, size);
-}
+// static __always_inline void instrument_write(const volatile void *v, size_t size)
+// {
+// 	kcsan_check_write(v, size);
+// }
 
 /**
  * instrument_read_write - instrument regular read-write access
@@ -51,11 +49,10 @@ static __always_inline void instrument_write(const volatile void *v, size_t size
  * @ptr address of access
  * @size size of access
  */
-static __always_inline void instrument_read_write(const volatile void *v, size_t size)
-{
-	kasan_check_write(v, size);
-	kcsan_check_read_write(v, size);
-}
+// static __always_inline void instrument_read_write(const volatile void *v, size_t size)
+// {
+// 	kcsan_check_read_write(v, size);
+// }
 
 /**
  * instrument_atomic_read - instrument atomic read access
@@ -66,11 +63,10 @@ static __always_inline void instrument_read_write(const volatile void *v, size_t
  * @ptr address of access
  * @size size of access
  */
-static __always_inline void instrument_atomic_read(const volatile void *v, size_t size)
-{
-	kasan_check_read(v, size);
-	kcsan_check_atomic_read(v, size);
-}
+// static __always_inline void instrument_atomic_read(const volatile void *v, size_t size)
+// {
+// 	kcsan_check_atomic_read(v, size);
+// }
 
 /**
  * instrument_atomic_write - instrument atomic write access
@@ -81,11 +77,10 @@ static __always_inline void instrument_atomic_read(const volatile void *v, size_
  * @ptr address of access
  * @size size of access
  */
-static __always_inline void instrument_atomic_write(const volatile void *v, size_t size)
-{
-	kasan_check_write(v, size);
-	kcsan_check_atomic_write(v, size);
-}
+// static __always_inline void instrument_atomic_write(const volatile void *v, size_t size)
+// {
+// 	kcsan_check_atomic_write(v, size);
+// }
 
 /**
  * instrument_atomic_read_write - instrument atomic read-write access
@@ -96,11 +91,10 @@ static __always_inline void instrument_atomic_write(const volatile void *v, size
  * @ptr address of access
  * @size size of access
  */
-static __always_inline void instrument_atomic_read_write(const volatile void *v, size_t size)
-{
-	kasan_check_write(v, size);
-	kcsan_check_atomic_read_write(v, size);
-}
+// static __always_inline void instrument_atomic_read_write(const volatile void *v, size_t size)
+// {
+// 	kcsan_check_atomic_read_write(v, size);
+// }
 
 /**
  * instrument_copy_to_user - instrument reads of copy_to_user
@@ -112,12 +106,11 @@ static __always_inline void instrument_atomic_read_write(const volatile void *v,
  * @from source address
  * @n number of bytes to copy
  */
-static __always_inline void
-instrument_copy_to_user(void __user *to, const void *from, unsigned long n)
-{
-	kasan_check_read(from, n);
-	kcsan_check_read(from, n);
-}
+// static __always_inline void
+// instrument_copy_to_user(void __user *to, const void *from, unsigned long n)
+// {
+// 	kcsan_check_read(from, n);
+// }
 
 /**
  * instrument_copy_from_user - instrument writes of copy_from_user
@@ -129,11 +122,10 @@ instrument_copy_to_user(void __user *to, const void *from, unsigned long n)
  * @from source address
  * @n number of bytes to copy
  */
-static __always_inline void
-instrument_copy_from_user(const void *to, const void __user *from, unsigned long n)
-{
-	kasan_check_write(to, n);
-	kcsan_check_write(to, n);
-}
+// static __always_inline void
+// instrument_copy_from_user(const void *to, const void __user *from, unsigned long n)
+// {
+// 	kcsan_check_write(to, n);
+// }
 
 #endif /* _LINUX_INSTRUMENTED_H */

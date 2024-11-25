@@ -2271,7 +2271,6 @@ void tcp_v4_destroy_sock(struct sock *sk)
 }
 EXPORT_SYMBOL(tcp_v4_destroy_sock);
 
-#ifdef CONFIG_PROC_FS
 /* Proc filesystem TCP sock list dumping. */
 
 /*
@@ -2790,7 +2789,6 @@ void tcp4_proc_exit(void)
 {
 	unregister_pernet_subsys(&tcp4_net_ops);
 }
-#endif /* CONFIG_PROC_FS */
 
 struct proto tcp_prot = {
 	.name			= "TCP",

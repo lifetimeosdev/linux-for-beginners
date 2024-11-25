@@ -300,7 +300,6 @@ void sysrq_timer_list_show(void)
 	return;
 }
 
-#ifdef CONFIG_PROC_FS
 static int timer_list_show(struct seq_file *m, void *v)
 {
 	struct timer_list_iter *iter = v;
@@ -377,4 +376,3 @@ static int __init init_timer_list_procfs(void)
 	return 0;
 }
 __initcall(init_timer_list_procfs);
-#endif

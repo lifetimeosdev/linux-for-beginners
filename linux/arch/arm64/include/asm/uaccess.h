@@ -381,7 +381,6 @@ extern unsigned long __must_check __copy_user_flushcache(void *to, const void __
 
 static inline int __copy_from_user_flushcache(void *dst, const void __user *src, unsigned size)
 {
-	kasan_check_write(dst, size);
 	return __copy_user_flushcache(dst, __uaccess_mask_ptr(src), size);
 }
 #endif

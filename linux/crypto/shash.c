@@ -495,9 +495,7 @@ static const struct crypto_type crypto_shash_type = {
 	.extsize = crypto_alg_extsize,
 	.init_tfm = crypto_shash_init_tfm,
 	.free = crypto_shash_free_instance,
-#ifdef CONFIG_PROC_FS
 	.show = crypto_shash_show,
-#endif
 	.report = crypto_shash_report,
 	.maskclear = ~CRYPTO_ALG_TYPE_MASK,
 	.maskset = CRYPTO_ALG_TYPE_MASK,

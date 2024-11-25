@@ -107,9 +107,6 @@ struct task_struct init_task
 	.thread		= INIT_THREAD,
 	.fs		= &init_fs,
 	.files		= &init_files,
-#ifdef CONFIG_IO_URING
-	.io_uring	= NULL,
-#endif
 	.signal		= &init_signals,
 	.sighand	= &init_sighand,
 	.nsproxy	= &init_nsproxy,
@@ -159,16 +156,6 @@ struct task_struct init_task
 	.vtime.seqcount	= SEQCNT_ZERO(init_task.vtime_seqcount),
 	.vtime.starttime = 0,
 	.vtime.state	= VTIME_SYS,
-#endif
-#ifdef CONFIG_KCSAN
-	.kcsan_ctx = {
-		.disable_count		= 0,
-		.atomic_next		= 0,
-		.atomic_nest_count	= 0,
-		.in_flat_atomic		= false,
-		.access_mask		= 0,
-		.scoped_accesses	= {LIST_POISON1, NULL},
-	},
 #endif
 #ifdef CONFIG_FUNCTION_GRAPH_TRACER
 	.ret_stack		= NULL,

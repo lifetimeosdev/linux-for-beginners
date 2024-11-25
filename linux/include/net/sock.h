@@ -1212,9 +1212,7 @@ struct proto {
 	int			(*get_port)(struct sock *sk, unsigned short snum);
 
 	/* Keeping track of sockets in use */
-#ifdef CONFIG_PROC_FS
 	unsigned int		inuse_idx;
-#endif
 
 	bool			(*stream_memory_free)(const struct sock *sk, int wake);
 	bool			(*stream_memory_read)(const struct sock *sk);
@@ -1413,18 +1411,10 @@ proto_memory_pressure(struct proto *prot)
 }
 
 
-#ifdef CONFIG_PROC_FS
 /* Called with local bh disabled */
 void sock_prot_inuse_add(struct net *net, struct proto *prot, int inc);
 int sock_prot_inuse_get(struct net *net, struct proto *proto);
 int sock_inuse_get(struct net *net);
-#else
-static inline void sock_prot_inuse_add(struct net *net, struct proto *prot,
-		int inc)
-{
-}
-#endif
-
 
 /* With per-bucket locks this operation is not-atomic, so that
  * this version is not worse.

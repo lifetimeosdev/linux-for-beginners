@@ -125,7 +125,6 @@ void ipc_init_ids(struct ipc_ids *ids)
 #endif
 }
 
-#ifdef CONFIG_PROC_FS
 static const struct proc_ops sysvipc_proc_ops;
 /**
  * ipc_init_proc_interface -  create a proc interface for sysipc types using a seq_file interface.
@@ -156,7 +155,6 @@ void __init ipc_init_proc_interface(const char *path, const char *header,
 	if (!pde)
 		kfree(iface);
 }
-#endif
 
 /**
  * ipc_findkey	- find a key in an ipc identifier set
@@ -712,7 +710,6 @@ err:
 	return ERR_PTR(err);
 }
 
-#ifdef CONFIG_PROC_FS
 struct ipc_proc_iter {
 	struct ipc_namespace *ns;
 	struct pid_namespace *pid_ns;
@@ -868,4 +865,3 @@ static const struct proc_ops sysvipc_proc_ops = {
 	.proc_lseek	= seq_lseek,
 	.proc_release	= sysvipc_proc_release,
 };
-#endif /* CONFIG_PROC_FS */

@@ -2842,7 +2842,6 @@ bool vfs_inode_has_locks(struct inode *inode)
 }
 EXPORT_SYMBOL_GPL(vfs_inode_has_locks);
 
-#ifdef CONFIG_PROC_FS
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 
@@ -3027,7 +3026,6 @@ static int __init proc_locks_init(void)
 	return 0;
 }
 fs_initcall(proc_locks_init);
-#endif
 
 static int __init filelock_init(void)
 {

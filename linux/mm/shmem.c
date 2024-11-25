@@ -1035,8 +1035,10 @@ static int shmem_find_swap_entries(struct address_space *mapping,
 		entry = radix_to_swp_entry(page);
 		if (swp_type(entry) != type)
 			continue;
-		if (frontswap &&
-		    !frontswap_test(swap_info[type], swp_offset(entry)))
+		// if (frontswap &&
+		//     !frontswap_test(swap_info[type], swp_offset(entry)))
+		// 	continue;
+		if (frontswap)
 			continue;
 
 		indices[ret] = xas.xa_index;
@@ -3366,9 +3368,9 @@ static int shmem_parse_options(struct fs_context *fc, void *data)
 	char *options = data;
 
 	if (options) {
-		int err = security_sb_eat_lsm_opts(options, &fc->security);
-		if (err)
-			return err;
+		// int err = security_sb_eat_lsm_opts(options, &fc->security);
+		// if (err)
+		// 	return err;
 	}
 
 	while (options != NULL) {

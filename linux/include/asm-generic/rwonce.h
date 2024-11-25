@@ -82,7 +82,6 @@ unsigned long __read_once_word_nocheck(const void *addr)
 static __no_kasan_or_inline
 unsigned long read_word_at_a_time(const void *addr)
 {
-	kasan_check_read(addr, 1);
 	return *(unsigned long *)addr;
 }
 

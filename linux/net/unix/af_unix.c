@@ -700,7 +700,6 @@ static int unix_set_peek_off(struct sock *sk, int val)
 	return 0;
 }
 
-#ifdef CONFIG_PROC_FS
 static void unix_show_fdinfo(struct seq_file *m, struct socket *sock)
 {
 	struct sock *sk = sock->sk;
@@ -712,9 +711,6 @@ static void unix_show_fdinfo(struct seq_file *m, struct socket *sock)
 			   atomic_read(&u->scm_stat.nr_fds));
 	}
 }
-#else
-#define unix_show_fdinfo NULL
-#endif
 
 static const struct proto_ops unix_stream_ops = {
 	.family =	PF_UNIX,
@@ -2788,8 +2784,6 @@ static __poll_t unix_dgram_poll(struct file *file, struct socket *sock,
 	return mask;
 }
 
-#ifdef CONFIG_PROC_FS
-
 #define BUCKET_SPACE (BITS_PER_LONG - (UNIX_HASH_BITS + 1) - 1)
 
 #define get_bucket(x) ((x) >> BUCKET_SPACE)
@@ -2917,7 +2911,6 @@ static const struct seq_operations unix_seq_ops = {
 	.stop   = unix_seq_stop,
 	.show   = unix_seq_show,
 };
-#endif
 
 static const struct net_proto_family unix_family_ops = {
 	.family = PF_UNIX,
@@ -2934,13 +2927,11 @@ static int __net_init unix_net_init(struct net *net)
 	if (unix_sysctl_register(net))
 		goto out;
 
-#ifdef CONFIG_PROC_FS
 	if (!proc_create_net("unix", 0, net->proc_net, &unix_seq_ops,
 			sizeof(struct seq_net_private))) {
 		unix_sysctl_unregister(net);
 		goto out;
 	}
-#endif
 	error = 0;
 out:
 	return error;

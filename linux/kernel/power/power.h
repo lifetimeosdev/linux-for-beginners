@@ -145,12 +145,8 @@ extern int pm_notifier_call_chain_robust(unsigned long val_up, unsigned long val
 extern int pm_notifier_call_chain(unsigned long val);
 #endif
 
-#ifdef CONFIG_HIGHMEM
-int restore_highmem(void);
-#else
 static inline unsigned int count_highmem_pages(void) { return 0; }
 static inline int restore_highmem(void) { return 0; }
-#endif
 
 /*
  * Suspend test levels

@@ -1135,7 +1135,6 @@ int unregister_sysrq_key(int key, const struct sysrq_key_op *op_p)
 }
 EXPORT_SYMBOL(unregister_sysrq_key);
 
-#ifdef CONFIG_PROC_FS
 /*
  * writing 'C' to /proc/sysrq-trigger is like sysrq-C
  */
@@ -1164,14 +1163,6 @@ static void sysrq_init_procfs(void)
 			 &sysrq_trigger_proc_ops))
 		pr_err("Failed to register proc interface\n");
 }
-
-#else
-
-static inline void sysrq_init_procfs(void)
-{
-}
-
-#endif /* CONFIG_PROC_FS */
 
 static int __init sysrq_init(void)
 {

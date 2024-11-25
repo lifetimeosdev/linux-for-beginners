@@ -208,8 +208,8 @@ int __vfs_setxattr_noperm(struct dentry *dentry, const char *name,
 		error = __vfs_setxattr(dentry, inode, name, value, size, flags);
 		if (!error) {
 			fsnotify_xattr(dentry);
-			security_inode_post_setxattr(dentry, name, value,
-						     size, flags);
+			// security_inode_post_setxattr(dentry, name, value,
+			// 			     size, flags);
 		}
 	} else {
 		if (unlikely(is_bad_inode(inode)))
@@ -386,9 +386,9 @@ vfs_getxattr(struct dentry *dentry, const char *name, void *value, size_t size)
 	if (error)
 		return error;
 
-	error = security_inode_getxattr(dentry, name);
-	if (error)
-		return error;
+	// error = security_inode_getxattr(dentry, name);
+	// if (error)
+	// 	return error;
 
 	if (!strncmp(name, XATTR_SECURITY_PREFIX,
 				XATTR_SECURITY_PREFIX_LEN)) {
@@ -413,13 +413,14 @@ vfs_listxattr(struct dentry *dentry, char *list, size_t size)
 	struct inode *inode = d_inode(dentry);
 	ssize_t error;
 
-	error = security_inode_listxattr(dentry);
-	if (error)
-		return error;
+	// error = security_inode_listxattr(dentry);
+	// if (error)
+	// 	return error;
 	if (inode->i_op->listxattr && (inode->i_opflags & IOP_XATTR)) {
 		error = inode->i_op->listxattr(dentry, list, size);
 	} else {
-		error = security_inode_listsecurity(inode, list, size);
+		// error = security_inode_listsecurity(inode, list, size);
+		error = 0;
 		if (size && error > size)
 			error = -ERANGE;
 	}

@@ -170,17 +170,7 @@ static inline void atalk_unregister_sysctl(void)
 }
 #endif
 
-#ifdef CONFIG_PROC_FS
 extern int atalk_proc_init(void);
 extern void atalk_proc_exit(void);
-#else
-static inline int atalk_proc_init(void)
-{
-	return 0;
-}
-static inline void atalk_proc_exit(void)
-{
-}
-#endif /* CONFIG_PROC_FS */
 
 #endif /* __LINUX_ATALK_H__ */

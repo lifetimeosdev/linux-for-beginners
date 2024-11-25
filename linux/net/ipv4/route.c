@@ -198,7 +198,6 @@ EXPORT_SYMBOL(ip_tos2prio);
 static DEFINE_PER_CPU(struct rt_cache_stat, rt_cache_stat);
 #define RT_CACHE_STAT_INC(field) raw_cpu_inc(rt_cache_stat.field)
 
-#ifdef CONFIG_PROC_FS
 static void *rt_cache_seq_start(struct seq_file *seq, loff_t *pos)
 {
 	if (*pos)
@@ -412,13 +411,6 @@ static int __init ip_rt_proc_init(void)
 {
 	return register_pernet_subsys(&ip_rt_proc_ops);
 }
-
-#else
-static inline int ip_rt_proc_init(void)
-{
-	return 0;
-}
-#endif /* CONFIG_PROC_FS */
 
 static inline bool rt_is_expired(const struct rtable *rth)
 {

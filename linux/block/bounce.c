@@ -69,25 +69,9 @@ static __init int init_emergency_pool(void)
 __initcall(init_emergency_pool);
 #endif
 
-#ifdef CONFIG_HIGHMEM
-/*
- * highmem version, map in to vec
- */
-static void bounce_copy_vec(struct bio_vec *to, unsigned char *vfrom)
-{
-	unsigned char *vto;
-
-	vto = kmap_atomic(to->bv_page);
-	memcpy(vto + to->bv_offset, vfrom, to->bv_len);
-	kunmap_atomic(vto);
-}
-
-#else /* CONFIG_HIGHMEM */
-
 #define bounce_copy_vec(to, vfrom)	\
 	memcpy(page_address((to)->bv_page) + (to)->bv_offset, vfrom, (to)->bv_len)
 
-#endif /* CONFIG_HIGHMEM */
 
 /*
  * allocate pages in the DMA region for the ISA pool

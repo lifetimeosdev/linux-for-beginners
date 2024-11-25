@@ -143,13 +143,8 @@ void llc_conn_handler(struct llc_sap *sap, struct sk_buff *skb);
 void llc_station_init(void);
 void llc_station_exit(void);
 
-#ifdef CONFIG_PROC_FS
 int llc_proc_init(void);
 void llc_proc_exit(void);
-#else
-#define llc_proc_init()	(0)
-#define llc_proc_exit()	do { } while(0)
-#endif /* CONFIG_PROC_FS */
 #ifdef CONFIG_SYSCTL
 int llc_sysctl_init(void);
 void llc_sysctl_exit(void);

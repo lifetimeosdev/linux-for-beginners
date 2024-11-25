@@ -533,9 +533,7 @@ static const struct crypto_type crypto_ahash_type = {
 	.extsize = crypto_ahash_extsize,
 	.init_tfm = crypto_ahash_init_tfm,
 	.free = crypto_ahash_free_instance,
-#ifdef CONFIG_PROC_FS
 	.show = crypto_ahash_show,
-#endif
 	.report = crypto_ahash_report,
 	.maskclear = ~CRYPTO_ALG_TYPE_MASK,
 	.maskset = CRYPTO_ALG_TYPE_AHASH_MASK,

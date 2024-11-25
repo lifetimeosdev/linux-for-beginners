@@ -1525,9 +1525,9 @@ static __always_inline bool slab_free_hook(struct kmem_cache *s, void *x)
 		debug_check_no_obj_freed(x, s->object_size);
 
 	/* Use KCSAN to help debug racy use-after-free. */
-	if (!(s->flags & SLAB_TYPESAFE_BY_RCU))
-		__kcsan_check_access(x, s->object_size,
-				     KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ASSERT);
+	// if (!(s->flags & SLAB_TYPESAFE_BY_RCU))
+	// 	__kcsan_check_access(x, s->object_size,
+	// 			     KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ASSERT);
 
 	/* KASAN might put x into memory quarantine, delaying its reuse */
 	return kasan_slab_free(s, x, _RET_IP_);
@@ -3052,13 +3052,6 @@ static __always_inline void slab_free(struct kmem_cache *s, struct page *page,
 	if (slab_free_freelist_hook(s, &head, &tail, &cnt))
 		do_slab_free(s, page, head, tail, cnt, addr);
 }
-
-#ifdef CONFIG_KASAN_GENERIC
-void ___cache_free(struct kmem_cache *cache, void *x, unsigned long addr)
-{
-	do_slab_free(cache, virt_to_head_page(x), x, NULL, 1, addr);
-}
-#endif
 
 void kmem_cache_free(struct kmem_cache *s, void *x)
 {

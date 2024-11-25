@@ -1879,8 +1879,6 @@ static const char *uart_type(struct uart_port *port)
 	return str;
 }
 
-#ifdef CONFIG_PROC_FS
-
 static void uart_line_info(struct seq_file *m, struct uart_driver *drv, int i)
 {
 	struct uart_state *state = drv->state + i;
@@ -1972,7 +1970,6 @@ static int uart_proc_show(struct seq_file *m, void *v)
 		uart_line_info(m, drv, i);
 	return 0;
 }
-#endif
 
 static void uart_port_spin_lock_init(struct uart_port *port)
 {
@@ -2567,9 +2564,7 @@ static const struct tty_operations uart_ops = {
 	.hangup		= uart_hangup,
 	.break_ctl	= uart_break_ctl,
 	.wait_until_sent= uart_wait_until_sent,
-#ifdef CONFIG_PROC_FS
 	.proc_show	= uart_proc_show,
-#endif
 	.tiocmget	= uart_tiocmget,
 	.tiocmset	= uart_tiocmset,
 	.set_serial	= uart_set_info_user,

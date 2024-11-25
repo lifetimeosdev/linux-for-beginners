@@ -125,7 +125,6 @@ static ssize_t sock_splice_read(struct file *file, loff_t *ppos,
 				struct pipe_inode_info *pipe, size_t len,
 				unsigned int flags);
 
-#ifdef CONFIG_PROC_FS
 static void sock_show_fdinfo(struct seq_file *m, struct file *f)
 {
 	struct socket *sock = f->private_data;
@@ -133,9 +132,6 @@ static void sock_show_fdinfo(struct seq_file *m, struct file *f)
 	if (sock->ops->show_fdinfo)
 		sock->ops->show_fdinfo(m, sock);
 }
-#else
-#define sock_show_fdinfo NULL
-#endif
 
 /*
  *	Socket files have a set of 'special' operations as well as the generic file ones. These don't appear
@@ -507,9 +503,10 @@ static ssize_t sockfs_listxattr(struct dentry *dentry, char *buffer,
 	ssize_t len;
 	ssize_t used = 0;
 
-	len = security_inode_listsecurity(d_inode(dentry), buffer, size);
-	if (len < 0)
-		return len;
+	// len = security_inode_listsecurity(d_inode(dentry), buffer, size);
+	// if (len < 0)
+	// 	return len;
+	len = 0;
 	used += len;
 	if (buffer) {
 		if (size < used)
@@ -3050,13 +3047,11 @@ out_mount:
 
 core_initcall(sock_init);	/* early initcall */
 
-#ifdef CONFIG_PROC_FS
 void socket_seq_show(struct seq_file *seq)
 {
 	seq_printf(seq, "sockets: used %d\n",
 		   sock_inuse_get(seq->private));
 }
-#endif				/* CONFIG_PROC_FS */
 
 /**
  *	kernel_bind - bind an address to a socket (kernel space)

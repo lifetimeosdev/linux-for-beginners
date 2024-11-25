@@ -952,7 +952,6 @@ struct proto raw_prot = {
 	.diag_destroy	   = raw_abort,
 };
 
-#ifdef CONFIG_PROC_FS
 static struct sock *raw_get_first(struct seq_file *seq)
 {
 	struct sock *sk;
@@ -1095,7 +1094,6 @@ void __init raw_proc_exit(void)
 {
 	unregister_pernet_subsys(&raw_net_ops);
 }
-#endif /* CONFIG_PROC_FS */
 
 static void raw_sysctl_init_net(struct net *net)
 {

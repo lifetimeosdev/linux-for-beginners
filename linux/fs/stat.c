@@ -124,11 +124,11 @@ EXPORT_SYMBOL(vfs_getattr_nosec);
 int vfs_getattr(const struct path *path, struct kstat *stat,
 		u32 request_mask, unsigned int query_flags)
 {
-	int retval;
+	// int retval;
 
-	retval = security_inode_getattr(path);
-	if (retval)
-		return retval;
+	// retval = security_inode_getattr(path);
+	// if (retval)
+	// 	return retval;
 	return vfs_getattr_nosec(path, stat, request_mask, query_flags);
 }
 EXPORT_SYMBOL(vfs_getattr);
@@ -356,7 +356,8 @@ retry:
 		 * AFS mountpoints allow readlink(2) but are not symlinks
 		 */
 		if (d_is_symlink(path.dentry) || inode->i_op->readlink) {
-			error = security_inode_readlink(path.dentry);
+			// error = security_inode_readlink(path.dentry);
+			error = 0;
 			if (!error) {
 				touch_atime(&path);
 				error = vfs_readlink(path.dentry, buf, bufsiz);

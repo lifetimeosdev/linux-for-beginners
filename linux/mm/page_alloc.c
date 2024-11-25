@@ -149,9 +149,6 @@ nodemask_t node_states[NR_NODE_STATES] __read_mostly = {
 	[N_ONLINE] = { { [0] = 1UL } },
 #ifndef CONFIG_NUMA
 	[N_NORMAL_MEMORY] = { { [0] = 1UL } },
-#ifdef CONFIG_HIGHMEM
-	[N_HIGH_MEMORY] = { { [0] = 1UL } },
-#endif
 	[N_MEMORY] = { { [0] = 1UL } },
 	[N_CPU] = { { [0] = 1UL } },
 #endif	/* NUMA */
@@ -297,9 +294,6 @@ int sysctl_lowmem_reserve_ratio[MAX_NR_ZONES] = {
 	[ZONE_DMA32] = 256,
 #endif
 	[ZONE_NORMAL] = 32,
-#ifdef CONFIG_HIGHMEM
-	[ZONE_HIGHMEM] = 0,
-#endif
 	[ZONE_MOVABLE] = 0,
 };
 
@@ -311,13 +305,7 @@ static char * const zone_names[MAX_NR_ZONES] = {
 	 "DMA32",
 #endif
 	 "Normal",
-#ifdef CONFIG_HIGHMEM
-	 "HighMem",
-#endif
 	 "Movable",
-#ifdef CONFIG_ZONE_DEVICE
-	 "Device",
-#endif
 };
 
 const char * const migratetype_names[MIGRATE_TYPES] = {
@@ -5722,24 +5710,6 @@ void __meminit memmap_init_zone(unsigned long size, int nid, unsigned long zone,
 	if (highest_memmap_pfn < end_pfn - 1)
 		highest_memmap_pfn = end_pfn - 1;
 
-#ifdef CONFIG_ZONE_DEVICE
-	/*
-	 * Honor reservation requested by the driver for this ZONE_DEVICE
-	 * memory. We limit the total number of pages to initialize to just
-	 * those that might contain the memory mapping. We will defer the
-	 * ZONE_DEVICE page initialization until after we have released
-	 * the hotplug lock.
-	 */
-	if (zone == ZONE_DEVICE) {
-		if (!altmap)
-			return;
-
-		if (start_pfn == altmap->base_pfn)
-			start_pfn += altmap->reserve;
-		end_pfn = altmap->base_pfn + vmem_altmap_offset(altmap);
-	}
-#endif
-
 	for (pfn = start_pfn; pfn < end_pfn; ) {
 		/*
 		 * There can be holes in boot-time mem_map[]s handed to this
@@ -5770,75 +5740,6 @@ void __meminit memmap_init_zone(unsigned long size, int nid, unsigned long zone,
 	}
 }
 
-#ifdef CONFIG_ZONE_DEVICE
-void __ref memmap_init_zone_device(struct zone *zone,
-				   unsigned long start_pfn,
-				   unsigned long nr_pages,
-				   struct dev_pagemap *pgmap)
-{
-	unsigned long pfn, end_pfn = start_pfn + nr_pages;
-	struct pglist_data *pgdat = zone->zone_pgdat;
-	struct vmem_altmap *altmap = pgmap_altmap(pgmap);
-	unsigned long zone_idx = zone_idx(zone);
-	unsigned long start = jiffies;
-	int nid = pgdat->node_id;
-
-	if (WARN_ON_ONCE(!pgmap || zone_idx(zone) != ZONE_DEVICE))
-		return;
-
-	/*
-	 * The call to memmap_init should have already taken care
-	 * of the pages reserved for the memmap, so we can just jump to
-	 * the end of that region and start processing the device pages.
-	 */
-	if (altmap) {
-		start_pfn = altmap->base_pfn + vmem_altmap_offset(altmap);
-		nr_pages = end_pfn - start_pfn;
-	}
-
-	for (pfn = start_pfn; pfn < end_pfn; pfn++) {
-		struct page *page = pfn_to_page(pfn);
-
-		__init_single_page(page, pfn, zone_idx, nid);
-
-		/*
-		 * Mark page reserved as it will need to wait for onlining
-		 * phase for it to be fully associated with a zone.
-		 *
-		 * We can use the non-atomic __set_bit operation for setting
-		 * the flag as we are still initializing the pages.
-		 */
-		__SetPageReserved(page);
-
-		/*
-		 * ZONE_DEVICE pages union ->lru with a ->pgmap back pointer
-		 * and zone_device_data.  It is a bug if a ZONE_DEVICE page is
-		 * ever freed or placed on a driver-private list.
-		 */
-		page->pgmap = pgmap;
-		page->zone_device_data = NULL;
-
-		/*
-		 * Mark the block movable so that blocks are reserved for
-		 * movable at startup. This will force kernel allocations
-		 * to reserve their blocks rather than leaking throughout
-		 * the address space during boot when many long-lived
-		 * kernel allocations are made.
-		 *
-		 * Please note that MEMINIT_HOTPLUG path doesn't clear memmap
-		 * because this is done early in section_activate()
-		 */
-		if (IS_ALIGNED(pfn, pageblock_nr_pages)) {
-			set_pageblock_migratetype(page, MIGRATE_MOVABLE);
-			cond_resched();
-		}
-	}
-
-	pr_info("%s initialised %lu pages in %ums\n", __func__,
-		nr_pages, jiffies_to_msecs(jiffies - start));
-}
-
-#endif
 static void __meminit zone_init_free_lists(struct zone *zone)
 {
 	unsigned int order, t;
@@ -7226,10 +7127,6 @@ void adjust_managed_page_count(struct page *page, long count)
 {
 	atomic_long_add(count, &page_zone(page)->managed_pages);
 	totalram_pages_add(count);
-#ifdef CONFIG_HIGHMEM
-	if (PageHighMem(page))
-		totalhigh_pages_add(count);
-#endif
 }
 EXPORT_SYMBOL(adjust_managed_page_count);
 

@@ -20,7 +20,6 @@
 #include <linux/sysctl.h>
 #include <linux/types.h>
 
-#ifdef CONFIG_PROC_FS
 static int execdomains_proc_show(struct seq_file *m, void *v)
 {
 	seq_puts(m, "0-0\tLinux           \t[kernel]\n");
@@ -33,7 +32,6 @@ static int __init proc_execdomains_init(void)
 	return 0;
 }
 module_init(proc_execdomains_init);
-#endif
 
 static inline long __do_sys_personality(unsigned int personality)
 {

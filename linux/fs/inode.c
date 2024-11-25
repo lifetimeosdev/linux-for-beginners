@@ -201,8 +201,8 @@ int inode_init_always(struct super_block *sb, struct inode *inode)
 #endif
 	inode->i_flctx = NULL;
 
-	if (unlikely(security_inode_alloc(inode)))
-		return -ENOMEM;
+	// if (unlikely(security_inode_alloc(inode)))
+	// 	return -ENOMEM;
 	this_cpu_inc(nr_inodes);
 
 	return 0;
@@ -255,7 +255,6 @@ void __destroy_inode(struct inode *inode)
 {
 	BUG_ON(inode_has_buffers(inode));
 	inode_detach_wb(inode);
-	security_inode_free(inode);
 	fsnotify_inode_delete(inode);
 	locks_free_lock_context(inode);
 	if (!inode->i_nlink) {

@@ -687,12 +687,7 @@ extern void tty_lock_slave(struct tty_struct *tty);
 extern void tty_unlock_slave(struct tty_struct *tty);
 extern void tty_set_lock_subclass(struct tty_struct *tty);
 
-#ifdef CONFIG_PROC_FS
 extern void proc_tty_register_driver(struct tty_driver *);
 extern void proc_tty_unregister_driver(struct tty_driver *);
-#else
-static inline void proc_tty_register_driver(struct tty_driver *d) {}
-static inline void proc_tty_unregister_driver(struct tty_driver *d) {}
-#endif
 
 #endif

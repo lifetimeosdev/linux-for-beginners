@@ -23,7 +23,5 @@ int udp_sendpage(struct sock *sk, struct page *page, int offset, size_t size,
 		 int flags);
 void udp_destroy_sock(struct sock *sk);
 
-#ifdef CONFIG_PROC_FS
 int udp4_seq_show(struct seq_file *seq, void *v);
-#endif
 #endif	/* _UDP4_IMPL_H */

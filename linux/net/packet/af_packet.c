@@ -4615,8 +4615,6 @@ static struct notifier_block packet_netdev_notifier = {
 	.notifier_call =	packet_notifier,
 };
 
-#ifdef CONFIG_PROC_FS
-
 static void *packet_seq_start(struct seq_file *seq, loff_t *pos)
 	__acquires(RCU)
 {
@@ -4668,18 +4666,15 @@ static const struct seq_operations packet_seq_ops = {
 	.stop	= packet_seq_stop,
 	.show	= packet_seq_show,
 };
-#endif
 
 static int __net_init packet_net_init(struct net *net)
 {
 	mutex_init(&net->packet.sklist_lock);
 	INIT_HLIST_HEAD(&net->packet.sklist);
 
-#ifdef CONFIG_PROC_FS
 	if (!proc_create_net("packet", 0, net->proc_net, &packet_seq_ops,
 			sizeof(struct seq_net_private)))
 		return -ENOMEM;
-#endif /* CONFIG_PROC_FS */
 
 	return 0;
 }

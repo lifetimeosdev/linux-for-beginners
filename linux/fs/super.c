@@ -180,7 +180,6 @@ static void destroy_unused_super(struct super_block *s)
 	up_write(&s->s_umount);
 	list_lru_destroy(&s->s_dentry_lru);
 	list_lru_destroy(&s->s_inode_lru);
-	security_sb_free(s);
 	put_user_ns(s->s_user_ns);
 	kfree(s->s_subtype);
 	free_prealloced_shrinker(&s->s_shrink);
@@ -228,8 +227,8 @@ static struct super_block *alloc_super(struct file_system_type *type, int flags,
 	 */
 	down_write_nested(&s->s_umount, SINGLE_DEPTH_NESTING);
 
-	if (security_sb_alloc(s))
-		goto fail;
+	// if (security_sb_alloc(s))
+	// 	goto fail;
 
 	for (i = 0; i < SB_FREEZE_LEVELS; i++) {
 		if (__percpu_init_rwsem(&s->s_writers.rw_sem[i],
@@ -292,7 +291,6 @@ static void __put_super(struct super_block *s)
 		WARN_ON(s->s_dentry_lru.node);
 		WARN_ON(s->s_inode_lru.node);
 		WARN_ON(!list_empty(&s->s_mounts));
-		security_sb_free(s);
 		fscrypt_destroy_keyring(s);
 		put_user_ns(s->s_user_ns);
 		kfree(s->s_subtype);
@@ -914,9 +912,9 @@ int reconfigure_super(struct fs_context *fc)
 	if (sb->s_writers.frozen != SB_UNFROZEN)
 		return -EBUSY;
 
-	retval = security_sb_remount(sb, fc->security);
-	if (retval)
-		return retval;
+	// retval = security_sb_remount(sb, fc->security);
+	// if (retval)
+	// 	return retval;
 
 	if (fc->sb_flags_mask & SB_RDONLY) {
 #ifdef CONFIG_BLOCK
@@ -1581,11 +1579,11 @@ __attribute__((optimize(0))) int vfs_get_tree(struct fs_context *fc)
 	smp_wmb();
 	sb->s_flags |= SB_BORN;
 
-	error = security_sb_set_mnt_opts(sb, fc->security, 0, NULL);
-	if (unlikely(error)) {
-		fc_drop_locked(fc);
-		return error;
-	}
+	// error = security_sb_set_mnt_opts(sb, fc->security, 0, NULL);
+	// if (unlikely(error)) {
+	// 	fc_drop_locked(fc);
+	// 	return error;
+	// }
 
 	/*
 	 * filesystems should never set s_maxbytes larger than MAX_LFS_FILESIZE

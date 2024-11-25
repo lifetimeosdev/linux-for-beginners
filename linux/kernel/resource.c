@@ -81,7 +81,6 @@ static void *r_next(struct seq_file *m, void *v, loff_t *pos)
 	return (void *)next_resource(p, false);
 }
 
-#ifdef CONFIG_PROC_FS
 
 enum { MAX_IORES_LEVEL = 5 };
 
@@ -144,8 +143,6 @@ static int __init ioresources_init(void)
 	return 0;
 }
 __initcall(ioresources_init);
-
-#endif /* CONFIG_PROC_FS */
 
 static void free_resource(struct resource *res)
 {
@@ -1642,62 +1639,6 @@ void resource_list_free(struct list_head *head)
 		resource_list_destroy_entry(entry);
 }
 EXPORT_SYMBOL(resource_list_free);
-
-#ifdef CONFIG_DEVICE_PRIVATE
-static struct resource *__request_free_mem_region(struct device *dev,
-		struct resource *base, unsigned long size, const char *name)
-{
-	resource_size_t end, addr;
-	struct resource *res;
-
-	size = ALIGN(size, 1UL << PA_SECTION_SHIFT);
-	end = min_t(unsigned long, base->end, (1UL << MAX_PHYSMEM_BITS) - 1);
-	addr = end - size + 1UL;
-
-	for (; addr > size && addr >= base->start; addr -= size) {
-		if (region_intersects(addr, size, 0, IORES_DESC_NONE) !=
-				REGION_DISJOINT)
-			continue;
-
-		if (dev)
-			res = devm_request_mem_region(dev, addr, size, name);
-		else
-			res = request_mem_region(addr, size, name);
-		if (!res)
-			return ERR_PTR(-ENOMEM);
-		res->desc = IORES_DESC_DEVICE_PRIVATE_MEMORY;
-		return res;
-	}
-
-	return ERR_PTR(-ERANGE);
-}
-
-/**
- * devm_request_free_mem_region - find free region for device private memory
- *
- * @dev: device struct to bind the resource to
- * @size: size in bytes of the device memory to add
- * @base: resource tree to look in
- *
- * This function tries to find an empty range of physical address big enough to
- * contain the new resource, so that it can later be hotplugged as ZONE_DEVICE
- * memory, which in turn allocates struct pages.
- */
-struct resource *devm_request_free_mem_region(struct device *dev,
-		struct resource *base, unsigned long size)
-{
-	return __request_free_mem_region(dev, base, size, dev_name(dev));
-}
-EXPORT_SYMBOL_GPL(devm_request_free_mem_region);
-
-struct resource *request_free_mem_region(struct resource *base,
-		unsigned long size, const char *name)
-{
-	return __request_free_mem_region(NULL, base, size, name);
-}
-EXPORT_SYMBOL_GPL(request_free_mem_region);
-
-#endif /* CONFIG_DEVICE_PRIVATE */
 
 static int __init strict_iomem(char *str)
 {

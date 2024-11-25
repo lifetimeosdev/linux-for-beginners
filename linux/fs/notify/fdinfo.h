@@ -8,8 +8,6 @@
 struct seq_file;
 struct file;
 
-#ifdef CONFIG_PROC_FS
-
 #ifdef CONFIG_INOTIFY_USER
 void inotify_show_fdinfo(struct seq_file *m, struct file *f);
 #endif
@@ -22,7 +20,5 @@ void fanotify_show_fdinfo(struct seq_file *m, struct file *f);
 
 #define inotify_show_fdinfo	NULL
 #define fanotify_show_fdinfo	NULL
-
-#endif /* CONFIG_PROC_FS */
 
 #endif /* __FSNOTIFY_FDINFO_H__ */

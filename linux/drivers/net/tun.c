@@ -3454,7 +3454,6 @@ static int tun_chr_close(struct inode *inode, struct file *file)
 	return 0;
 }
 
-#ifdef CONFIG_PROC_FS
 static void tun_chr_show_fdinfo(struct seq_file *m, struct file *file)
 {
 	struct tun_file *tfile = file->private_data;
@@ -3474,7 +3473,6 @@ static void tun_chr_show_fdinfo(struct seq_file *m, struct file *file)
 
 	seq_printf(m, "iff:\t%s\n", ifr.ifr_name);
 }
-#endif
 
 static const struct file_operations tun_fops = {
 	.owner	= THIS_MODULE,
@@ -3486,9 +3484,7 @@ static const struct file_operations tun_fops = {
 	.open	= tun_chr_open,
 	.release = tun_chr_close,
 	.fasync = tun_chr_fasync,
-#ifdef CONFIG_PROC_FS
 	.show_fdinfo = tun_chr_show_fdinfo,
-#endif
 };
 
 static struct miscdevice tun_miscdev = {

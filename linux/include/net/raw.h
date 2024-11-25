@@ -37,7 +37,6 @@ struct raw_hashinfo {
 	struct hlist_head ht[RAW_HTABLE_SIZE];
 };
 
-#ifdef CONFIG_PROC_FS
 int raw_proc_init(void);
 void raw_proc_exit(void);
 
@@ -53,7 +52,6 @@ static inline struct raw_iter_state *raw_seq_private(struct seq_file *seq)
 void *raw_seq_start(struct seq_file *seq, loff_t *pos);
 void *raw_seq_next(struct seq_file *seq, void *v, loff_t *pos);
 void raw_seq_stop(struct seq_file *seq, void *v);
-#endif
 
 int raw_hash_sk(struct sock *sk);
 void raw_unhash_sk(struct sock *sk);

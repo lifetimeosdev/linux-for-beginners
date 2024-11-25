@@ -68,8 +68,6 @@ static inline struct proc_fs_info *proc_sb_info(struct super_block *sb)
 	return sb->s_fs_info;
 }
 
-#ifdef CONFIG_PROC_FS
-
 typedef int (*proc_write_t)(struct file *, char *, size_t);
 
 extern void proc_root_init(void);
@@ -144,60 +142,6 @@ extern void bpf_iter_fini_seq_net(void *priv_data);
 int proc_pid_arch_status(struct seq_file *m, struct pid_namespace *ns,
 			struct pid *pid, struct task_struct *task);
 #endif /* CONFIG_PROC_PID_ARCH_STATUS */
-
-#else /* CONFIG_PROC_FS */
-
-static inline void proc_root_init(void)
-{
-}
-
-static inline void proc_flush_pid(struct pid *pid)
-{
-}
-
-static inline struct proc_dir_entry *proc_symlink(const char *name,
-		struct proc_dir_entry *parent,const char *dest) { return NULL;}
-static inline struct proc_dir_entry *proc_mkdir(const char *name,
-	struct proc_dir_entry *parent) {return NULL;}
-static inline struct proc_dir_entry *proc_create_mount_point(const char *name) { return NULL; }
-static inline struct proc_dir_entry *_proc_mkdir(const char *name, umode_t mode,
-		struct proc_dir_entry *parent, void *data, bool force_lookup)
-{
-	return NULL;
-}
-static inline struct proc_dir_entry *proc_mkdir_data(const char *name,
-	umode_t mode, struct proc_dir_entry *parent, void *data) { return NULL; }
-static inline struct proc_dir_entry *proc_mkdir_mode(const char *name,
-	umode_t mode, struct proc_dir_entry *parent) { return NULL; }
-#define proc_create_seq_private(name, mode, parent, ops, size, data) ({NULL;})
-#define proc_create_seq_data(name, mode, parent, ops, data) ({NULL;})
-#define proc_create_seq(name, mode, parent, ops) ({NULL;})
-#define proc_create_single(name, mode, parent, show) ({NULL;})
-#define proc_create_single_data(name, mode, parent, show, data) ({NULL;})
-#define proc_create(name, mode, parent, proc_ops) ({NULL;})
-#define proc_create_data(name, mode, parent, proc_ops, data) ({NULL;})
-
-static inline void proc_set_size(struct proc_dir_entry *de, loff_t size) {}
-static inline void proc_set_user(struct proc_dir_entry *de, kuid_t uid, kgid_t gid) {}
-static inline void *PDE_DATA(const struct inode *inode) {BUG(); return NULL;}
-static inline void *proc_get_parent_data(const struct inode *inode) { BUG(); return NULL; }
-
-static inline void proc_remove(struct proc_dir_entry *de) {}
-#define remove_proc_entry(name, parent) do {} while (0)
-static inline int remove_proc_subtree(const char *name, struct proc_dir_entry *parent) { return 0; }
-
-#define proc_create_net_data(name, mode, parent, ops, state_size, data) ({NULL;})
-#define proc_create_net_data_write(name, mode, parent, ops, write, state_size, data) ({NULL;})
-#define proc_create_net(name, mode, parent, state_size, ops) ({NULL;})
-#define proc_create_net_single(name, mode, parent, show, data) ({NULL;})
-#define proc_create_net_single_write(name, mode, parent, show, write, data) ({NULL;})
-
-static inline struct pid *tgid_pidfd_to_pid(const struct file *file)
-{
-	return ERR_PTR(-EBADF);
-}
-
-#endif /* CONFIG_PROC_FS */
 
 struct net;
 

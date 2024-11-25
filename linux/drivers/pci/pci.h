@@ -167,15 +167,9 @@ void pci_restore_vc_state(struct pci_dev *dev);
 void pci_allocate_vc_save_buffers(struct pci_dev *dev);
 
 /* PCI /proc functions */
-#ifdef CONFIG_PROC_FS
 int pci_proc_attach_device(struct pci_dev *dev);
 int pci_proc_detach_device(struct pci_dev *dev);
 int pci_proc_detach_bus(struct pci_bus *bus);
-#else
-static inline int pci_proc_attach_device(struct pci_dev *dev) { return 0; }
-static inline int pci_proc_detach_device(struct pci_dev *dev) { return 0; }
-static inline int pci_proc_detach_bus(struct pci_bus *bus) { return 0; }
-#endif
 
 /* Functions for PCI Hotplug drivers to use */
 int pci_hp_add_bridge(struct pci_dev *dev);

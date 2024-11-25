@@ -136,13 +136,8 @@ static int mincore_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
 				 */
 				*vec = 1;
 			} else {
-#ifdef CONFIG_SWAP
-				*vec = mincore_page(swap_address_space(entry),
-						    swp_offset(entry));
-#else
 				WARN_ON(1);
 				*vec = 1;
-#endif
 			}
 		}
 		vec++;

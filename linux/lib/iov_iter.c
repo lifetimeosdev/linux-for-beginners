@@ -144,7 +144,6 @@ static int copyout(void __user *to, const void *from, size_t n)
 	if (should_fail_usercopy())
 		return n;
 	if (access_ok(to, n)) {
-		instrument_copy_to_user(to, from, n);
 		n = raw_copy_to_user(to, from, n);
 	}
 	return n;
@@ -155,7 +154,6 @@ static int copyin(void *to, const void __user *from, size_t n)
 	if (should_fail_usercopy())
 		return n;
 	if (access_ok(from, n)) {
-		instrument_copy_from_user(to, from, n);
 		n = raw_copy_from_user(to, from, n);
 	}
 	return n;
@@ -637,7 +635,6 @@ EXPORT_SYMBOL(_copy_to_iter);
 static int copyout_mc(void __user *to, const void *from, size_t n)
 {
 	if (access_ok(to, n)) {
-		instrument_copy_to_user(to, from, n);
 		n = copy_mc_to_user((__force void *) to, from, n);
 	}
 	return n;

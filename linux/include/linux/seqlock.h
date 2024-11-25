@@ -333,7 +333,6 @@ SEQCOUNT_LOCKNAME(ww_mutex,     struct ww_mutex, true,     &s->lock->base, ww_mu
 	while ((__seq = seqprop_sequence(s)) & 1)			\
 		cpu_relax();						\
 									\
-	kcsan_atomic_next(KCSAN_SEQLOCK_REGION_MAX);			\
 	__seq;								\
 })
 
@@ -379,7 +378,6 @@ SEQCOUNT_LOCKNAME(ww_mutex,     struct ww_mutex, true,     &s->lock->base, ww_mu
 	unsigned __seq = seqprop_sequence(s);				\
 									\
 	smp_rmb();							\
-	kcsan_atomic_next(KCSAN_SEQLOCK_REGION_MAX);			\
 	__seq;								\
 })
 
@@ -429,7 +427,6 @@ SEQCOUNT_LOCKNAME(ww_mutex,     struct ww_mutex, true,     &s->lock->base, ww_mu
 
 static inline int do___read_seqcount_retry(const seqcount_t *s, unsigned start)
 {
-	kcsan_atomic_next(0);
 	return unlikely(READ_ONCE(s->sequence) != start);
 }
 
@@ -467,7 +464,6 @@ do {									\
 
 static inline void do_raw_write_seqcount_begin(seqcount_t *s)
 {
-	kcsan_nestable_atomic_begin();
 	s->sequence++;
 	smp_wmb();
 }
@@ -488,7 +484,6 @@ static inline void do_raw_write_seqcount_end(seqcount_t *s)
 {
 	smp_wmb();
 	s->sequence++;
-	kcsan_nestable_atomic_end();
 }
 
 /**
@@ -607,11 +602,9 @@ static inline void do_write_seqcount_end(seqcount_t *s)
 
 static inline void do_raw_write_seqcount_barrier(seqcount_t *s)
 {
-	kcsan_nestable_atomic_begin();
 	s->sequence++;
 	smp_wmb();
 	s->sequence++;
-	kcsan_nestable_atomic_end();
 }
 
 /**
@@ -628,9 +621,7 @@ static inline void do_raw_write_seqcount_barrier(seqcount_t *s)
 static inline void do_write_seqcount_invalidate(seqcount_t *s)
 {
 	smp_wmb();
-	kcsan_nestable_atomic_begin();
 	s->sequence+=2;
-	kcsan_nestable_atomic_end();
 }
 
 /*
@@ -834,8 +825,6 @@ static inline unsigned read_seqbegin(const seqlock_t *sl)
 {
 	unsigned ret = read_seqcount_begin(&sl->seqcount);
 
-	kcsan_atomic_next(0);  /* non-raw usage, assume closing read_seqretry() */
-	kcsan_flat_atomic_begin();
 	return ret;
 }
 
@@ -856,7 +845,6 @@ static inline unsigned read_seqretry(const seqlock_t *sl, unsigned start)
 	 * Assume not nested: read_seqretry() may be called multiple times when
 	 * completing read critical section.
 	 */
-	kcsan_flat_atomic_end();
 
 	return read_seqcount_retry(&sl->seqcount, start);
 }

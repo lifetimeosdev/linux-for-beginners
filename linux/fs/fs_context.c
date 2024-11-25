@@ -183,9 +183,9 @@ int generic_parse_monolithic(struct fs_context *fc, void *data)
 	if (!options)
 		return 0;
 
-	ret = security_sb_eat_lsm_opts(options, &fc->security);
-	if (ret)
-		return ret;
+	// ret = security_sb_eat_lsm_opts(options, &fc->security);
+	// if (ret)
+	// 	return ret;
 
 	while ((key = strsep(&options, ",")) != NULL) {
 		if (*key) {
@@ -343,9 +343,9 @@ struct fs_context *vfs_dup_fs_context(struct fs_context *src_fc)
 	if (ret < 0)
 		goto err_fc;
 
-	ret = security_fs_context_dup(fc, src_fc);
-	if (ret < 0)
-		goto err_fc;
+	// ret = security_fs_context_dup(fc, src_fc);
+	// if (ret < 0)
+	// 	goto err_fc;
 	return fc;
 
 err_fc:
@@ -578,7 +578,8 @@ static int legacy_parse_monolithic(struct fs_context *fc, void *data)
 
 	if (fc->fs_type->fs_flags & FS_BINARY_MOUNTDATA)
 		return 0;
-	return security_sb_eat_lsm_opts(ctx->legacy_data, &fc->security);
+	// return security_sb_eat_lsm_opts(ctx->legacy_data, &fc->security);
+	return 0;
 }
 
 /*

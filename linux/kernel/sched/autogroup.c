@@ -203,8 +203,6 @@ static int __init setup_autogroup(char *str)
 }
 __setup("noautogroup", setup_autogroup);
 
-#ifdef CONFIG_PROC_FS
-
 int proc_sched_autogroup_set_nice(struct task_struct *p, int nice)
 {
 	static unsigned long next = INITIAL_JIFFIES;
@@ -257,7 +255,6 @@ void proc_sched_autogroup_show_task(struct task_struct *p, struct seq_file *m)
 out:
 	autogroup_kref_put(ag);
 }
-#endif /* CONFIG_PROC_FS */
 
 int autogroup_path(struct task_group *tg, char *buf, int buflen)
 {

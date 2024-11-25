@@ -736,9 +736,7 @@ static const struct crypto_type crypto_skcipher_type = {
 	.extsize = crypto_alg_extsize,
 	.init_tfm = crypto_skcipher_init_tfm,
 	.free = crypto_skcipher_free_instance,
-#ifdef CONFIG_PROC_FS
 	.show = crypto_skcipher_show,
-#endif
 	.report = crypto_skcipher_report,
 	.maskclear = ~CRYPTO_ALG_TYPE_MASK,
 	.maskset = CRYPTO_ALG_TYPE_MASK,

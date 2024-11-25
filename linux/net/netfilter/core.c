@@ -718,7 +718,6 @@ static int __net_init netfilter_net_init(struct net *net)
 #ifdef CONFIG_NETFILTER_FAMILY_BRIDGE
 	__netfilter_net_init(net->nf.hooks_bridge, ARRAY_SIZE(net->nf.hooks_bridge));
 #endif
-#ifdef CONFIG_PROC_FS
 	net->nf.proc_netfilter = proc_net_mkdir(net, "netfilter",
 						net->proc_net);
 	if (!net->nf.proc_netfilter) {
@@ -727,7 +726,6 @@ static int __net_init netfilter_net_init(struct net *net)
 
 		return -ENOMEM;
 	}
-#endif
 
 	return 0;
 }

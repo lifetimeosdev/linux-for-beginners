@@ -80,8 +80,6 @@ struct rpc_clnt;
  * EXPORTed functions for managing rpc_iostats structures
  */
 
-#ifdef CONFIG_PROC_FS
-
 struct rpc_iostats *	rpc_alloc_iostats(struct rpc_clnt *);
 void			rpc_count_iostats(const struct rpc_task *,
 					  struct rpc_iostats *);
@@ -89,20 +87,5 @@ void			rpc_count_iostats_metrics(const struct rpc_task *,
 					  struct rpc_iostats *);
 void			rpc_clnt_show_stats(struct seq_file *, struct rpc_clnt *);
 void			rpc_free_iostats(struct rpc_iostats *);
-
-#else  /*  CONFIG_PROC_FS  */
-
-static inline struct rpc_iostats *rpc_alloc_iostats(struct rpc_clnt *clnt) { return NULL; }
-static inline void rpc_count_iostats(const struct rpc_task *task,
-				     struct rpc_iostats *stats) {}
-static inline void rpc_count_iostats_metrics(const struct rpc_task *task,
-					     struct rpc_iostats *stats)
-{
-}
-
-static inline void rpc_clnt_show_stats(struct seq_file *seq, struct rpc_clnt *clnt) {}
-static inline void rpc_free_iostats(struct rpc_iostats *stats) {}
-
-#endif  /*  CONFIG_PROC_FS  */
 
 #endif /* _LINUX_SUNRPC_METRICS_H */

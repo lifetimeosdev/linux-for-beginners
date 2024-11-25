@@ -416,7 +416,6 @@ void profile_tick(int type)
 		profile_hit(type, (void *)profile_pc(regs));
 }
 
-#ifdef CONFIG_PROC_FS
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/uaccess.h>
@@ -571,4 +570,3 @@ err_state_prep:
 	return err;
 }
 subsys_initcall(create_proc_profile);
-#endif /* CONFIG_PROC_FS */

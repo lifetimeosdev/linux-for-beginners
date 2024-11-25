@@ -567,29 +567,6 @@ struct vm_operations_struct {
 	 * vma to be dumped unconditionally. */
 	const char *(*name)(struct vm_area_struct *vma);
 
-#ifdef CONFIG_NUMA
-	/*
-	 * set_policy() op must add a reference to any non-NULL @new mempolicy
-	 * to hold the policy upon return.  Caller should pass NULL @new to
-	 * remove a policy and fall back to surrounding context--i.e. do not
-	 * install a MPOL_DEFAULT policy, nor the task or system default
-	 * mempolicy.
-	 */
-	int (*set_policy)(struct vm_area_struct *vma, struct mempolicy *new);
-
-	/*
-	 * get_policy() op must add reference [mpol_get()] to any policy at
-	 * (vma,addr) marked as MPOL_SHARED.  The shared policy infrastructure
-	 * in mm/mempolicy.c will do this automatically.
-	 * get_policy() must NOT add a ref if the policy at (vma,addr) is not
-	 * marked as MPOL_SHARED. vma policies are protected by the mmap_lock.
-	 * If no [shared/vma] mempolicy exists at the addr, get_policy() op
-	 * must return NULL--i.e., do not "fallback" to task or system default
-	 * policy.
-	 */
-	struct mempolicy *(*get_policy)(struct vm_area_struct *vma,
-					unsigned long addr);
-#endif
 	/*
 	 * Called by vm_normal_page() for special PTEs to find the
 	 * page for @addr.  This is useful if the default behavior
@@ -1059,23 +1036,13 @@ vm_fault_t finish_mkwrite_fault(struct vm_fault *vmf);
 
 static inline enum zone_type page_zonenum(const struct page *page)
 {
-	ASSERT_EXCLUSIVE_BITS(page->flags, ZONES_MASK << ZONES_PGSHIFT);
 	return (page->flags >> ZONES_PGSHIFT) & ZONES_MASK;
 }
 
-#ifdef CONFIG_ZONE_DEVICE
-static inline bool is_zone_device_page(const struct page *page)
-{
-	return page_zonenum(page) == ZONE_DEVICE;
-}
-extern void memmap_init_zone_device(struct zone *, unsigned long,
-				    unsigned long, struct dev_pagemap *);
-#else
 static inline bool is_zone_device_page(const struct page *page)
 {
 	return false;
 }
-#endif
 
 #ifdef CONFIG_DEV_PAGEMAP_OPS
 void free_devmap_managed_page(struct page *page);
@@ -1324,36 +1291,6 @@ static inline bool cpupid_match_pid(struct task_struct *task, int cpupid)
 	return false;
 }
 
-#ifdef CONFIG_KASAN_SW_TAGS
-
-/*
- * KASAN per-page tags are stored xor'ed with 0xff. This allows to avoid
- * setting tags for all pages to native kernel tag value 0xff, as the default
- * value 0x00 maps to 0xff.
- */
-
-static inline u8 page_kasan_tag(const struct page *page)
-{
-	u8 tag;
-
-	tag = (page->flags >> KASAN_TAG_PGSHIFT) & KASAN_TAG_MASK;
-	tag ^= 0xff;
-
-	return tag;
-}
-
-static inline void page_kasan_tag_set(struct page *page, u8 tag)
-{
-	tag ^= 0xff;
-	page->flags &= ~(KASAN_TAG_MASK << KASAN_TAG_PGSHIFT);
-	page->flags |= (tag & KASAN_TAG_MASK) << KASAN_TAG_PGSHIFT;
-}
-
-static inline void page_kasan_tag_reset(struct page *page)
-{
-	page_kasan_tag_set(page, 0xff);
-}
-#else
 static inline u8 page_kasan_tag(const struct page *page)
 {
 	return 0xff;
@@ -1361,7 +1298,6 @@ static inline u8 page_kasan_tag(const struct page *page)
 
 static inline void page_kasan_tag_set(struct page *page, u8 tag) { }
 static inline void page_kasan_tag_reset(struct page *page) { }
-#endif
 
 static inline struct zone *page_zone(const struct page *page)
 {
@@ -1491,8 +1427,8 @@ extern pgoff_t __page_file_index(struct page *page);
  */
 static inline pgoff_t page_index(struct page *page)
 {
-	if (unlikely(PageSwapCache(page)))
-		return __page_file_index(page);
+	// if (unlikely(PageSwapCache(page)))
+	// 	return __page_file_index(page);
 	return page->index;
 }
 

@@ -80,9 +80,7 @@ static const struct crypto_type crypto_akcipher_type = {
 	.extsize = crypto_alg_extsize,
 	.init_tfm = crypto_akcipher_init_tfm,
 	.free = crypto_akcipher_free_instance,
-#ifdef CONFIG_PROC_FS
 	.show = crypto_akcipher_show,
-#endif
 	.report = crypto_akcipher_report,
 	.maskclear = ~CRYPTO_ALG_TYPE_MASK,
 	.maskset = CRYPTO_ALG_TYPE_MASK,

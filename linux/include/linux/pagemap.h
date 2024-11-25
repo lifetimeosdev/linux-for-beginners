@@ -281,14 +281,10 @@ static inline void *detach_page_private(struct page *page)
 	return data;
 }
 
-#ifdef CONFIG_NUMA
-extern struct page *__page_cache_alloc(gfp_t gfp);
-#else
 static inline struct page *__page_cache_alloc(gfp_t gfp)
 {
 	return alloc_pages(gfp, 0);
 }
-#endif
 
 static inline struct page *page_cache_alloc(struct address_space *x)
 {

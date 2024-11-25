@@ -509,9 +509,7 @@ static inline bool ipv6_addr_is_all_snoopers(const struct in6_addr *addr)
 #endif
 }
 
-#ifdef CONFIG_PROC_FS
 int if6_proc_init(void);
 void if6_proc_exit(void);
-#endif
 
 #endif

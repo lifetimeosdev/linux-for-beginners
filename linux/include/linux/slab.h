@@ -102,11 +102,7 @@
 # define SLAB_ACCOUNT		0
 #endif
 
-#ifdef CONFIG_KASAN
-#define SLAB_KASAN		((slab_flags_t __force)0x08000000U)
-#else
 #define SLAB_KASAN		0
-#endif
 
 /* The following flags affect the page allocator grouping pages by mobility */
 /* Objects are reclaimable */
@@ -405,10 +401,6 @@ static __always_inline void kfree_bulk(size_t size, void **p)
 	kmem_cache_free_bulk(NULL, size, p);
 }
 
-#ifdef CONFIG_NUMA
-void *__kmalloc_node(size_t size, gfp_t flags, int node) __assume_kmalloc_alignment __malloc;
-void *kmem_cache_alloc_node(struct kmem_cache *, gfp_t flags, int node) __assume_slab_alignment __malloc;
-#else
 static __always_inline void *__kmalloc_node(size_t size, gfp_t flags, int node)
 {
 	return __kmalloc(size, flags);
@@ -418,16 +410,10 @@ static __always_inline void *kmem_cache_alloc_node(struct kmem_cache *s, gfp_t f
 {
 	return kmem_cache_alloc(s, flags);
 }
-#endif
 
 #ifdef CONFIG_TRACING
 extern void *kmem_cache_alloc_trace(struct kmem_cache *, gfp_t, size_t) __assume_slab_alignment __malloc;
 
-#ifdef CONFIG_NUMA
-extern void *kmem_cache_alloc_node_trace(struct kmem_cache *s,
-					   gfp_t gfpflags,
-					   int node, size_t size) __assume_slab_alignment __malloc;
-#else
 static __always_inline void *
 kmem_cache_alloc_node_trace(struct kmem_cache *s,
 			      gfp_t gfpflags,
@@ -435,7 +421,6 @@ kmem_cache_alloc_node_trace(struct kmem_cache *s,
 {
 	return kmem_cache_alloc_trace(s, gfpflags, size);
 }
-#endif /* CONFIG_NUMA */
 
 #else /* CONFIG_TRACING */
 static __always_inline void *kmem_cache_alloc_trace(struct kmem_cache *s,
@@ -629,18 +614,8 @@ static inline void *kcalloc_node(size_t n, size_t size, gfp_t flags, int node)
 }
 
 
-#ifdef CONFIG_NUMA
-extern void *__kmalloc_node_track_caller(size_t, gfp_t, int, unsigned long);
-#define kmalloc_node_track_caller(size, flags, node) \
-	__kmalloc_node_track_caller(size, flags, node, \
-			_RET_IP_)
-
-#else /* CONFIG_NUMA */
-
 #define kmalloc_node_track_caller(size, flags, node) \
 	kmalloc_track_caller(size, flags)
-
-#endif /* CONFIG_NUMA */
 
 /*
  * Shortcuts

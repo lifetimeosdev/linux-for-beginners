@@ -101,9 +101,7 @@ static int newseg(struct ipc_namespace *, struct ipc_params *);
 static void shm_open(struct vm_area_struct *vma);
 static void shm_close(struct vm_area_struct *vma);
 static void shm_destroy(struct ipc_namespace *ns, struct shmid_kernel *shp);
-#ifdef CONFIG_PROC_FS
 static int sysvipc_shm_proc_show(struct seq_file *s, void *it);
-#endif
 
 void shm_init_ns(struct ipc_namespace *ns)
 {
@@ -1407,9 +1405,9 @@ long do_shmat(int shmid, char __user *shmaddr, int shmflg,
 	sfd->vm_ops = NULL;
 	file->private_data = sfd;
 
-	err = security_mmap_file(file, prot, flags);
-	if (err)
-		goto out_fput;
+	// err = security_mmap_file(file, prot, flags);
+	// if (err)
+	// 	goto out_fput;
 
 	if (mmap_write_lock_killable(current->mm)) {
 		err = -EINTR;
@@ -1596,7 +1594,6 @@ long __arm64_sys_shmdt(const struct pt_regs *regs)
 	return ret;
 }
 
-#ifdef CONFIG_PROC_FS
 static int sysvipc_shm_proc_show(struct seq_file *s, void *it)
 {
 	struct pid_namespace *pid_ns = ipc_seq_pid_ns(s);
@@ -1637,4 +1634,3 @@ static int sysvipc_shm_proc_show(struct seq_file *s, void *it)
 
 	return 0;
 }
-#endif

@@ -2014,7 +2014,6 @@ fs_initcall(inet_init);
 
 /* ------------------------------------------------------------------------ */
 
-#ifdef CONFIG_PROC_FS
 static int __init ipv4_proc_init(void)
 {
 	int rc = 0;
@@ -2043,10 +2042,3 @@ out_raw:
 	rc = -ENOMEM;
 	goto out;
 }
-
-#else /* CONFIG_PROC_FS */
-static int __init ipv4_proc_init(void)
-{
-	return 0;
-}
-#endif /* CONFIG_PROC_FS */

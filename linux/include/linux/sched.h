@@ -965,10 +965,6 @@ struct task_struct {
 	/* Open file information: */
 	struct files_struct		*files;
 
-#ifdef CONFIG_IO_URING
-	struct io_uring_task		*io_uring;
-#endif
-
 	/* Namespaces: */
 	struct nsproxy			*nsproxy;
 
@@ -1093,12 +1089,6 @@ struct task_struct {
 #ifdef CONFIG_DEBUG_PREEMPT
 	unsigned long			preempt_disable_ip;
 #endif
-#ifdef CONFIG_NUMA
-	/* Protected by alloc_lock: */
-	struct mempolicy		*mempolicy;
-	short				il_prev;
-	short				pref_node_fork;
-#endif
 
 #ifdef CONFIG_RSEQ
 	struct rseq __user *rseq;
@@ -1149,14 +1139,6 @@ struct task_struct {
 	 */
 	u64				timer_slack_ns;
 	u64				default_timer_slack_ns;
-
-#ifdef CONFIG_KASAN
-	unsigned int			kasan_depth;
-#endif
-
-#ifdef CONFIG_KCSAN
-	struct kcsan_ctx		kcsan_ctx;
-#endif
 
 #if IS_ENABLED(CONFIG_KUNIT)
 	struct kunit			*kunit_test;

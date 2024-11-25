@@ -156,13 +156,8 @@ struct kcm_mux {
 	struct list_head kcm_tx_waiters; /* KCMs waiting for a TX psock */
 };
 
-#ifdef CONFIG_PROC_FS
 int kcm_proc_init(void);
 void kcm_proc_exit(void);
-#else
-static inline int kcm_proc_init(void) { return 0; }
-static inline void kcm_proc_exit(void) { }
-#endif
 
 static inline void aggregate_psock_stats(struct kcm_psock_stats *stats,
 					 struct kcm_psock_stats *agg_stats)

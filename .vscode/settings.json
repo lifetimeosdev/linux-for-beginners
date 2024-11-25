@@ -22,4 +22,7 @@
 	"C_Cpp.default.browse.path": [
 		"${workspaceFolder}/linux/**",
 	],
+	"C_Cpp.default.defines": [
+		"__KERNEL__"
+	]
 }

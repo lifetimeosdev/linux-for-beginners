@@ -92,9 +92,7 @@ static unsigned int crypto_acomp_extsize(struct crypto_alg *alg)
 static const struct crypto_type crypto_acomp_type = {
 	.extsize = crypto_acomp_extsize,
 	.init_tfm = crypto_acomp_init_tfm,
-#ifdef CONFIG_PROC_FS
 	.show = crypto_acomp_show,
-#endif
 	.report = crypto_acomp_report,
 	.maskclear = ~CRYPTO_ALG_TYPE_MASK,
 	.maskset = CRYPTO_ALG_TYPE_ACOMPRESS_MASK,

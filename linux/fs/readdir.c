@@ -47,9 +47,9 @@ int iterate_dir(struct file *file, struct dir_context *ctx)
 	else if (!file->f_op->iterate)
 		goto out;
 
-	res = security_file_permission(file, MAY_READ);
-	if (res)
-		goto out;
+	// res = security_file_permission(file, MAY_READ);
+	// if (res)
+	// 	goto out;
 
 	if (shared)
 		res = down_read_killable(&inode->i_rwsem);

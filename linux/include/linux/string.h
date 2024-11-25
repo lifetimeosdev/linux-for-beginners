@@ -259,18 +259,6 @@ void __write_overflow(void) __compiletime_error("detected write beyond size of o
 
 #if !defined(__NO_FORTIFY) && defined(__OPTIMIZE__) && defined(CONFIG_FORTIFY_SOURCE)
 
-#ifdef CONFIG_KASAN
-extern void *__underlying_memchr(const void *p, int c, __kernel_size_t size) __RENAME(memchr);
-extern int __underlying_memcmp(const void *p, const void *q, __kernel_size_t size) __RENAME(memcmp);
-extern void *__underlying_memcpy(void *p, const void *q, __kernel_size_t size) __RENAME(memcpy);
-extern void *__underlying_memmove(void *p, const void *q, __kernel_size_t size) __RENAME(memmove);
-extern void *__underlying_memset(void *p, int c, __kernel_size_t size) __RENAME(memset);
-extern char *__underlying_strcat(char *p, const char *q) __RENAME(strcat);
-extern char *__underlying_strcpy(char *p, const char *q) __RENAME(strcpy);
-extern __kernel_size_t __underlying_strlen(const char *p) __RENAME(strlen);
-extern char *__underlying_strncat(char *p, const char *q, __kernel_size_t count) __RENAME(strncat);
-extern char *__underlying_strncpy(char *p, const char *q, __kernel_size_t size) __RENAME(strncpy);
-#else
 #define __underlying_memchr	__builtin_memchr
 #define __underlying_memcmp	__builtin_memcmp
 #define __underlying_memcpy	__builtin_memcpy
@@ -281,7 +269,6 @@ extern char *__underlying_strncpy(char *p, const char *q, __kernel_size_t size) 
 #define __underlying_strlen	__builtin_strlen
 #define __underlying_strncat	__builtin_strncat
 #define __underlying_strncpy	__builtin_strncpy
-#endif
 
 __FORTIFY_INLINE char *strncpy(char *p, const char *q, __kernel_size_t size)
 {

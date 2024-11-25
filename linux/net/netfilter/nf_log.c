@@ -323,7 +323,6 @@ void nf_log_buf_close(struct nf_log_buf *m)
 }
 EXPORT_SYMBOL_GPL(nf_log_buf_close);
 
-#ifdef CONFIG_PROC_FS
 static void *seq_start(struct seq_file *seq, loff_t *pos)
 {
 	struct net *net = seq_file_net(seq);
@@ -396,7 +395,6 @@ static const struct seq_operations nflog_seq_ops = {
 	.stop	= seq_stop,
 	.show	= seq_show,
 };
-#endif /* PROC_FS */
 
 #ifdef CONFIG_SYSCTL
 static char nf_log_sysctl_fnames[NFPROTO_NUMPROTO-NFPROTO_UNSPEC][3];
@@ -542,11 +540,9 @@ static int __net_init nf_log_net_init(struct net *net)
 {
 	int ret = -ENOMEM;
 
-#ifdef CONFIG_PROC_FS
 	if (!proc_create_net("nf_log", 0444, net->nf.proc_netfilter,
 			&nflog_seq_ops, sizeof(struct seq_net_private)))
 		return ret;
-#endif
 	ret = netfilter_log_sysctl_init(net);
 	if (ret < 0)
 		goto out_sysctl;
@@ -554,18 +550,14 @@ static int __net_init nf_log_net_init(struct net *net)
 	return 0;
 
 out_sysctl:
-#ifdef CONFIG_PROC_FS
 	remove_proc_entry("nf_log", net->nf.proc_netfilter);
-#endif
 	return ret;
 }
 
 static void __net_exit nf_log_net_exit(struct net *net)
 {
 	netfilter_log_sysctl_exit(net);
-#ifdef CONFIG_PROC_FS
 	remove_proc_entry("nf_log", net->nf.proc_netfilter);
-#endif
 }
 
 static struct pernet_operations nf_log_net_ops = {

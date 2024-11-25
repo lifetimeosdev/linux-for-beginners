@@ -265,15 +265,6 @@ struct iomap_dio *__iomap_dio_rw(struct kiocb *iocb, struct iov_iter *iter,
 ssize_t iomap_dio_complete(struct iomap_dio *dio);
 int iomap_dio_iopoll(struct kiocb *kiocb, bool spin);
 
-#ifdef CONFIG_SWAP
-struct file;
-struct swap_info_struct;
-
-int iomap_swapfile_activate(struct swap_info_struct *sis,
-		struct file *swap_file, sector_t *pagespan,
-		const struct iomap_ops *ops);
-#else
 # define iomap_swapfile_activate(sis, swapfile, pagespan, ops)	(-EIO)
-#endif /* CONFIG_SWAP */
 
 #endif /* LINUX_IOMAP_H */

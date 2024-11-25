@@ -170,9 +170,7 @@ struct sem_undo_list {
 
 static int newary(struct ipc_namespace *, struct ipc_params *);
 static void freeary(struct ipc_namespace *, struct kern_ipc_perm *);
-#ifdef CONFIG_PROC_FS
 static int sysvipc_sem_proc_show(struct seq_file *s, void *it);
-#endif
 
 #define SEMMSL_FAST	256 /* 512 bytes on stack */
 #define SEMOPM_FAST	64  /* ~ 372 bytes on stack */
@@ -2299,7 +2297,6 @@ void exit_sem(struct task_struct *tsk)
 	kfree(ulp);
 }
 
-#ifdef CONFIG_PROC_FS
 static int sysvipc_sem_proc_show(struct seq_file *s, void *it)
 {
 	struct user_namespace *user_ns = seq_user_ns(s);
@@ -2334,4 +2331,3 @@ static int sysvipc_sem_proc_show(struct seq_file *s, void *it)
 
 	return 0;
 }
-#endif

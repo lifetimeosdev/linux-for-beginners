@@ -230,7 +230,6 @@ int __init get_filesystem_list(char *buf)
 	return len;
 }
 
-#ifdef CONFIG_PROC_FS
 static int filesystems_proc_show(struct seq_file *m, void *v)
 {
 	struct file_system_type * tmp;
@@ -253,7 +252,6 @@ static int __init proc_filesystems_init(void)
 	return 0;
 }
 module_init(proc_filesystems_init);
-#endif
 
 static struct file_system_type *__get_fs_type(const char *name, int len)
 {

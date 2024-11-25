@@ -1054,8 +1054,6 @@ static int input_bits_to_string(char *buf, int buf_size,
 		snprintf(buf, buf_size, "%lx", bits) : 0;
 }
 
-#ifdef CONFIG_PROC_FS
-
 static struct proc_dir_entry *proc_bus_input_dir;
 static DECLARE_WAIT_QUEUE_HEAD(input_devices_poll_wait);
 static int input_devices_state;
@@ -1301,12 +1299,6 @@ static void input_proc_exit(void)
 	remove_proc_entry("handlers", proc_bus_input_dir);
 	remove_proc_entry("bus/input", NULL);
 }
-
-#else /* !CONFIG_PROC_FS */
-static inline void input_wakeup_procfs_readers(void) { }
-static inline int input_proc_init(void) { return 0; }
-static inline void input_proc_exit(void) { }
-#endif
 
 #define INPUT_DEV_STRING_ATTR_SHOW(name)				\
 static ssize_t input_dev_show_##name(struct device *dev,		\

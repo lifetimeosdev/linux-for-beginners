@@ -231,10 +231,8 @@ struct bonding {
 	spinlock_t stats_lock;
 	u8	 send_peer_notif;
 	u8       igmp_retrans;
-#ifdef CONFIG_PROC_FS
 	struct   proc_dir_entry *proc_entry;
 	char     proc_file_name[IFNAMSIZ];
-#endif /* CONFIG_PROC_FS */
 	struct   list_head bond_list;
 	u32      rr_tx_counter;
 	struct   ad_bond_info ad_info;
@@ -621,9 +619,7 @@ static inline __be32 bond_confirm_addr(struct net_device *dev, __be32 dst, __be3
 struct bond_net {
 	struct net		*net;	/* Associated network namespace */
 	struct list_head	dev_list;
-#ifdef CONFIG_PROC_FS
 	struct proc_dir_entry	*proc_dir;
-#endif
 	struct class_attribute	class_attr_bonding_masters;
 };
 
@@ -661,28 +657,10 @@ int bond_update_slave_arr(struct bonding *bond, struct slave *skipslave);
 void bond_slave_arr_work_rearm(struct bonding *bond, unsigned long delay);
 void bond_work_init_all(struct bonding *bond);
 
-#ifdef CONFIG_PROC_FS
 void bond_create_proc_entry(struct bonding *bond);
 void bond_remove_proc_entry(struct bonding *bond);
 void bond_create_proc_dir(struct bond_net *bn);
 void bond_destroy_proc_dir(struct bond_net *bn);
-#else
-static inline void bond_create_proc_entry(struct bonding *bond)
-{
-}
-
-static inline void bond_remove_proc_entry(struct bonding *bond)
-{
-}
-
-static inline void bond_create_proc_dir(struct bond_net *bn)
-{
-}
-
-static inline void bond_destroy_proc_dir(struct bond_net *bn)
-{
-}
-#endif
 
 static inline struct slave *bond_slave_has_mac(struct bonding *bond,
 					       const u8 *mac)

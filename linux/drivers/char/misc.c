@@ -63,7 +63,6 @@ static DEFINE_MUTEX(misc_mtx);
 #define DYNAMIC_MINORS 64 /* like dynamic majors */
 static DECLARE_BITMAP(misc_minors, DYNAMIC_MINORS);
 
-#ifdef CONFIG_PROC_FS
 static void *misc_seq_start(struct seq_file *seq, loff_t *pos)
 {
 	mutex_lock(&misc_mtx);
@@ -95,7 +94,6 @@ static const struct seq_operations misc_seq_ops = {
 	.stop  = misc_seq_stop,
 	.show  = misc_seq_show,
 };
-#endif
 
 static int misc_open(struct inode *inode, struct file *file)
 {

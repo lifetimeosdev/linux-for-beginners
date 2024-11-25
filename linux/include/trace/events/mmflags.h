@@ -227,11 +227,7 @@ IF_HAVE_VM_SOFTDIRTY(VM_SOFTDIRTY,	"softdirty"	)		\
 #define IFDEF_ZONE_DMA32(X)
 #endif
 
-#ifdef CONFIG_HIGHMEM
-#define IFDEF_ZONE_HIGHMEM(X) X
-#else
 #define IFDEF_ZONE_HIGHMEM(X)
-#endif
 
 #define ZONE_TYPE						\
 	IFDEF_ZONE_DMA(		EM (ZONE_DMA,	 "DMA"))	\

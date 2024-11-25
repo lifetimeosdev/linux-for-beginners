@@ -3330,7 +3330,6 @@ void sk_get_meminfo(const struct sock *sk, u32 *mem)
 	mem[SK_MEMINFO_DROPS] = atomic_read(&sk->sk_drops);
 }
 
-#ifdef CONFIG_PROC_FS
 #define PROTO_INUSE_NR	64	/* should be enough for the first time */
 struct prot_inuse {
 	int val[PROTO_INUSE_NR];
@@ -3429,20 +3428,6 @@ static void release_proto_idx(struct proto *prot)
 	if (prot->inuse_idx != PROTO_INUSE_NR - 1)
 		clear_bit(prot->inuse_idx, proto_inuse_idx);
 }
-#else
-static inline int assign_proto_idx(struct proto *prot)
-{
-	return 0;
-}
-
-static inline void release_proto_idx(struct proto *prot)
-{
-}
-
-static void sock_inuse_add(struct net *net, int val)
-{
-}
-#endif
 
 static void tw_prot_cleanup(struct timewait_sock_ops *twsk_prot)
 {
@@ -3591,7 +3576,6 @@ int sock_load_diag_module(int family, int protocol)
 }
 EXPORT_SYMBOL(sock_load_diag_module);
 
-#ifdef CONFIG_PROC_FS
 static void *proto_seq_start(struct seq_file *seq, loff_t *pos)
 	__acquires(proto_list_mutex)
 {
@@ -3710,8 +3694,6 @@ static int __init proto_init(void)
 }
 
 subsys_initcall(proto_init);
-
-#endif /* PROC_FS */
 
 #ifdef CONFIG_NET_RX_BUSY_POLL
 bool sk_busy_loop_end(void *p, unsigned long start_time)

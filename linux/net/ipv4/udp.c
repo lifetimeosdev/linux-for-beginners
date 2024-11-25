@@ -2891,7 +2891,6 @@ struct proto udp_prot = {
 EXPORT_SYMBOL(udp_prot);
 
 /* ------------------------------------------------------------------------ */
-#ifdef CONFIG_PROC_FS
 
 static struct sock *udp_get_first(struct seq_file *seq, int start)
 {
@@ -3139,7 +3138,6 @@ void udp4_proc_exit(void)
 {
 	unregister_pernet_subsys(&udp4_net_ops);
 }
-#endif /* CONFIG_PROC_FS */
 
 static __initdata unsigned long uhash_entries;
 static int __init set_uhash_entries(char *str)

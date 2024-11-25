@@ -46,8 +46,6 @@ static inline int major_to_index(unsigned major)
 	return major % CHRDEV_MAJOR_HASH_SIZE;
 }
 
-#ifdef CONFIG_PROC_FS
-
 void chrdev_show(struct seq_file *f, off_t offset)
 {
 	struct char_device_struct *cd;
@@ -59,8 +57,6 @@ void chrdev_show(struct seq_file *f, off_t offset)
 	}
 	mutex_unlock(&chrdevs_lock);
 }
-
-#endif /* CONFIG_PROC_FS */
 
 static int find_dynamic_major(void)
 {

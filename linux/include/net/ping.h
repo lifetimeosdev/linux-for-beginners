@@ -78,14 +78,12 @@ int  ping_common_sendmsg(int family, struct msghdr *msg, size_t len,
 int  ping_queue_rcv_skb(struct sock *sk, struct sk_buff *skb);
 bool ping_rcv(struct sk_buff *skb);
 
-#ifdef CONFIG_PROC_FS
 void *ping_seq_start(struct seq_file *seq, loff_t *pos, sa_family_t family);
 void *ping_seq_next(struct seq_file *seq, void *v, loff_t *pos);
 void ping_seq_stop(struct seq_file *seq, void *v);
 
 int __init ping_proc_init(void);
 void ping_proc_exit(void);
-#endif
 
 void __init ping_init(void);
 int  __init pingv6_init(void);

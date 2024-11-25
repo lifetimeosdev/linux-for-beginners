@@ -181,77 +181,6 @@ out:
 	return error;
 }
 
-#ifdef CONFIG_SWAP
-static int swapin_walk_pmd_entry(pmd_t *pmd, unsigned long start,
-	unsigned long end, struct mm_walk *walk)
-{
-	pte_t *orig_pte;
-	struct vm_area_struct *vma = walk->private;
-	unsigned long index;
-
-	if (pmd_none_or_trans_huge_or_clear_bad(pmd))
-		return 0;
-
-	for (index = start; index != end; index += PAGE_SIZE) {
-		pte_t pte;
-		swp_entry_t entry;
-		struct page *page;
-		spinlock_t *ptl;
-
-		orig_pte = pte_offset_map_lock(vma->vm_mm, pmd, start, &ptl);
-		pte = *(orig_pte + ((index - start) / PAGE_SIZE));
-		pte_unmap_unlock(orig_pte, ptl);
-
-		if (pte_present(pte) || pte_none(pte))
-			continue;
-		entry = pte_to_swp_entry(pte);
-		if (unlikely(non_swap_entry(entry)))
-			continue;
-
-		page = read_swap_cache_async(entry, GFP_HIGHUSER_MOVABLE,
-							vma, index, false);
-		if (page)
-			put_page(page);
-	}
-
-	return 0;
-}
-
-static const struct mm_walk_ops swapin_walk_ops = {
-	.pmd_entry		= swapin_walk_pmd_entry,
-};
-
-static void force_shm_swapin_readahead(struct vm_area_struct *vma,
-		unsigned long start, unsigned long end,
-		struct address_space *mapping)
-{
-	XA_STATE(xas, &mapping->i_pages, linear_page_index(vma, start));
-	pgoff_t end_index = linear_page_index(vma, end + PAGE_SIZE - 1);
-	struct page *page;
-
-	rcu_read_lock();
-	xas_for_each(&xas, page, end_index) {
-		swp_entry_t swap;
-
-		if (!xa_is_value(page))
-			continue;
-		xas_pause(&xas);
-		rcu_read_unlock();
-
-		swap = radix_to_swp_entry(page);
-		page = read_swap_cache_async(swap, GFP_HIGHUSER_MOVABLE,
-							NULL, 0, false);
-		if (page)
-			put_page(page);
-
-		rcu_read_lock();
-	}
-	rcu_read_unlock();
-
-	lru_add_drain();	/* Push any new pages onto the LRU now */
-}
-#endif		/* CONFIG_SWAP */
-
 /*
  * Schedule all required I/O operations.  Do not wait for completion.
  */
@@ -264,22 +193,8 @@ static long madvise_willneed(struct vm_area_struct *vma,
 	loff_t offset;
 
 	*prev = vma;
-#ifdef CONFIG_SWAP
-	if (!file) {
-		walk_page_range(vma->vm_mm, start, end, &swapin_walk_ops, vma);
-		lru_add_drain(); /* Push any new pages onto the LRU now */
-		return 0;
-	}
-
-	if (shmem_mapping(file->f_mapping)) {
-		force_shm_swapin_readahead(vma, start, end,
-					file->f_mapping);
-		return 0;
-	}
-#else
 	if (!file)
 		return -EBADF;
-#endif
 
 	if (IS_DAX(file_inode(file))) {
 		/* no bad return value, but ignore advice */

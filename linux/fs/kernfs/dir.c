@@ -671,9 +671,9 @@ static struct kernfs_node *__kernfs_new_node(struct kernfs_root *root,
 	}
 
 	if (parent) {
-		ret = security_kernfs_init_security(parent, kn);
-		if (ret)
-			goto err_out3;
+		// ret = security_kernfs_init_security(parent, kn);
+		// if (ret)
+		// 	goto err_out3;
 	}
 
 	return kn;

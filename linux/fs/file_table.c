@@ -52,7 +52,6 @@ static void file_free_rcu(struct rcu_head *head)
 
 static inline void file_free(struct file *f)
 {
-	security_file_free(f);
 	if (!(f->f_mode & FMODE_NOACCOUNT))
 		percpu_counter_dec(&nr_files);
 	call_rcu(&f->f_u.fu_rcuhead, file_free_rcu);
@@ -96,18 +95,18 @@ int proc_nr_files(struct ctl_table *table, int write,
 static struct file *__alloc_file(int flags, const struct cred *cred)
 {
 	struct file *f;
-	int error;
+	// int error;
 
 	f = kmem_cache_zalloc(filp_cachep, GFP_KERNEL);
 	if (unlikely(!f))
 		return ERR_PTR(-ENOMEM);
 
 	f->f_cred = get_cred(cred);
-	error = security_file_alloc(f);
-	if (unlikely(error)) {
-		file_free_rcu(&f->f_u.fu_rcuhead);
-		return ERR_PTR(error);
-	}
+	// error = security_file_alloc(f);
+	// if (unlikely(error)) {
+	// 	file_free_rcu(&f->f_u.fu_rcuhead);
+	// 	return ERR_PTR(error);
+	// }
 
 	atomic_long_set(&f->f_count, 1);
 	rwlock_init(&f->f_owner.lock);

@@ -127,19 +127,7 @@ struct zone_padding {
 #define ZONE_PADDING(name)
 #endif
 
-#ifdef CONFIG_NUMA
-enum numa_stat_item {
-	NUMA_HIT,		/* allocated in intended node */
-	NUMA_MISS,		/* allocated in non intended node */
-	NUMA_FOREIGN,		/* was intended here, hit elsewhere */
-	NUMA_INTERLEAVE_HIT,	/* interleaver preferred this zone */
-	NUMA_LOCAL,		/* allocation from local node */
-	NUMA_OTHER,		/* allocation from other node */
-	NR_VM_NUMA_STAT_ITEMS
-};
-#else
 #define NR_VM_NUMA_STAT_ITEMS 0
-#endif
 
 enum zone_stat_item {
 	/* First 128 byte cacheline (assuming 64 bit words) */
@@ -327,10 +315,6 @@ struct per_cpu_pages {
 
 struct per_cpu_pageset {
 	struct per_cpu_pages pcp;
-#ifdef CONFIG_NUMA
-	s8 expire;
-	u16 vm_numa_stat_diff[NR_VM_NUMA_STAT_ITEMS];
-#endif
 #ifdef CONFIG_SMP
 	s8 stat_threshold;
 	s8 vm_stat_diff[NR_VM_ZONE_STAT_ITEMS];
@@ -367,17 +351,6 @@ enum zone_type {
 	 * transfers to all addressable memory.
 	 */
 	ZONE_NORMAL,
-#ifdef CONFIG_HIGHMEM
-	/*
-	 * A memory area that is only addressable by the kernel through
-	 * mapping portions into its own address space. This is for example
-	 * used by i386 to allow the kernel to address the memory beyond
-	 * 900MB. The kernel will set up special mappings (page
-	 * table entries on i386) for each page that the kernel needs to
-	 * access.
-	 */
-	ZONE_HIGHMEM,
-#endif
 	/*
 	 * ZONE_MOVABLE is similar to ZONE_NORMAL, except that it contains
 	 * movable pages with few exceptional cases described below. Main use
@@ -414,9 +387,6 @@ enum zone_type {
 	 * there can be false negatives).
 	 */
 	ZONE_MOVABLE,
-#ifdef CONFIG_ZONE_DEVICE
-	ZONE_DEVICE,
-#endif
 	__MAX_NR_ZONES
 
 };
@@ -640,13 +610,6 @@ static inline bool zone_intersects(struct zone *zone,
 
 enum {
 	ZONELIST_FALLBACK,	/* zonelist with fallback */
-#ifdef CONFIG_NUMA
-	/*
-	 * The NUMA zonelists are doubled because we need zonelists that
-	 * restrict the allocations to a single node for __GFP_THISNODE.
-	 */
-	ZONELIST_NOFALLBACK,	/* zonelist without fallback (__GFP_THISNODE) */
-#endif
 	MAX_ZONELISTS
 };
 
@@ -752,14 +715,6 @@ typedef struct pglist_data {
 	 * to userspace allocations.
 	 */
 	unsigned long		totalreserve_pages;
-
-#ifdef CONFIG_NUMA
-	/*
-	 * node reclaim becomes active if more unmapped pages exist.
-	 */
-	unsigned long		min_unmapped_pages;
-	unsigned long		min_slab_pages;
-#endif /* CONFIG_NUMA */
 
 	/* Write-intensive fields used by page reclaim */
 	ZONE_PADDING(_pad1_)
@@ -900,25 +855,9 @@ static inline void zone_set_nid(struct zone *zone, int nid) {}
 
 extern int movable_zone;
 
-#ifdef CONFIG_HIGHMEM
-static inline int zone_movable_is_highmem(void)
-{
-#ifdef CONFIG_NEED_MULTIPLE_NODES
-	return movable_zone == ZONE_HIGHMEM;
-#else
-	return (ZONE_MOVABLE - 1) == ZONE_HIGHMEM;
-#endif
-}
-#endif
-
 static inline int is_highmem_idx(enum zone_type idx)
 {
-#ifdef CONFIG_HIGHMEM
-	return (idx == ZONE_HIGHMEM ||
-		(idx == ZONE_MOVABLE && zone_movable_is_highmem()));
-#else
 	return 0;
-#endif
 }
 
 #ifdef CONFIG_ZONE_DMA
@@ -938,11 +877,7 @@ static inline bool has_managed_dma(void)
  */
 static inline int is_highmem(struct zone *zone)
 {
-#ifdef CONFIG_HIGHMEM
-	return is_highmem_idx(zone_idx(zone));
-#else
 	return 0;
-#endif
 }
 
 /* These two functions are used to setup the per zone pages min values */
@@ -1387,15 +1322,7 @@ static inline unsigned long next_present_section_nr(unsigned long section_nr)
  * can use __initdata ...  They could have names to indicate
  * this restriction.
  */
-#ifdef CONFIG_NUMA
-#define pfn_to_nid(pfn)							\
-({									\
-	unsigned long __pfn_to_nid_pfn = (pfn);				\
-	page_to_nid(pfn_to_page(__pfn_to_nid_pfn));			\
-})
-#else
 #define pfn_to_nid(pfn)		(0)
-#endif
 
 void sparse_init(void);
 #else

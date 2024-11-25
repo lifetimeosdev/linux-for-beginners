@@ -944,7 +944,6 @@ static __poll_t ep_eventpoll_poll(struct file *file, poll_table *wait)
 				  &depth, depth, false);
 }
 
-#ifdef CONFIG_PROC_FS
 static void ep_show_fdinfo(struct seq_file *m, struct file *f)
 {
 	struct eventpoll *ep = f->private_data;
@@ -966,13 +965,10 @@ static void ep_show_fdinfo(struct seq_file *m, struct file *f)
 	}
 	mutex_unlock(&ep->mtx);
 }
-#endif
 
 /* File callbacks that implement the eventpoll file behaviour */
 static const struct file_operations eventpoll_fops = {
-#ifdef CONFIG_PROC_FS
 	.show_fdinfo	= ep_show_fdinfo,
-#endif
 	.release	= ep_eventpoll_release,
 	.poll		= ep_eventpoll_poll,
 	.llseek		= noop_llseek,

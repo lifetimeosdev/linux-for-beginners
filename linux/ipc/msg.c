@@ -1137,7 +1137,6 @@ void msg_exit_ns(struct ipc_namespace *ns)
 }
 #endif
 
-#ifdef CONFIG_PROC_FS
 static int sysvipc_msg_proc_show(struct seq_file *s, void *it)
 {
 	struct pid_namespace *pid_ns = ipc_seq_pid_ns(s);
@@ -1164,7 +1163,6 @@ static int sysvipc_msg_proc_show(struct seq_file *s, void *it)
 
 	return 0;
 }
-#endif
 
 void __init msg_init(void)
 {

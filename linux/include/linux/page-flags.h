@@ -383,30 +383,8 @@ PAGEFLAG(Reclaim, reclaim, PF_NO_TAIL)
 PAGEFLAG(Readahead, reclaim, PF_NO_COMPOUND)
 	TESTCLEARFLAG(Readahead, reclaim, PF_NO_COMPOUND)
 
-#ifdef CONFIG_HIGHMEM
-/*
- * Must use a macro here due to header dependency issues. page_zone() is not
- * available at this point.
- */
-#define PageHighMem(__p) is_highmem_idx(page_zonenum(__p))
-#else
 PAGEFLAG_FALSE(HighMem)
-#endif
-
-#ifdef CONFIG_SWAP
-static __always_inline int PageSwapCache(struct page *page)
-{
-#ifdef CONFIG_THP_SWAP
-	page = compound_head(page);
-#endif
-	return PageSwapBacked(page) && test_bit(PG_swapcache, &page->flags);
-
-}
-SETPAGEFLAG(SwapCache, swapcache, PF_NO_TAIL)
-CLEARPAGEFLAG(SwapCache, swapcache, PF_NO_TAIL)
-#else
 PAGEFLAG_FALSE(SwapCache)
-#endif
 
 PAGEFLAG(Unevictable, unevictable, PF_HEAD)
 	__CLEARPAGEFLAG(Unevictable, unevictable, PF_HEAD)

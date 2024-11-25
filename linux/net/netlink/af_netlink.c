@@ -2547,7 +2547,6 @@ int nlmsg_notify(struct sock *sk, struct sk_buff *skb, u32 portid,
 }
 EXPORT_SYMBOL(nlmsg_notify);
 
-#ifdef CONFIG_PROC_FS
 struct nl_seq_iter {
 	struct seq_net_private p;
 	struct rhashtable_iter hti;
@@ -2725,7 +2724,6 @@ static const struct seq_operations netlink_seq_ops = {
 	.stop   = netlink_seq_stop,
 	.show   = netlink_seq_show,
 };
-#endif
 
 int netlink_register_notifier(struct notifier_block *nb)
 {
@@ -2768,19 +2766,15 @@ static const struct net_proto_family netlink_family_ops = {
 
 static int __net_init netlink_net_init(struct net *net)
 {
-#ifdef CONFIG_PROC_FS
 	if (!proc_create_net("netlink", 0, net->proc_net, &netlink_seq_ops,
 			sizeof(struct nl_seq_iter)))
 		return -ENOMEM;
-#endif
 	return 0;
 }
 
 static void __net_exit netlink_net_exit(struct net *net)
 {
-#ifdef CONFIG_PROC_FS
 	remove_proc_entry("netlink", net->proc_net);
-#endif
 }
 
 static void __init netlink_add_usersock_entry(void)

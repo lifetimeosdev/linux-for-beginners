@@ -192,9 +192,7 @@ static const struct crypto_type crypto_aead_type = {
 	.extsize = crypto_alg_extsize,
 	.init_tfm = crypto_aead_init_tfm,
 	.free = crypto_aead_free_instance,
-#ifdef CONFIG_PROC_FS
 	.show = crypto_aead_show,
-#endif
 	.report = crypto_aead_report,
 	.maskclear = ~CRYPTO_ALG_TYPE_MASK,
 	.maskset = CRYPTO_ALG_TYPE_MASK,

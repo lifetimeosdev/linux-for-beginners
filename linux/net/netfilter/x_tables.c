@@ -1165,7 +1165,6 @@ void *xt_unregister_table(struct xt_table *table)
 }
 EXPORT_SYMBOL_GPL(xt_unregister_table);
 
-#ifdef CONFIG_PROC_FS
 static void *xt_table_seq_start(struct seq_file *seq, loff_t *pos)
 {
 	struct net *net = seq_file_net(seq);
@@ -1363,8 +1362,6 @@ static const struct seq_operations xt_target_seq_ops = {
 #define	FORMAT_MATCHES	"_tables_matches"
 #define FORMAT_TARGETS 	"_tables_targets"
 
-#endif /* CONFIG_PROC_FS */
-
 /**
  * xt_hook_ops_alloc - set up hooks for a new table
  * @table:	table with metadata needed to set up hooks
@@ -1405,18 +1402,15 @@ EXPORT_SYMBOL_GPL(xt_hook_ops_alloc);
 
 int xt_proto_init(struct net *net, u_int8_t af)
 {
-#ifdef CONFIG_PROC_FS
 	char buf[XT_FUNCTION_MAXNAMELEN];
 	struct proc_dir_entry *proc;
 	kuid_t root_uid;
 	kgid_t root_gid;
-#endif
 
 	if (af >= ARRAY_SIZE(xt_prefix))
 		return -EINVAL;
 
 
-#ifdef CONFIG_PROC_FS
 	root_uid = make_kuid(net->user_ns, 0);
 	root_gid = make_kgid(net->user_ns, 0);
 
@@ -1449,11 +1443,9 @@ int xt_proto_init(struct net *net, u_int8_t af)
 		goto out_remove_matches;
 	if (uid_valid(root_uid) && gid_valid(root_gid))
 		proc_set_user(proc, root_uid, root_gid);
-#endif
 
 	return 0;
 
-#ifdef CONFIG_PROC_FS
 out_remove_matches:
 	strlcpy(buf, xt_prefix[af], sizeof(buf));
 	strlcat(buf, FORMAT_MATCHES, sizeof(buf));
@@ -1465,13 +1457,11 @@ out_remove_tables:
 	remove_proc_entry(buf, net->proc_net);
 out:
 	return -1;
-#endif
 }
 EXPORT_SYMBOL_GPL(xt_proto_init);
 
 void xt_proto_fini(struct net *net, u_int8_t af)
 {
-#ifdef CONFIG_PROC_FS
 	char buf[XT_FUNCTION_MAXNAMELEN];
 
 	strlcpy(buf, xt_prefix[af], sizeof(buf));
@@ -1485,7 +1475,6 @@ void xt_proto_fini(struct net *net, u_int8_t af)
 	strlcpy(buf, xt_prefix[af], sizeof(buf));
 	strlcat(buf, FORMAT_MATCHES, sizeof(buf));
 	remove_proc_entry(buf, net->proc_net);
-#endif /*CONFIG_PROC_FS*/
 }
 EXPORT_SYMBOL_GPL(xt_proto_fini);
 

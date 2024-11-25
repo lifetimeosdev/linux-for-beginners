@@ -546,9 +546,6 @@ struct device {
 	struct device_node	*of_node; /* associated device tree node */
 	struct fwnode_handle	*fwnode; /* firmware device node */
 
-#ifdef CONFIG_NUMA
-	int		numa_node;	/* NUMA node this device is close to */
-#endif
 	dev_t			devt;	/* dev_t, creates the sysfs "dev" */
 	u32			id;	/* device instance */
 
@@ -647,16 +644,6 @@ static inline const char *dev_bus_name(const struct device *dev)
 
 __printf(2, 3) int dev_set_name(struct device *dev, const char *name, ...);
 
-#ifdef CONFIG_NUMA
-static inline int dev_to_node(struct device *dev)
-{
-	return dev->numa_node;
-}
-static inline void set_dev_node(struct device *dev, int node)
-{
-	dev->numa_node = node;
-}
-#else
 static inline int dev_to_node(struct device *dev)
 {
 	return NUMA_NO_NODE;
@@ -664,7 +651,6 @@ static inline int dev_to_node(struct device *dev)
 static inline void set_dev_node(struct device *dev, int node)
 {
 }
-#endif
 
 static inline struct irq_domain *dev_get_msi_domain(const struct device *dev)
 {

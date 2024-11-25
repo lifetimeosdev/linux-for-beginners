@@ -883,11 +883,7 @@ int fragmentation_index(struct zone *zone, unsigned int order)
 #define TEXT_FOR_DMA32(xx)
 #endif
 
-#ifdef CONFIG_HIGHMEM
-#define TEXT_FOR_HIGHMEM(xx) xx "_high",
-#else
 #define TEXT_FOR_HIGHMEM(xx)
-#endif
 
 #define TEXTS_FOR_ZONES(xx) TEXT_FOR_DMA(xx) TEXT_FOR_DMA32(xx) xx "_normal", \
 					TEXT_FOR_HIGHMEM(xx) xx "_movable",
@@ -1042,10 +1038,6 @@ const char * const vmstat_text[] = {
 	"vmacache_find_calls",
 	"vmacache_find_hits",
 #endif
-#ifdef CONFIG_SWAP
-	"swap_ra",
-	"swap_ra_hit",
-#endif
 #endif /* CONFIG_VM_EVENT_COUNTERS || CONFIG_MEMCG */
 };
 #endif /* CONFIG_PROC_FS || CONFIG_SYSFS || CONFIG_NUMA || CONFIG_MEMCG */
@@ -1102,7 +1094,6 @@ static void walk_zones_in_node(struct seq_file *m, pg_data_t *pgdat,
 }
 #endif
 
-#ifdef CONFIG_PROC_FS
 static void frag_show_print(struct seq_file *m, pg_data_t *pgdat,
 						struct zone *zone)
 {
@@ -1479,13 +1470,11 @@ static const struct seq_operations vmstat_op = {
 	.stop	= vmstat_stop,
 	.show	= vmstat_show,
 };
-#endif /* CONFIG_PROC_FS */
 
 #ifdef CONFIG_SMP
 static DEFINE_PER_CPU(struct delayed_work, vmstat_work);
 int sysctl_stat_interval __read_mostly = HZ;
 
-#ifdef CONFIG_PROC_FS
 static void refresh_vm_stats(struct work_struct *work)
 {
 	refresh_cpu_vm_stats(true);
@@ -1529,7 +1518,6 @@ int vmstat_refresh(struct ctl_table *table, int write,
 		*lenp = 0;
 	return 0;
 }
-#endif /* CONFIG_PROC_FS */
 
 static void vmstat_update(struct work_struct *w)
 {
@@ -1705,12 +1693,10 @@ void __init init_mm_internals(void)
 
 	start_shepherd_timer();
 #endif
-#ifdef CONFIG_PROC_FS
 	proc_create_seq("buddyinfo", 0444, NULL, &fragmentation_op);
 	proc_create_seq("pagetypeinfo", 0400, NULL, &pagetypeinfo_op);
 	proc_create_seq("vmstat", 0444, NULL, &vmstat_op);
 	proc_create_seq("zoneinfo", 0444, NULL, &zoneinfo_op);
-#endif
 }
 
 #if defined(CONFIG_DEBUG_FS) && defined(CONFIG_COMPACTION)

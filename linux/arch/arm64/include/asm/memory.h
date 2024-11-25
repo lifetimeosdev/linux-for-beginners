@@ -72,15 +72,8 @@
  * address space for the shadow region respectively. They can bloat the stack
  * significantly, so double the (minimum) stack size when they are in use.
  */
-#ifdef CONFIG_KASAN
-#define KASAN_SHADOW_OFFSET	_AC(CONFIG_KASAN_SHADOW_OFFSET, UL)
-#define KASAN_SHADOW_END	((UL(1) << (64 - KASAN_SHADOW_SCALE_SHIFT)) \
-					+ KASAN_SHADOW_OFFSET)
-#define KASAN_THREAD_SHIFT	1
-#else
 #define KASAN_THREAD_SHIFT	0
 #define KASAN_SHADOW_END	(_PAGE_END(VA_BITS_MIN))
-#endif /* CONFIG_KASAN */
 
 #define MIN_THREAD_SHIFT	(14 + KASAN_THREAD_SHIFT)
 
@@ -214,15 +207,9 @@ static inline unsigned long kaslr_offset(void)
 	(__force __typeof__(addr))__addr;				\
 })
 
-#ifdef CONFIG_KASAN_SW_TAGS
-#define __tag_shifted(tag)	((u64)(tag) << 56)
-#define __tag_reset(addr)	__untagged_addr(addr)
-#define __tag_get(addr)		(__u8)((u64)(addr) >> 56)
-#else
 #define __tag_shifted(tag)	0UL
 #define __tag_reset(addr)	(addr)
 #define __tag_get(addr)		0
-#endif /* CONFIG_KASAN_SW_TAGS */
 
 static inline const void *__tag_set(const void *addr, u8 tag)
 {

@@ -472,11 +472,7 @@ USER(\label, ic	ivau, \tmp2)			// invalidate I line PoU
 #define NOKPROBE(x)
 #endif
 
-#ifdef CONFIG_KASAN
-#define EXPORT_SYMBOL_NOKASAN(name)
-#else
 #define EXPORT_SYMBOL_NOKASAN(name)	EXPORT_SYMBOL(name)
-#endif
 
 	/*
 	 * Emit a 64-bit absolute little endian symbol reference in a way that

@@ -356,8 +356,6 @@ struct vm_area_struct *vm_area_dup(struct vm_area_struct *orig)
 	struct vm_area_struct *new = kmem_cache_alloc(vm_area_cachep, GFP_KERNEL);
 
 	if (new) {
-		ASSERT_EXCLUSIVE_WRITER(orig->vm_flags);
-		ASSERT_EXCLUSIVE_WRITER(orig->vm_file);
 		/*
 		 * orig->shared.rb may be modified concurrently, but the clone
 		 * will be reinitialized.
@@ -1688,7 +1686,6 @@ static int pidfd_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-#ifdef CONFIG_PROC_FS
 /**
  * pidfd_show_fdinfo - print information about a pidfd
  * @m: proc fdinfo file
@@ -1753,7 +1750,6 @@ static void pidfd_show_fdinfo(struct seq_file *m, struct file *f)
 #endif
 	seq_putc(m, '\n');
 }
-#endif
 
 /*
  * Poll support for process exit notification.
@@ -1779,9 +1775,7 @@ static __poll_t pidfd_poll(struct file *file, struct poll_table_struct *pts)
 const struct file_operations pidfd_fops = {
 	.release = pidfd_release,
 	.poll = pidfd_poll,
-#ifdef CONFIG_PROC_FS
 	.show_fdinfo = pidfd_show_fdinfo,
-#endif
 };
 
 static void __delayed_free_task(struct rcu_head *rhp)
@@ -1994,10 +1988,6 @@ static __latent_entropy struct task_struct *copy_process(
 	seqcount_init(&p->vtime.seqcount);
 	p->vtime.starttime = 0;
 	p->vtime.state = VTIME_INACTIVE;
-#endif
-
-#ifdef CONFIG_IO_URING
-	p->io_uring = NULL;
 #endif
 
 #if defined(SPLIT_RSS_COUNTING)

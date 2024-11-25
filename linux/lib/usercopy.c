@@ -19,7 +19,6 @@ unsigned long _copy_from_user(void *to, const void __user *from, unsigned long n
 		 * finished:
 		 */
 		barrier_nospec();
-		instrument_copy_from_user(to, from, n);
 		res = raw_copy_from_user(to, from, n);
 	}
 	if (unlikely(res))
@@ -36,7 +35,6 @@ unsigned long _copy_to_user(void __user *to, const void *from, unsigned long n)
 	if (should_fail_usercopy())
 		return n;
 	if (likely(access_ok(to, n))) {
-		instrument_copy_to_user(to, from, n);
 		n = raw_copy_to_user(to, from, n);
 	}
 	return n;

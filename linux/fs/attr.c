@@ -399,9 +399,9 @@ int notify_change(struct dentry * dentry, struct iattr * attr, struct inode **de
 	if (!(ia_valid & ATTR_GID) && !gid_valid(inode->i_gid))
 		return -EOVERFLOW;
 
-	error = security_inode_setattr(dentry, attr);
-	if (error)
-		return error;
+	// error = security_inode_setattr(dentry, attr);
+	// if (error)
+	// 	return error;
 	error = try_break_deleg(inode, delegated_inode);
 	if (error)
 		return error;

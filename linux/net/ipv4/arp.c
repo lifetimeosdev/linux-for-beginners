@@ -1310,7 +1310,6 @@ void __init arp_init(void)
 	register_netdevice_notifier(&arp_netdev_notifier);
 }
 
-#ifdef CONFIG_PROC_FS
 #if IS_ENABLED(CONFIG_AX25)
 
 /* ------------------------------------------------------------------------ */
@@ -1452,12 +1451,3 @@ static int __init arp_proc_init(void)
 {
 	return register_pernet_subsys(&arp_net_ops);
 }
-
-#else /* CONFIG_PROC_FS */
-
-static int __init arp_proc_init(void)
-{
-	return 0;
-}
-
-#endif /* CONFIG_PROC_FS */

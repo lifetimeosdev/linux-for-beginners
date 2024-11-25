@@ -1295,7 +1295,6 @@ static int __init ic_dynamic(void)
 
 #endif /* IPCONFIG_DYNAMIC */
 
-#ifdef CONFIG_PROC_FS
 /* proc_dir_entry for /proc/net/ipconfig */
 static struct proc_dir_entry *ipconfig_dir;
 
@@ -1369,7 +1368,6 @@ static int ntp_servers_show(struct seq_file *seq, void *v)
 	return 0;
 }
 DEFINE_PROC_SHOW_ATTRIBUTE(ntp_servers);
-#endif /* CONFIG_PROC_FS */
 
 /*
  *  Extract IP address from the parameter string if needed. Note that we
@@ -1455,12 +1453,10 @@ static int __init ip_auto_config(void)
 		ic_ntp_servers_predef();
 	}
 
-#ifdef CONFIG_PROC_FS
 	proc_create_single("pnp", 0444, init_net.proc_net, pnp_seq_show);
 
 	if (ipconfig_proc_net_init() == 0)
 		ipconfig_proc_net_create("ntp_servers", &ntp_servers_proc_ops);
-#endif /* CONFIG_PROC_FS */
 
 	if (!ic_enable)
 		return 0;

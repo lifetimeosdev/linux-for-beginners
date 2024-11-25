@@ -72,11 +72,7 @@ extern struct ttm_mem_global {
 	struct ttm_mem_zone *zones[TTM_MEM_MAX_ZONES];
 	unsigned int num_zones;
 	struct ttm_mem_zone *zone_kernel;
-#ifdef CONFIG_HIGHMEM
-	struct ttm_mem_zone *zone_highmem;
-#else
 	struct ttm_mem_zone *zone_dma32;
-#endif
 } ttm_mem_glob;
 
 int ttm_mem_global_init(struct ttm_mem_global *glob);

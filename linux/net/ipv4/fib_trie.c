@@ -2399,7 +2399,6 @@ struct fib_table *fib_trie_table(u32 id, struct fib_table *alias)
 	return tb;
 }
 
-#ifdef CONFIG_PROC_FS
 /* Depth first Trie walk iterator */
 struct fib_trie_iter {
 	struct seq_net_private p;
@@ -3020,5 +3019,3 @@ void __net_exit fib_proc_exit(struct net *net)
 	remove_proc_entry("fib_triestat", net->proc_net);
 	remove_proc_entry("route", net->proc_net);
 }
-
-#endif /* CONFIG_PROC_FS */

@@ -348,10 +348,10 @@ static int inotify_find_inode(const char __user *dirname, struct path *path,
 		path_put(path);
 		return error;
 	}
-	error = security_path_notify(path, mask,
-				FSNOTIFY_OBJ_TYPE_INODE);
-	if (error)
-		path_put(path);
+	// error = security_path_notify(path, mask,
+	// 			FSNOTIFY_OBJ_TYPE_INODE);
+	// if (error)
+	// 	path_put(path);
 
 	return error;
 }

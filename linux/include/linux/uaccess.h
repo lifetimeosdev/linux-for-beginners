@@ -98,7 +98,6 @@ static inline void force_uaccess_end(mm_segment_t oldfs)
 static __always_inline __must_check unsigned long
 __copy_from_user_inatomic(void *to, const void __user *from, unsigned long n)
 {
-	instrument_copy_from_user(to, from, n);
 	check_object_size(to, n, false);
 	return raw_copy_from_user(to, from, n);
 }
@@ -109,7 +108,6 @@ __copy_from_user(void *to, const void __user *from, unsigned long n)
 	might_fault();
 	if (should_fail_usercopy())
 		return n;
-	instrument_copy_from_user(to, from, n);
 	check_object_size(to, n, false);
 	return raw_copy_from_user(to, from, n);
 }
@@ -132,7 +130,6 @@ __copy_to_user_inatomic(void __user *to, const void *from, unsigned long n)
 {
 	if (should_fail_usercopy())
 		return n;
-	instrument_copy_to_user(to, from, n);
 	check_object_size(from, n, true);
 	return raw_copy_to_user(to, from, n);
 }
@@ -143,7 +140,6 @@ __copy_to_user(void __user *to, const void *from, unsigned long n)
 	might_fault();
 	if (should_fail_usercopy())
 		return n;
-	instrument_copy_to_user(to, from, n);
 	check_object_size(from, n, true);
 	return raw_copy_to_user(to, from, n);
 }
@@ -155,7 +151,6 @@ _copy_from_user(void *to, const void __user *from, unsigned long n)
 	unsigned long res = n;
 	might_fault();
 	if (!should_fail_usercopy() && likely(access_ok(from, n))) {
-		instrument_copy_from_user(to, from, n);
 		res = raw_copy_from_user(to, from, n);
 	}
 	if (unlikely(res))
@@ -175,7 +170,6 @@ _copy_to_user(void __user *to, const void *from, unsigned long n)
 	if (should_fail_usercopy())
 		return n;
 	if (access_ok(to, n)) {
-		instrument_copy_to_user(to, from, n);
 		n = raw_copy_to_user(to, from, n);
 	}
 	return n;

@@ -1243,7 +1243,7 @@ int begin_new_exec(struct linux_binprm * bprm)
 	/*
 	 * install the new credentials for this executable
 	 */
-	security_bprm_committing_creds(bprm);
+	// security_bprm_committing_creds(bprm);
 
 	commit_creds(bprm->cred);
 	bprm->cred = NULL;
@@ -1261,7 +1261,7 @@ int begin_new_exec(struct linux_binprm * bprm)
 	 * ptrace_attach() from altering our determination of the task's
 	 * credentials; any time after this it may be unlocked.
 	 */
-	security_bprm_committed_creds(bprm);
+	// security_bprm_committed_creds(bprm);
 
 	/* Pass the opened binary to the interpreter. */
 	if (bprm->have_execfd) {
@@ -1584,9 +1584,9 @@ static int search_binary_handler(struct linux_binprm *bprm)
 	if (retval < 0)
 		return retval;
 
-	retval = security_bprm_check(bprm);
-	if (retval)
-		return retval;
+	// retval = security_bprm_check(bprm);
+	// if (retval)
+	// 	return retval;
 
 	retval = -ENOENT;
  retry:
@@ -1709,9 +1709,9 @@ static int bprm_execve(struct linux_binprm *bprm,
 		bprm->interp_flags |= BINPRM_FLAGS_PATH_INACCESSIBLE;
 
 	/* Set the unchanging part of bprm->cred */
-	retval = security_bprm_creds_for_exec(bprm);
-	if (retval)
-		goto out;
+	// retval = security_bprm_creds_for_exec(bprm);
+	// if (retval)
+	// 	goto out;
 
 	retval = exec_binprm(bprm);
 	if (retval < 0)

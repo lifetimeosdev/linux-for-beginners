@@ -927,38 +927,6 @@ void syscall_trace_exit(struct pt_regs *regs)
 #define SPSR_EL1_AARCH32_RES0_BITS \
 	(GENMASK_ULL(63, 32) | GENMASK_ULL(22, 22) | GENMASK_ULL(20, 20))
 
-static int valid_compat_regs(struct user_pt_regs *regs)
-{
-	regs->pstate &= ~SPSR_EL1_AARCH32_RES0_BITS;
-
-	if (!system_supports_mixed_endian_el0()) {
-		if (IS_ENABLED(CONFIG_CPU_BIG_ENDIAN))
-			regs->pstate |= PSR_AA32_E_BIT;
-		else
-			regs->pstate &= ~PSR_AA32_E_BIT;
-	}
-
-	if (user_mode(regs) && (regs->pstate & PSR_MODE32_BIT) &&
-	    (regs->pstate & PSR_AA32_A_BIT) == 0 &&
-	    (regs->pstate & PSR_AA32_I_BIT) == 0 &&
-	    (regs->pstate & PSR_AA32_F_BIT) == 0) {
-		return 1;
-	}
-
-	/*
-	 * Force PSR to a valid 32-bit EL0t, preserving the same bits as
-	 * arch/arm.
-	 */
-	regs->pstate &= PSR_AA32_N_BIT | PSR_AA32_Z_BIT |
-			PSR_AA32_C_BIT | PSR_AA32_V_BIT |
-			PSR_AA32_Q_BIT | PSR_AA32_IT_MASK |
-			PSR_AA32_GE_MASK | PSR_AA32_E_BIT |
-			PSR_AA32_T_BIT;
-	regs->pstate |= PSR_MODE32_BIT;
-
-	return 0;
-}
-
 static int valid_native_regs(struct user_pt_regs *regs)
 {
 	regs->pstate &= ~SPSR_EL1_AARCH64_RES0_BITS;

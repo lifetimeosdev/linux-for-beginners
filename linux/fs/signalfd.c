@@ -228,7 +228,6 @@ static ssize_t signalfd_read(struct file *file, char __user *buf, size_t count,
 	return total ? total: ret;
 }
 
-#ifdef CONFIG_PROC_FS
 static void signalfd_show_fdinfo(struct seq_file *m, struct file *f)
 {
 	struct signalfd_ctx *ctx = f->private_data;
@@ -238,12 +237,9 @@ static void signalfd_show_fdinfo(struct seq_file *m, struct file *f)
 	signotset(&sigmask);
 	render_sigset_t(m, "sigmask:\t", &sigmask);
 }
-#endif
 
 static const struct file_operations signalfd_fops = {
-#ifdef CONFIG_PROC_FS
 	.show_fdinfo	= signalfd_show_fdinfo,
-#endif
 	.release	= signalfd_release,
 	.poll		= signalfd_poll,
 	.read		= signalfd_read,

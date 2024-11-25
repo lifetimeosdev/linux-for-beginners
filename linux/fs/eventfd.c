@@ -316,7 +316,6 @@ static ssize_t eventfd_write(struct file *file, const char __user *buf, size_t c
 	return res;
 }
 
-#ifdef CONFIG_PROC_FS
 static void eventfd_show_fdinfo(struct seq_file *m, struct file *f)
 {
 	struct eventfd_ctx *ctx = f->private_data;
@@ -327,12 +326,9 @@ static void eventfd_show_fdinfo(struct seq_file *m, struct file *f)
 	spin_unlock_irq(&ctx->wqh.lock);
 	seq_printf(m, "eventfd-id: %d\n", ctx->id);
 }
-#endif
 
 static const struct file_operations eventfd_fops = {
-#ifdef CONFIG_PROC_FS
 	.show_fdinfo	= eventfd_show_fdinfo,
-#endif
 	.release	= eventfd_release,
 	.poll		= eventfd_poll,
 	.read_iter	= eventfd_read,

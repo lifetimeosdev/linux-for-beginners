@@ -340,21 +340,6 @@ static inline int security_capable(const struct cred *cred,
 	return cap_capable(cred, ns, cap, opts);
 }
 
-static inline int security_quotactl(int cmds, int type, int id,
-				     struct super_block *sb)
-{
-	return 0;
-}
-
-static inline int security_quota_on(struct dentry *dentry)
-{
-	return 0;
-}
-
-static inline int security_syslog(int type)
-{
-	return 0;
-}
 
 static inline int security_settime64(const struct timespec64 *ts,
 				     const struct timezone *tz)
@@ -367,136 +352,18 @@ static inline int security_vm_enough_memory_mm(struct mm_struct *mm, long pages)
 	return __vm_enough_memory(mm, pages, cap_vm_enough_memory(mm, pages));
 }
 
-static inline int security_bprm_creds_for_exec(struct linux_binprm *bprm)
-{
-	return 0;
-}
-
 static inline int security_bprm_creds_from_file(struct linux_binprm *bprm,
 						struct file *file)
 {
 	return cap_bprm_creds_from_file(bprm, file);
 }
 
-static inline int security_bprm_check(struct linux_binprm *bprm)
-{
-	return 0;
-}
-
-static inline void security_bprm_committing_creds(struct linux_binprm *bprm)
-{
-}
-
-static inline void security_bprm_committed_creds(struct linux_binprm *bprm)
-{
-}
-
-static inline int security_fs_context_dup(struct fs_context *fc,
-					  struct fs_context *src_fc)
-{
-	return 0;
-}
 static inline int security_fs_context_parse_param(struct fs_context *fc,
 						  struct fs_parameter *param)
 {
 	return -ENOPARAM;
 }
 
-static inline int security_sb_alloc(struct super_block *sb)
-{
-	return 0;
-}
-
-static inline void security_sb_free(struct super_block *sb)
-{ }
-
-static inline int security_sb_eat_lsm_opts(char *options,
-					   void **mnt_opts)
-{
-	return 0;
-}
-
-static inline int security_sb_remount(struct super_block *sb,
-				      void *mnt_opts)
-{
-	return 0;
-}
-
-static inline int security_sb_kern_mount(struct super_block *sb)
-{
-	return 0;
-}
-
-static inline int security_sb_show_options(struct seq_file *m,
-					   struct super_block *sb)
-{
-	return 0;
-}
-
-static inline int security_sb_statfs(struct dentry *dentry)
-{
-	return 0;
-}
-
-static inline int security_sb_mount(const char *dev_name, const struct path *path,
-				    const char *type, unsigned long flags,
-				    void *data)
-{
-	return 0;
-}
-
-static inline int security_sb_umount(struct vfsmount *mnt, int flags)
-{
-	return 0;
-}
-
-static inline int security_sb_pivotroot(const struct path *old_path,
-					const struct path *new_path)
-{
-	return 0;
-}
-
-static inline int security_sb_set_mnt_opts(struct super_block *sb,
-					   void *mnt_opts,
-					   unsigned long kern_flags,
-					   unsigned long *set_kern_flags)
-{
-	return 0;
-}
-
-static inline int security_sb_clone_mnt_opts(const struct super_block *oldsb,
-					      struct super_block *newsb,
-					      unsigned long kern_flags,
-					      unsigned long *set_kern_flags)
-{
-	return 0;
-}
-
-static inline int security_add_mnt_opt(const char *option, const char *val,
-					int len, void **mnt_opts)
-{
-	return 0;
-}
-
-static inline int security_move_mount(const struct path *from_path,
-				      const struct path *to_path)
-{
-	return 0;
-}
-
-static inline int security_path_notify(const struct path *path, u64 mask,
-				unsigned int obj_type)
-{
-	return 0;
-}
-
-static inline int security_inode_alloc(struct inode *inode)
-{
-	return 0;
-}
-
-static inline void security_inode_free(struct inode *inode)
-{ }
 
 static inline int security_dentry_init_security(struct dentry *dentry,
 						 int mode,
@@ -507,23 +374,6 @@ static inline int security_dentry_init_security(struct dentry *dentry,
 	return -EOPNOTSUPP;
 }
 
-static inline int security_dentry_create_files_as(struct dentry *dentry,
-						  int mode, struct qstr *name,
-						  const struct cred *old,
-						  struct cred *new)
-{
-	return 0;
-}
-
-
-static inline int security_inode_init_security(struct inode *inode,
-						struct inode *dir,
-						const struct qstr *qstr,
-						const initxattrs xattrs,
-						void *fs_data)
-{
-	return 0;
-}
 
 static inline int security_old_inode_init_security(struct inode *inode,
 						   struct inode *dir,
@@ -534,89 +384,6 @@ static inline int security_old_inode_init_security(struct inode *inode,
 	return -EOPNOTSUPP;
 }
 
-static inline int security_inode_create(struct inode *dir,
-					 struct dentry *dentry,
-					 umode_t mode)
-{
-	return 0;
-}
-
-static inline int security_inode_link(struct dentry *old_dentry,
-				       struct inode *dir,
-				       struct dentry *new_dentry)
-{
-	return 0;
-}
-
-static inline int security_inode_unlink(struct inode *dir,
-					 struct dentry *dentry)
-{
-	return 0;
-}
-
-static inline int security_inode_symlink(struct inode *dir,
-					  struct dentry *dentry,
-					  const char *old_name)
-{
-	return 0;
-}
-
-static inline int security_inode_mkdir(struct inode *dir,
-					struct dentry *dentry,
-					int mode)
-{
-	return 0;
-}
-
-static inline int security_inode_rmdir(struct inode *dir,
-					struct dentry *dentry)
-{
-	return 0;
-}
-
-static inline int security_inode_mknod(struct inode *dir,
-					struct dentry *dentry,
-					int mode, dev_t dev)
-{
-	return 0;
-}
-
-static inline int security_inode_rename(struct inode *old_dir,
-					 struct dentry *old_dentry,
-					 struct inode *new_dir,
-					 struct dentry *new_dentry,
-					 unsigned int flags)
-{
-	return 0;
-}
-
-static inline int security_inode_readlink(struct dentry *dentry)
-{
-	return 0;
-}
-
-static inline int security_inode_follow_link(struct dentry *dentry,
-					     struct inode *inode,
-					     bool rcu)
-{
-	return 0;
-}
-
-static inline int security_inode_permission(struct inode *inode, int mask)
-{
-	return 0;
-}
-
-static inline int security_inode_setattr(struct dentry *dentry,
-					  struct iattr *attr)
-{
-	return 0;
-}
-
-static inline int security_inode_getattr(const struct path *path)
-{
-	return 0;
-}
 
 static inline int security_inode_setxattr(struct dentry *dentry,
 		const char *name, const void *value, size_t size, int flags)
@@ -624,20 +391,6 @@ static inline int security_inode_setxattr(struct dentry *dentry,
 	return cap_inode_setxattr(dentry, name, value, size, flags);
 }
 
-static inline void security_inode_post_setxattr(struct dentry *dentry,
-		const char *name, const void *value, size_t size, int flags)
-{ }
-
-static inline int security_inode_getxattr(struct dentry *dentry,
-			const char *name)
-{
-	return 0;
-}
-
-static inline int security_inode_listxattr(struct dentry *dentry)
-{
-	return 0;
-}
 
 static inline int security_inode_removexattr(struct dentry *dentry,
 			const char *name)
@@ -665,63 +418,17 @@ static inline int security_inode_setsecurity(struct inode *inode, const char *na
 	return -EOPNOTSUPP;
 }
 
-static inline int security_inode_listsecurity(struct inode *inode, char *buffer, size_t buffer_size)
-{
-	return 0;
-}
-
 static inline void security_inode_getsecid(struct inode *inode, u32 *secid)
 {
 	*secid = 0;
 }
 
-static inline int security_inode_copy_up(struct dentry *src, struct cred **new)
-{
-	return 0;
-}
-
-static inline int security_kernfs_init_security(struct kernfs_node *kn_dir,
-						struct kernfs_node *kn)
-{
-	return 0;
-}
 
 static inline int security_inode_copy_up_xattr(const char *name)
 {
 	return -EOPNOTSUPP;
 }
 
-static inline int security_file_permission(struct file *file, int mask)
-{
-	return 0;
-}
-
-static inline int security_file_alloc(struct file *file)
-{
-	return 0;
-}
-
-static inline void security_file_free(struct file *file)
-{ }
-
-static inline int security_file_ioctl(struct file *file, unsigned int cmd,
-				      unsigned long arg)
-{
-	return 0;
-}
-
-static inline int security_file_ioctl_compat(struct file *file,
-					     unsigned int cmd,
-					     unsigned long arg)
-{
-	return 0;
-}
-
-static inline int security_mmap_file(struct file *file, unsigned long prot,
-				     unsigned long flags)
-{
-	return 0;
-}
 
 static inline int security_mmap_addr(unsigned long addr)
 {

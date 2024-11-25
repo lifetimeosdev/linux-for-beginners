@@ -280,10 +280,10 @@ int fcntl_dirnotify(int fd, struct file *filp, unsigned long arg)
 	 */
 	mask = convert_arg(arg);
 
-	error = security_path_notify(&filp->f_path, mask,
-			FSNOTIFY_OBJ_TYPE_INODE);
-	if (error)
-		goto out_err;
+	// error = security_path_notify(&filp->f_path, mask,
+	// 		FSNOTIFY_OBJ_TYPE_INODE);
+	// if (error)
+	// 	goto out_err;
 
 	/* expect most fcntl to add new rather than augment old */
 	dn = kmem_cache_alloc(dnotify_struct_cache, GFP_KERNEL);

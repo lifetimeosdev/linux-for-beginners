@@ -92,7 +92,6 @@ struct nubus_driver {
 extern struct bus_type nubus_bus_type;
 
 /* Generic NuBus interface functions, modelled after the PCI interface */
-#ifdef CONFIG_PROC_FS
 void nubus_proc_init(void);
 struct proc_dir_entry *nubus_proc_add_board(struct nubus_board *board);
 struct proc_dir_entry *nubus_proc_add_rsrc_dir(struct proc_dir_entry *procdir,
@@ -103,22 +102,6 @@ void nubus_proc_add_rsrc_mem(struct proc_dir_entry *procdir,
 			     unsigned int size);
 void nubus_proc_add_rsrc(struct proc_dir_entry *procdir,
 			 const struct nubus_dirent *ent);
-#else
-static inline void nubus_proc_init(void) {}
-static inline
-struct proc_dir_entry *nubus_proc_add_board(struct nubus_board *board)
-{ return NULL; }
-static inline
-struct proc_dir_entry *nubus_proc_add_rsrc_dir(struct proc_dir_entry *procdir,
-					       const struct nubus_dirent *ent,
-					       struct nubus_board *board)
-{ return NULL; }
-static inline void nubus_proc_add_rsrc_mem(struct proc_dir_entry *procdir,
-					   const struct nubus_dirent *ent,
-					   unsigned int size) {}
-static inline void nubus_proc_add_rsrc(struct proc_dir_entry *procdir,
-				       const struct nubus_dirent *ent) {}
-#endif
 
 struct nubus_rsrc *nubus_first_rsrc_or_null(void);
 struct nubus_rsrc *nubus_next_rsrc_or_null(struct nubus_rsrc *from);

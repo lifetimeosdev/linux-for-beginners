@@ -99,10 +99,8 @@
 #ifdef CONFIG_IP_MROUTE
 #include <linux/mroute.h>
 #endif
-#ifdef CONFIG_PROC_FS
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
-#endif
 
 #ifdef CONFIG_IP_MULTICAST
 /* Parameter names and values are taken from igmp-v2-06 draft */

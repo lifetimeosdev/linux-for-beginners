@@ -250,9 +250,7 @@ void crypto_acomp_scomp_free_ctx(struct acomp_req *req)
 static const struct crypto_type crypto_scomp_type = {
 	.extsize = crypto_alg_extsize,
 	.init_tfm = crypto_scomp_init_tfm,
-#ifdef CONFIG_PROC_FS
 	.show = crypto_scomp_show,
-#endif
 	.report = crypto_scomp_report,
 	.maskclear = ~CRYPTO_ALG_TYPE_MASK,
 	.maskset = CRYPTO_ALG_TYPE_MASK,

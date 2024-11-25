@@ -301,7 +301,6 @@ static ssize_t timerfd_read(struct file *file, char __user *buf, size_t count,
 	return res;
 }
 
-#ifdef CONFIG_PROC_FS
 static void timerfd_show(struct seq_file *m, struct file *file)
 {
 	struct timerfd_ctx *ctx = file->private_data;
@@ -326,9 +325,6 @@ static void timerfd_show(struct seq_file *m, struct file *file)
 		   (unsigned long long)interval.tv_sec,
 		   (unsigned long long)interval.tv_nsec);
 }
-#else
-#define timerfd_show NULL
-#endif
 
 #ifdef CONFIG_CHECKPOINT_RESTORE
 static long timerfd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)

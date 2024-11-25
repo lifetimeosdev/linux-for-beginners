@@ -589,12 +589,7 @@ extern void *alloc_large_system_hash(const char *tablename,
 /* Only NUMA needs hash distribution. 64bit NUMA architectures have
  * sufficient vmalloc space.
  */
-#ifdef CONFIG_NUMA
-#define HASHDIST_DEFAULT IS_ENABLED(CONFIG_64BIT)
-extern int hashdist;		/* Distribute hashes across NUMA nodes? */
-#else
 #define hashdist (0)
-#endif
 
 #ifdef CONFIG_MEMTEST
 extern void early_memtest(phys_addr_t start, phys_addr_t end);

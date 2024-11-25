@@ -404,7 +404,6 @@ static inline int major_to_index(unsigned major)
 	return major % BLKDEV_MAJOR_HASH_SIZE;
 }
 
-#ifdef CONFIG_PROC_FS
 void blkdev_show(struct seq_file *seqf, off_t offset)
 {
 	struct blk_major_name *dp;
@@ -415,7 +414,6 @@ void blkdev_show(struct seq_file *seqf, off_t offset)
 			seq_printf(seqf, "%3d %s\n", dp->major, dp->name);
 	mutex_unlock(&block_class_lock);
 }
-#endif /* CONFIG_PROC_FS */
 
 /**
  * register_blkdev - register a new block device
@@ -1099,7 +1097,6 @@ void __init printk_all_partitions(void)
 	class_dev_iter_exit(&iter);
 }
 
-#ifdef CONFIG_PROC_FS
 /* iterator */
 static void *disk_seqf_start(struct seq_file *seqf, loff_t *pos)
 {
@@ -1188,8 +1185,6 @@ static const struct seq_operations partitions_op = {
 	.stop	= disk_seqf_stop,
 	.show	= show_partition
 };
-#endif
-
 
 static struct kobject *base_probe(dev_t devt, int *partno, void *data)
 {
@@ -1574,7 +1569,6 @@ const struct device_type disk_type = {
 	.devnode	= block_devnode,
 };
 
-#ifdef CONFIG_PROC_FS
 /*
  * aggregate disk stat collector.  Uses the same stats that the sysfs
  * entries do, above, but makes them available through one seq_file.
@@ -1662,7 +1656,6 @@ static int __init proc_genhd_init(void)
 	return 0;
 }
 module_init(proc_genhd_init);
-#endif /* CONFIG_PROC_FS */
 
 dev_t blk_lookup_devt(const char *name, int partno)
 {

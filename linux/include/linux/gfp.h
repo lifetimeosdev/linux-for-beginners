@@ -353,11 +353,7 @@ static inline bool gfpflags_normal_context(const gfp_t gfp_flags)
 		__GFP_DIRECT_RECLAIM;
 }
 
-#ifdef CONFIG_HIGHMEM
-#define OPT_ZONE_HIGHMEM ZONE_HIGHMEM
-#else
 #define OPT_ZONE_HIGHMEM ZONE_NORMAL
-#endif
 
 #ifdef CONFIG_ZONE_DMA
 #define OPT_ZONE_DMA ZONE_DMA
@@ -463,10 +459,6 @@ static inline enum zone_type gfp_zone(gfp_t flags)
 
 static inline int gfp_zonelist(gfp_t flags)
 {
-#ifdef CONFIG_NUMA
-	if (unlikely(flags & __GFP_THISNODE))
-		return ZONELIST_NOFALLBACK;
-#endif
 	return ZONELIST_FALLBACK;
 }
 
@@ -534,20 +526,6 @@ static inline struct page *alloc_pages_node(int nid, gfp_t gfp_mask,
 	return __alloc_pages_node(nid, gfp_mask, order);
 }
 
-#ifdef CONFIG_NUMA
-extern struct page *alloc_pages_current(gfp_t gfp_mask, unsigned order);
-
-static inline struct page *
-alloc_pages(gfp_t gfp_mask, unsigned int order)
-{
-	return alloc_pages_current(gfp_mask, order);
-}
-extern struct page *alloc_pages_vma(gfp_t gfp_mask, int order,
-			struct vm_area_struct *vma, unsigned long addr,
-			int node, bool hugepage);
-#define alloc_hugepage_vma(gfp_mask, vma, addr, order) \
-	alloc_pages_vma(gfp_mask, order, vma, addr, numa_node_id(), true)
-#else
 static inline struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
 {
 	return alloc_pages_node(numa_node_id(), gfp_mask, order);
@@ -556,7 +534,6 @@ static inline struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
 	alloc_pages(gfp_mask, order)
 #define alloc_hugepage_vma(gfp_mask, vma, addr, order) \
 	alloc_pages(gfp_mask, order)
-#endif
 #define alloc_page(gfp_mask) alloc_pages(gfp_mask, 0)
 #define alloc_page_vma(gfp_mask, vma, addr)			\
 	alloc_pages_vma(gfp_mask, 0, vma, addr, numa_node_id(), false)

@@ -5437,51 +5437,11 @@ static struct page *mc_handle_present_pte(struct vm_area_struct *vma,
 	return page;
 }
 
-#if defined(CONFIG_SWAP) || defined(CONFIG_DEVICE_PRIVATE)
-static struct page *mc_handle_swap_pte(struct vm_area_struct *vma,
-			pte_t ptent, swp_entry_t *entry)
-{
-	struct page *page = NULL;
-	swp_entry_t ent = pte_to_swp_entry(ptent);
-
-	if (!(mc.flags & MOVE_ANON))
-		return NULL;
-
-	/*
-	 * Handle MEMORY_DEVICE_PRIVATE which are ZONE_DEVICE page belonging to
-	 * a device and because they are not accessible by CPU they are store
-	 * as special swap entry in the CPU page table.
-	 */
-	if (is_device_private_entry(ent)) {
-		page = device_private_entry_to_page(ent);
-		/*
-		 * MEMORY_DEVICE_PRIVATE means ZONE_DEVICE page and which have
-		 * a refcount of 1 when free (unlike normal page)
-		 */
-		if (!page_ref_add_unless(page, 1, 1))
-			return NULL;
-		return page;
-	}
-
-	if (non_swap_entry(ent))
-		return NULL;
-
-	/*
-	 * Because lookup_swap_cache() updates some statistics counter,
-	 * we call find_get_page() with swapper_space directly.
-	 */
-	page = find_get_page(swap_address_space(ent), swp_offset(ent));
-	entry->val = ent.val;
-
-	return page;
-}
-#else
 static struct page *mc_handle_swap_pte(struct vm_area_struct *vma,
 			pte_t ptent, swp_entry_t *entry)
 {
 	return NULL;
 }
-#endif
 
 static struct page *mc_handle_file_pte(struct vm_area_struct *vma,
 			unsigned long addr, pte_t ptent, swp_entry_t *entry)

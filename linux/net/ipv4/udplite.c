@@ -77,7 +77,6 @@ static struct inet_protosw udplite4_protosw = {
 	.flags		=  INET_PROTOSW_PERMANENT,
 };
 
-#ifdef CONFIG_PROC_FS
 static struct udp_seq_afinfo udplite4_seq_afinfo = {
 	.family		= AF_INET,
 	.udp_table 	= &udplite_table,
@@ -105,12 +104,6 @@ static __init int udplite4_proc_init(void)
 {
 	return register_pernet_subsys(&udplite4_net_ops);
 }
-#else
-static inline int udplite4_proc_init(void)
-{
-	return 0;
-}
-#endif
 
 void __init udplite4_register(void)
 {

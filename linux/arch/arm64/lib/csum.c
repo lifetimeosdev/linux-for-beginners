@@ -36,7 +36,6 @@ unsigned int __no_sanitize_address do_csum(const unsigned char *buff, int len)
 	 * unchecked reads to accommodate the head and tail, for which we'll
 	 * compensate with an explicit check up-front.
 	 */
-	kasan_check_read(buff, len);
 	ptr = (u64 *)(buff - offset);
 	len = len + offset - 8;
 

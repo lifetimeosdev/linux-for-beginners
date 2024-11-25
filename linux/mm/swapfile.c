@@ -2655,7 +2655,6 @@ long __arm64_sys_swapoff(const struct pt_regs *regs)
 	return ret;
 }
 
-#ifdef CONFIG_PROC_FS
 static __poll_t swaps_poll(struct file *file, poll_table *wait)
 {
 	struct seq_file *seq = file->private_data;
@@ -2780,7 +2779,6 @@ static int __init procswaps_init(void)
 	return 0;
 }
 __initcall(procswaps_init);
-#endif /* CONFIG_PROC_FS */
 
 #ifdef MAX_SWAPFILES_CHECK
 static int __init max_swapfiles_check(void)

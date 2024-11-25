@@ -113,19 +113,8 @@ struct kmem_cache {
 	unsigned long random;
 #endif
 
-#ifdef CONFIG_NUMA
-	/*
-	 * Defragmentation by allocating from a remote node.
-	 */
-	unsigned int remote_node_defrag_ratio;
-#endif
-
 #ifdef CONFIG_SLAB_FREELIST_RANDOM
 	unsigned int *random_seq;
-#endif
-
-#ifdef CONFIG_KASAN
-	struct kasan_cache kasan_info;
 #endif
 
 	unsigned int useroffset;	/* Usercopy region offset */

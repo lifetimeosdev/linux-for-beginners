@@ -71,9 +71,7 @@ static int crypto_kpp_init_tfm(struct crypto_tfm *tfm)
 static const struct crypto_type crypto_kpp_type = {
 	.extsize = crypto_alg_extsize,
 	.init_tfm = crypto_kpp_init_tfm,
-#ifdef CONFIG_PROC_FS
 	.show = crypto_kpp_show,
-#endif
 	.report = crypto_kpp_report,
 	.maskclear = ~CRYPTO_ALG_TYPE_MASK,
 	.maskset = CRYPTO_ALG_TYPE_MASK,

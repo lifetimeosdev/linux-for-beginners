@@ -1018,8 +1018,6 @@ struct proto ping_prot = {
 };
 EXPORT_SYMBOL(ping_prot);
 
-#ifdef CONFIG_PROC_FS
-
 static struct sock *ping_get_first(struct seq_file *seq, int start)
 {
 	struct sock *sk;
@@ -1181,8 +1179,6 @@ void ping_proc_exit(void)
 {
 	unregister_pernet_subsys(&ping_v4_net_ops);
 }
-
-#endif
 
 void __init ping_init(void)
 {

@@ -62,13 +62,7 @@ static inline int current_is_kswapd(void)
  * When a page is migrated from CPU to device, we set the CPU page table entry
  * to a special SWP_DEVICE_* entry.
  */
-#ifdef CONFIG_DEVICE_PRIVATE
-#define SWP_DEVICE_NUM 2
-#define SWP_DEVICE_WRITE (MAX_SWAPFILES+SWP_HWPOISON_NUM+SWP_MIGRATION_NUM)
-#define SWP_DEVICE_READ (MAX_SWAPFILES+SWP_HWPOISON_NUM+SWP_MIGRATION_NUM+1)
-#else
 #define SWP_DEVICE_NUM 0
-#endif
 
 /*
  * NUMA node memory migration support
@@ -368,126 +362,12 @@ extern int vm_swappiness;
 extern int remove_mapping(struct address_space *mapping, struct page *page);
 
 extern unsigned long reclaim_pages(struct list_head *page_list);
-#ifdef CONFIG_NUMA
-extern int node_reclaim_mode;
-extern int sysctl_min_unmapped_ratio;
-extern int sysctl_min_slab_ratio;
-#else
 #define node_reclaim_mode 0
-#endif
 
 extern void check_move_unevictable_pages(struct pagevec *pvec);
 
 extern int kswapd_run(int nid);
 extern void kswapd_stop(int nid);
-
-#ifdef CONFIG_SWAP
-
-#include <linux/blk_types.h> /* for bio_end_io_t */
-
-/* linux/mm/page_io.c */
-extern int swap_readpage(struct page *page, bool do_poll);
-extern int swap_writepage(struct page *page, struct writeback_control *wbc);
-extern void end_swap_bio_write(struct bio *bio);
-extern int __swap_writepage(struct page *page, struct writeback_control *wbc,
-	bio_end_io_t end_write_func);
-extern int swap_set_page_dirty(struct page *page);
-
-int add_swap_extent(struct swap_info_struct *sis, unsigned long start_page,
-		unsigned long nr_pages, sector_t start_block);
-int generic_swapfile_activate(struct swap_info_struct *, struct file *,
-		sector_t *);
-
-/* linux/mm/swap_state.c */
-/* One swap address space for each 64M swap space */
-#define SWAP_ADDRESS_SPACE_SHIFT	14
-#define SWAP_ADDRESS_SPACE_PAGES	(1 << SWAP_ADDRESS_SPACE_SHIFT)
-extern struct address_space *swapper_spaces[];
-#define swap_address_space(entry)			    \
-	(&swapper_spaces[swp_type(entry)][swp_offset(entry) \
-		>> SWAP_ADDRESS_SPACE_SHIFT])
-extern unsigned long total_swapcache_pages(void);
-extern void show_swap_cache_info(void);
-extern int add_to_swap(struct page *page);
-extern void *get_shadow_from_swap_cache(swp_entry_t entry);
-extern int add_to_swap_cache(struct page *page, swp_entry_t entry,
-			gfp_t gfp, void **shadowp);
-extern void __delete_from_swap_cache(struct page *page,
-			swp_entry_t entry, void *shadow);
-extern void delete_from_swap_cache(struct page *);
-extern void clear_shadow_from_swap_cache(int type, unsigned long begin,
-				unsigned long end);
-extern void free_page_and_swap_cache(struct page *);
-extern void free_pages_and_swap_cache(struct page **, int);
-extern struct page *lookup_swap_cache(swp_entry_t entry,
-				      struct vm_area_struct *vma,
-				      unsigned long addr);
-struct page *find_get_incore_page(struct address_space *mapping, pgoff_t index);
-extern struct page *read_swap_cache_async(swp_entry_t, gfp_t,
-			struct vm_area_struct *vma, unsigned long addr,
-			bool do_poll);
-extern struct page *__read_swap_cache_async(swp_entry_t, gfp_t,
-			struct vm_area_struct *vma, unsigned long addr,
-			bool *new_page_allocated);
-extern struct page *swap_cluster_readahead(swp_entry_t entry, gfp_t flag,
-				struct vm_fault *vmf);
-extern struct page *swapin_readahead(swp_entry_t entry, gfp_t flag,
-				struct vm_fault *vmf);
-
-/* linux/mm/swapfile.c */
-extern atomic_long_t nr_swap_pages;
-extern long total_swap_pages;
-extern atomic_t nr_rotate_swap;
-extern bool has_usable_swap(void);
-
-/* Swap 50% full? Release swapcache more aggressively.. */
-static inline bool vm_swap_full(void)
-{
-	return atomic_long_read(&nr_swap_pages) * 2 < total_swap_pages;
-}
-
-static inline long get_nr_swap_pages(void)
-{
-	return atomic_long_read(&nr_swap_pages);
-}
-
-extern void si_swapinfo(struct sysinfo *);
-extern swp_entry_t get_swap_page(struct page *page);
-extern void put_swap_page(struct page *page, swp_entry_t entry);
-extern swp_entry_t get_swap_page_of_type(int);
-extern int get_swap_pages(int n, swp_entry_t swp_entries[], int entry_size);
-extern int add_swap_count_continuation(swp_entry_t, gfp_t);
-extern void swap_shmem_alloc(swp_entry_t);
-extern int swap_duplicate(swp_entry_t);
-extern int swapcache_prepare(swp_entry_t);
-extern void swap_free(swp_entry_t);
-extern void swapcache_free_entries(swp_entry_t *entries, int n);
-extern int free_swap_and_cache(swp_entry_t);
-int swap_type_of(dev_t device, sector_t offset);
-int find_first_swap(dev_t *device);
-extern unsigned int count_swap_pages(int, int);
-extern sector_t map_swap_page(struct page *, struct block_device **);
-extern sector_t swapdev_block(int, pgoff_t);
-extern int page_swapcount(struct page *);
-extern int __swap_count(swp_entry_t entry);
-extern int __swp_swapcount(swp_entry_t entry);
-extern int swp_swapcount(swp_entry_t entry);
-extern struct swap_info_struct *page_swap_info(struct page *);
-extern struct swap_info_struct *swp_swap_info(swp_entry_t entry);
-extern bool reuse_swap_page(struct page *, int *);
-extern int try_to_free_swap(struct page *);
-struct backing_dev_info;
-extern int init_swap_address_space(unsigned int type, unsigned long nr_pages);
-extern void exit_swap_address_space(unsigned int type);
-extern struct swap_info_struct *get_swap_device(swp_entry_t entry);
-sector_t swap_page_sector(struct page *page);
-
-static inline void put_swap_device(struct swap_info_struct *si)
-{
-	rcu_read_unlock();
-}
-
-#else /* CONFIG_SWAP */
 
 static inline int swap_readpage(struct page *page, bool do_poll)
 {
@@ -638,8 +518,6 @@ static inline swp_entry_t get_swap_page(struct page *page)
 	return entry;
 }
 
-#endif /* CONFIG_SWAP */
-
 #ifdef CONFIG_THP_SWAP
 extern int split_swap_cluster(swp_entry_t entry);
 #else
@@ -669,13 +547,9 @@ static inline int mem_cgroup_swappiness(struct mem_cgroup *mem)
 }
 #endif
 
-#if defined(CONFIG_SWAP) && defined(CONFIG_MEMCG) && defined(CONFIG_BLK_CGROUP)
-extern void cgroup_throttle_swaprate(struct page *page, gfp_t gfp_mask);
-#else
 static inline void cgroup_throttle_swaprate(struct page *page, gfp_t gfp_mask)
 {
 }
-#endif
 
 #ifdef CONFIG_MEMCG_SWAP
 extern void mem_cgroup_swapout(struct page *page, swp_entry_t entry);
