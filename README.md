@@ -7,10 +7,10 @@
 ### Quick start (Dev on Ubuntu 24.04)
 
 1. Install `VSCode`, `C/C++ extension` and `gdb-multiarch` on a Linux distro.
+1. Using `./build_toolchain.sh` to build musl-gcc toolchain.
 1. Using `./build_linux.sh` to build the linux source code.
 1. Using `./make_initramfs.sh` to make initramfs including busybox.
 1. Using `./run.sh` to start the qemu and press F5 to start the debugger.
-1. (Optional) Using `./build_toolchian.sh` to build musl gcc again if you want to debug musl source code.
 
 ## References
 1. Linux: https://www.kernel.org/
