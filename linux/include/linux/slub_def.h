@@ -106,9 +106,7 @@ struct kmem_cache {
 	unsigned int red_left_pad;	/* Left redzone padding size */
 	const char *name;	/* Name (only for display!) */
 	struct list_head list;	/* List of slab caches */
-#ifdef CONFIG_SYSFS
 	struct kobject kobj;	/* For sysfs */
-#endif
 #ifdef CONFIG_SLAB_FREELIST_HARDENED
 	unsigned long random;
 #endif
@@ -134,18 +132,9 @@ struct kmem_cache {
 #define slub_set_cpu_partial(s, n)
 #endif /* CONFIG_SLUB_CPU_PARTIAL */
 
-#ifdef CONFIG_SYSFS
 #define SLAB_SUPPORTS_SYSFS
 void sysfs_slab_unlink(struct kmem_cache *);
 void sysfs_slab_release(struct kmem_cache *);
-#else
-static inline void sysfs_slab_unlink(struct kmem_cache *s)
-{
-}
-static inline void sysfs_slab_release(struct kmem_cache *s)
-{
-}
-#endif
 
 void object_err(struct kmem_cache *s, struct page *page,
 		u8 *object, char *reason);

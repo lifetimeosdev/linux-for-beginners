@@ -26,7 +26,6 @@
 
 #include "net-sysfs.h"
 
-#ifdef CONFIG_SYSFS
 static const char fmt_hex[] = "%#x\n";
 static const char fmt_dec[] = "%d\n";
 static const char fmt_ulong[] = "%lu\n";
@@ -724,11 +723,6 @@ static const struct attribute_group wireless_group = {
 };
 #endif
 
-#else /* CONFIG_SYSFS */
-#define net_class_groups	NULL
-#endif /* CONFIG_SYSFS */
-
-#ifdef CONFIG_SYSFS
 #define to_rx_queue_attr(_attr) \
 	container_of(_attr, struct rx_queue_attribute, attr)
 
@@ -1052,12 +1046,10 @@ static int rx_queue_change_owner(struct net_device *dev, int index, kuid_t kuid,
 
 	return error;
 }
-#endif /* CONFIG_SYSFS */
 
 int
 net_rx_queue_update_kobjects(struct net_device *dev, int old_num, int new_num)
 {
-#ifdef CONFIG_SYSFS
 	int i;
 	int error = 0;
 
@@ -1084,15 +1076,11 @@ net_rx_queue_update_kobjects(struct net_device *dev, int old_num, int new_num)
 	}
 
 	return error;
-#else
-	return 0;
-#endif
 }
 
 static int net_rx_queue_change_owner(struct net_device *dev, int num,
 				     kuid_t kuid, kgid_t kgid)
 {
-#ifdef CONFIG_SYSFS
 	int error = 0;
 	int i;
 
@@ -1107,12 +1095,8 @@ static int net_rx_queue_change_owner(struct net_device *dev, int num,
 	}
 
 	return error;
-#else
-	return 0;
-#endif
 }
 
-#ifdef CONFIG_SYSFS
 /*
  * netdev_queue sysfs structures and functions.
  */
@@ -1681,12 +1665,10 @@ static int tx_queue_change_owner(struct net_device *ndev, int index,
 #endif
 	return error;
 }
-#endif /* CONFIG_SYSFS */
 
 int
 netdev_queue_update_kobjects(struct net_device *dev, int old_num, int new_num)
 {
-#ifdef CONFIG_SYSFS
 	int i;
 	int error = 0;
 
@@ -1710,15 +1692,11 @@ netdev_queue_update_kobjects(struct net_device *dev, int old_num, int new_num)
 	}
 
 	return error;
-#else
-	return 0;
-#endif /* CONFIG_SYSFS */
 }
 
 static int net_tx_queue_change_owner(struct net_device *dev, int num,
 				     kuid_t kuid, kgid_t kgid)
 {
-#ifdef CONFIG_SYSFS
 	int error = 0;
 	int i;
 
@@ -1729,22 +1707,17 @@ static int net_tx_queue_change_owner(struct net_device *dev, int num,
 	}
 
 	return error;
-#else
-	return 0;
-#endif /* CONFIG_SYSFS */
 }
 
 static int register_queue_kobjects(struct net_device *dev)
 {
 	int error = 0, txq = 0, rxq = 0, real_rx = 0, real_tx = 0;
 
-#ifdef CONFIG_SYSFS
 	dev->queues_kset = kset_create_and_add("queues",
 					       NULL, &dev->dev.kobj);
 	if (!dev->queues_kset)
 		return -ENOMEM;
 	real_rx = dev->real_num_rx_queues;
-#endif
 	real_tx = dev->real_num_tx_queues;
 
 	error = net_rx_queue_update_kobjects(dev, 0, real_rx);
@@ -1762,9 +1735,7 @@ static int register_queue_kobjects(struct net_device *dev)
 error:
 	netdev_queue_update_kobjects(dev, txq, 0);
 	net_rx_queue_update_kobjects(dev, rxq, 0);
-#ifdef CONFIG_SYSFS
 	kset_unregister(dev->queues_kset);
-#endif
 	return error;
 }
 
@@ -1772,14 +1743,12 @@ static int queue_change_owner(struct net_device *ndev, kuid_t kuid, kgid_t kgid)
 {
 	int error = 0, real_rx = 0, real_tx = 0;
 
-#ifdef CONFIG_SYSFS
 	if (ndev->queues_kset) {
 		error = sysfs_change_owner(&ndev->queues_kset->kobj, kuid, kgid);
 		if (error)
 			return error;
 	}
 	real_rx = ndev->real_num_rx_queues;
-#endif
 	real_tx = ndev->real_num_tx_queues;
 
 	error = net_rx_queue_change_owner(ndev, real_rx, kuid, kgid);
@@ -1797,9 +1766,7 @@ static void remove_queue_kobjects(struct net_device *dev)
 {
 	int real_rx = 0, real_tx = 0;
 
-#ifdef CONFIG_SYSFS
 	real_rx = dev->real_num_rx_queues;
-#endif
 	real_tx = dev->real_num_tx_queues;
 
 	net_rx_queue_update_kobjects(dev, real_rx, 0);
@@ -1807,9 +1774,7 @@ static void remove_queue_kobjects(struct net_device *dev)
 
 	dev->real_num_rx_queues = 0;
 	dev->real_num_tx_queues = 0;
-#ifdef CONFIG_SYSFS
 	kset_unregister(dev->queues_kset);
-#endif
 }
 
 static bool net_current_may_mount(void)
@@ -1977,7 +1942,6 @@ int netdev_register_kobject(struct net_device *ndev)
 
 	dev_set_name(dev, "%s", ndev->name);
 
-#ifdef CONFIG_SYSFS
 	/* Allow for a device specific group */
 	if (*groups)
 		groups++;
@@ -1992,7 +1956,6 @@ int netdev_register_kobject(struct net_device *ndev)
 		*groups++ = &wireless_group;
 #endif
 #endif
-#endif /* CONFIG_SYSFS */
 
 	error = device_add(dev);
 	if (error)

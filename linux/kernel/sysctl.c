@@ -3165,13 +3165,11 @@ static struct ctl_table fs_table[] = {
 		.child		= inotify_table,
 	},
 #endif	
-#ifdef CONFIG_EPOLL
 	{
 		.procname	= "epoll",
 		.mode		= 0555,
 		.child		= epoll_table,
 	},
-#endif
 #endif
 	{
 		.procname	= "protected_symlinks",

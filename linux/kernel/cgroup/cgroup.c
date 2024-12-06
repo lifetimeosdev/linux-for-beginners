@@ -6669,7 +6669,6 @@ int cgroup_bpf_query(struct cgroup *cgrp, const union bpf_attr *attr,
 }
 #endif /* CONFIG_CGROUP_BPF */
 
-#ifdef CONFIG_SYSFS
 static ssize_t show_delegatable_files(struct cftype *files, char *buf,
 				      ssize_t size, const char *prefix)
 {
@@ -6738,4 +6737,3 @@ static int __init cgroup_sysfs_init(void)
 }
 subsys_initcall(cgroup_sysfs_init);
 
-#endif /* CONFIG_SYSFS */

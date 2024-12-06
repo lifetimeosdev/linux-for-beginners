@@ -1268,7 +1268,6 @@ void __init unflatten_and_copy_device_tree(void)
 	unflatten_device_tree();
 }
 
-#ifdef CONFIG_SYSFS
 static ssize_t of_fdt_raw_read(struct file *filp, struct kobject *kobj,
 			       struct bin_attribute *bin_attr,
 			       char *buf, loff_t off, size_t count)
@@ -1294,6 +1293,5 @@ static int __init of_fdt_raw_init(void)
 	return sysfs_create_bin_file(firmware_kobj, &of_fdt_raw_attr);
 }
 late_initcall(of_fdt_raw_init);
-#endif
 
 #endif /* CONFIG_OF_EARLY_FLATTREE */

@@ -13,9 +13,7 @@
 #include <linux/vmstat.h>
 #include <linux/atomic.h>
 #include <linux/vmalloc.h>
-#ifdef CONFIG_CMA
 #include <linux/cma.h>
-#endif
 #include <asm/page.h>
 #include "internal.h"
 
@@ -116,11 +114,9 @@ static int meminfo_proc_show(struct seq_file *m, void *v)
 		   atomic_long_read(&num_poisoned_pages) << (PAGE_SHIFT - 10));
 #endif
 
-#ifdef CONFIG_CMA
 	show_val_kb(m, "CmaTotal:       ", totalcma_pages);
 	show_val_kb(m, "CmaFree:        ",
 		    global_zone_page_state(NR_FREE_CMA_PAGES));
-#endif
 
 	hugetlb_report_meminfo(m);
 

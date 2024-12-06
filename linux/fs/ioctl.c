@@ -715,15 +715,10 @@ static inline long __do_sys_ioctl(unsigned int fd, unsigned int cmd, unsigned lo
 	if (!f.file)
 		return -EBADF;
 
-	// error = security_file_ioctl(f.file, cmd, arg);
-	// if (error)
-	// 	goto out;
-
 	error = do_vfs_ioctl(f.file, fd, cmd, arg);
 	if (error == -ENOIOCTLCMD)
 		error = vfs_ioctl(f.file, cmd, arg);
 
-// out:
 	fdput(f);
 	return error;
 }

@@ -47,9 +47,7 @@ int hugetlb_max_hstate __read_mostly;
 unsigned int default_hstate_idx;
 struct hstate hstates[HUGE_MAX_HSTATE];
 
-#ifdef CONFIG_CMA
 static struct cma *hugetlb_cma[MAX_NUMNODES];
-#endif
 static unsigned long hugetlb_cma_size __initdata;
 
 /*
@@ -1270,10 +1268,8 @@ static void free_gigantic_page(struct page *page, unsigned int order)
 	 * If the page isn't allocated using the cma allocator,
 	 * cma_release() returns false.
 	 */
-#ifdef CONFIG_CMA
 	if (cma_release(hugetlb_cma[page_to_nid(page)], page, 1 << order))
 		return;
-#endif
 
 	free_contig_range(page_to_pfn(page), 1 << order);
 }
@@ -1286,7 +1282,6 @@ static struct page *alloc_gigantic_page(struct hstate *h, gfp_t gfp_mask,
 	if (nid == NUMA_NO_NODE)
 		nid = numa_mem_id();
 
-#ifdef CONFIG_CMA
 	{
 		struct page *page;
 		int node;
@@ -1310,7 +1305,6 @@ static struct page *alloc_gigantic_page(struct hstate *h, gfp_t gfp_mask,
 			}
 		}
 	}
-#endif
 
 	return alloc_contig_pages(nr_pages, gfp_mask, nid, nodemask);
 }
@@ -5513,7 +5507,6 @@ void move_hugetlb_state(struct page *oldpage, struct page *newpage, int reason)
 	}
 }
 
-#ifdef CONFIG_CMA
 static bool cma_reserve_called __initdata;
 
 static int __init cmdline_parse_hugetlb_cma(char *p)
@@ -5583,4 +5576,3 @@ void __init hugetlb_cma_check(void)
 	pr_warn("hugetlb_cma: the option isn't supported by current arch\n");
 }
 
-#endif /* CONFIG_CMA */

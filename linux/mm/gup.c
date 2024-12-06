@@ -1593,7 +1593,6 @@ static bool check_dax_vmas(struct vm_area_struct **vmas, long nr_pages)
 	return false;
 }
 
-#ifdef CONFIG_CMA
 static long check_and_migrate_cma_pages(struct mm_struct *mm,
 					unsigned long start,
 					unsigned long nr_pages,
@@ -1688,17 +1687,6 @@ check_again:
 	 */
 	goto check_again;
 }
-#else
-static long check_and_migrate_cma_pages(struct mm_struct *mm,
-					unsigned long start,
-					unsigned long nr_pages,
-					struct page **pages,
-					struct vm_area_struct **vmas,
-					unsigned int gup_flags)
-{
-	return nr_pages;
-}
-#endif /* CONFIG_CMA */
 
 /*
  * __gup_longterm_locked() is a wrapper for __get_user_pages_locked which

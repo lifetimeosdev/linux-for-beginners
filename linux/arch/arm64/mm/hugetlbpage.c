@@ -35,7 +35,6 @@
  * huge page when requested. Any other smaller gigantic
  * huge pages could still be served from those areas.
  */
-#ifdef CONFIG_CMA
 void __init arm64_hugetlb_cma_reserve(void)
 {
 	int order;
@@ -54,7 +53,6 @@ void __init arm64_hugetlb_cma_reserve(void)
 	WARN_ON(order <= MAX_ORDER);
 	hugetlb_cma_reserve(order);
 }
-#endif /* CONFIG_CMA */
 
 #ifdef CONFIG_ARCH_ENABLE_HUGEPAGE_MIGRATION
 bool arch_hugetlb_migration_supported(struct hstate *h)

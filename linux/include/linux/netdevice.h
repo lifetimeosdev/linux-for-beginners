@@ -597,9 +597,7 @@ struct netdev_queue {
 	struct net_device	*dev;
 	struct Qdisc __rcu	*qdisc;
 	struct Qdisc		*qdisc_sleeping;
-#ifdef CONFIG_SYSFS
 	struct kobject		kobj;
-#endif
 #if defined(CONFIG_XPS) && defined(CONFIG_NUMA)
 	int			numa_node;
 #endif
@@ -2008,9 +2006,7 @@ struct net_device {
 	struct netdev_hw_addr_list	mc;
 	struct netdev_hw_addr_list	dev_addrs;
 
-#ifdef CONFIG_SYSFS
 	struct kset		*queues_kset;
-#endif
 	unsigned int		promiscuity;
 	unsigned int		allmulti;
 	bool			uc_promisc;
@@ -3785,16 +3781,7 @@ static inline bool netif_is_multiqueue(const struct net_device *dev)
 
 int netif_set_real_num_tx_queues(struct net_device *dev, unsigned int txq);
 
-#ifdef CONFIG_SYSFS
 int netif_set_real_num_rx_queues(struct net_device *dev, unsigned int rxq);
-#else
-static inline int netif_set_real_num_rx_queues(struct net_device *dev,
-						unsigned int rxqs)
-{
-	dev->real_num_rx_queues = rxqs;
-	return 0;
-}
-#endif
 
 static inline struct netdev_rx_queue *
 __netif_get_rx_queue(struct net_device *dev, unsigned int rxq)
@@ -3802,7 +3789,6 @@ __netif_get_rx_queue(struct net_device *dev, unsigned int rxq)
 	return dev->_rx + rxq;
 }
 
-#ifdef CONFIG_SYSFS
 static inline unsigned int get_netdev_rx_queue_index(
 		struct netdev_rx_queue *queue)
 {
@@ -3812,7 +3798,6 @@ static inline unsigned int get_netdev_rx_queue_index(
 	BUG_ON(index >= dev->num_rx_queues);
 	return index;
 }
-#endif
 
 #define DEFAULT_MAX_NUM_RSS_QUEUES	(8)
 int netif_get_num_default_rss_queues(void);

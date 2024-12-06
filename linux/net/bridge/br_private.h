@@ -323,9 +323,7 @@ struct net_bridge_port {
 	struct hlist_node		rlist;
 #endif
 
-#ifdef CONFIG_SYSFS
 	char				sysfs_name[IFNAMSIZ];
-#endif
 
 #ifdef CONFIG_NET_POLL_CONTROLLER
 	struct netpoll			*np;
@@ -1477,7 +1475,6 @@ int br_process_vlan_info(struct net_bridge *br,
 			 bool *changed,
 			 struct netlink_ext_ack *extack);
 
-#ifdef CONFIG_SYSFS
 /* br_sysfs_if.c */
 extern const struct sysfs_ops brport_sysfs_ops;
 int br_sysfs_addif(struct net_bridge_port *p);
@@ -1487,13 +1484,6 @@ int br_sysfs_renameif(struct net_bridge_port *p);
 int br_sysfs_addbr(struct net_device *dev);
 void br_sysfs_delbr(struct net_device *dev);
 
-#else
-
-static inline int br_sysfs_addif(struct net_bridge_port *p) { return 0; }
-static inline int br_sysfs_renameif(struct net_bridge_port *p) { return 0; }
-static inline int br_sysfs_addbr(struct net_device *dev) { return 0; }
-static inline void br_sysfs_delbr(struct net_device *dev) { return; }
-#endif /* CONFIG_SYSFS */
 
 /* br_switchdev.c */
 #ifdef CONFIG_NET_SWITCHDEV

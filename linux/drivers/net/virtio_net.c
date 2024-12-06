@@ -2965,7 +2965,6 @@ err:
 	return ret;
 }
 
-#ifdef CONFIG_SYSFS
 static ssize_t mergeable_rx_buffer_size_show(struct netdev_rx_queue *queue,
 		char *buf)
 {
@@ -2994,7 +2993,6 @@ static const struct attribute_group virtio_net_mrg_rx_group = {
 	.name = "virtio_net",
 	.attrs = virtio_net_mrg_rx_attrs
 };
-#endif
 
 static bool virtnet_fail_on_feature(struct virtio_device *vdev,
 				    unsigned int fbit,
@@ -3204,10 +3202,8 @@ static int virtnet_probe(struct virtio_device *vdev)
 	if (err)
 		goto free;
 
-#ifdef CONFIG_SYSFS
 	if (vi->mergeable_rx_bufs)
 		dev->sysfs_rx_queue_group = &virtio_net_mrg_rx_group;
-#endif
 	netif_set_real_num_tx_queues(dev, vi->curr_queue_pairs);
 	netif_set_real_num_rx_queues(dev, vi->curr_queue_pairs);
 

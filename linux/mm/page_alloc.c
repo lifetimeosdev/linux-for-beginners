@@ -313,12 +313,8 @@ const char * const migratetype_names[MIGRATE_TYPES] = {
 	"Movable",
 	"Reclaimable",
 	"HighAtomic",
-#ifdef CONFIG_CMA
 	"CMA",
-#endif
-#ifdef CONFIG_MEMORY_ISOLATION
 	"Isolate",
-#endif
 };
 
 compound_page_dtor * const compound_page_dtors[NR_COMPOUND_DTORS] = {
@@ -2100,7 +2096,6 @@ void __init page_alloc_init_late(void)
 		set_zone_contiguous(zone);
 }
 
-#ifdef CONFIG_CMA
 /* Free whole pageblock and set its migration type to MIGRATE_CMA. */
 void __init init_cma_reserved_pageblock(struct page *page)
 {
@@ -2129,7 +2124,6 @@ void __init init_cma_reserved_pageblock(struct page *page)
 
 	adjust_managed_page_count(page, pageblock_nr_pages);
 }
-#endif
 
 /*
  * The order of subdivision here is critical for the IO subsystem.
@@ -2323,24 +2317,15 @@ static int fallbacks[MIGRATE_TYPES][3] = {
 	[MIGRATE_UNMOVABLE]   = { MIGRATE_RECLAIMABLE, MIGRATE_MOVABLE,   MIGRATE_TYPES },
 	[MIGRATE_MOVABLE]     = { MIGRATE_RECLAIMABLE, MIGRATE_UNMOVABLE, MIGRATE_TYPES },
 	[MIGRATE_RECLAIMABLE] = { MIGRATE_UNMOVABLE,   MIGRATE_MOVABLE,   MIGRATE_TYPES },
-#ifdef CONFIG_CMA
 	[MIGRATE_CMA]         = { MIGRATE_TYPES }, /* Never used */
-#endif
-#ifdef CONFIG_MEMORY_ISOLATION
 	[MIGRATE_ISOLATE]     = { MIGRATE_TYPES }, /* Never used */
-#endif
 };
 
-#ifdef CONFIG_CMA
 static __always_inline struct page *__rmqueue_cma_fallback(struct zone *zone,
 					unsigned int order)
 {
 	return __rmqueue_smallest(zone, order, MIGRATE_CMA);
 }
-#else
-static inline struct page *__rmqueue_cma_fallback(struct zone *zone,
-					unsigned int order) { return NULL; }
-#endif
 
 /*
  * Move the free pages in a range to the freelist tail of the requested type.
@@ -3469,11 +3454,9 @@ static inline long __zone_watermark_unusable_free(struct zone *z,
 	if (likely(!alloc_harder))
 		unusable_free += z->nr_reserved_highatomic;
 
-#ifdef CONFIG_CMA
 	/* If allocation can't use CMA areas don't use free CMA pages */
 	if (!(alloc_flags & ALLOC_CMA))
 		unusable_free += zone_page_state(z, NR_FREE_CMA_PAGES);
-#endif
 
 	return unusable_free;
 }
@@ -3536,12 +3519,10 @@ bool __zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
 				return true;
 		}
 
-#ifdef CONFIG_CMA
 		if ((alloc_flags & ALLOC_CMA) &&
 		    !free_area_empty(area, MIGRATE_CMA)) {
 			return true;
 		}
-#endif
 		if (alloc_harder && !free_area_empty(area, MIGRATE_HIGHATOMIC))
 			return true;
 	}
@@ -3659,14 +3640,12 @@ alloc_flags_nofragment(struct zone *zone, gfp_t gfp_mask)
 static inline unsigned int current_alloc_flags(gfp_t gfp_mask,
 					unsigned int alloc_flags)
 {
-#ifdef CONFIG_CMA
 	unsigned int pflags = current->flags;
 
 	if (!(pflags & PF_MEMALLOC_NOCMA) &&
 			gfp_migratetype(gfp_mask) == MIGRATE_MOVABLE)
 		alloc_flags |= ALLOC_CMA;
 
-#endif
 	return alloc_flags;
 }
 
@@ -4162,17 +4141,11 @@ static DEFINE_SEQLOCK(zonelist_update_seq);
 
 static unsigned int zonelist_iter_begin(void)
 {
-	if (IS_ENABLED(CONFIG_MEMORY_HOTREMOVE))
-		return read_seqbegin(&zonelist_update_seq);
-
 	return 0;
 }
 
 static unsigned int check_retry_zonelist(unsigned int seq)
 {
-	if (IS_ENABLED(CONFIG_MEMORY_HOTREMOVE))
-		return read_seqretry(&zonelist_update_seq, seq);
-
 	return seq;
 }
 
@@ -5259,12 +5232,8 @@ static void show_migration_types(unsigned char type)
 		[MIGRATE_MOVABLE]	= 'M',
 		[MIGRATE_RECLAIMABLE]	= 'E',
 		[MIGRATE_HIGHATOMIC]	= 'H',
-#ifdef CONFIG_CMA
 		[MIGRATE_CMA]		= 'C',
-#endif
-#ifdef CONFIG_MEMORY_ISOLATION
 		[MIGRATE_ISOLATE]	= 'I',
-#endif
 	};
 	char tmp[MIGRATE_TYPES + 1];
 	char *p = tmp;
@@ -8211,53 +8180,6 @@ void zone_pcp_reset(struct zone *zone)
 	}
 	local_irq_restore(flags);
 }
-
-#ifdef CONFIG_MEMORY_HOTREMOVE
-/*
- * All pages in the range must be in a single zone, must not contain holes,
- * must span full sections, and must be isolated before calling this function.
- */
-void __offline_isolated_pages(unsigned long start_pfn, unsigned long end_pfn)
-{
-	unsigned long pfn = start_pfn;
-	struct page *page;
-	struct zone *zone;
-	unsigned int order;
-	unsigned long flags;
-
-	offline_mem_sections(pfn, end_pfn);
-	zone = page_zone(pfn_to_page(pfn));
-	spin_lock_irqsave(&zone->lock, flags);
-	while (pfn < end_pfn) {
-		page = pfn_to_page(pfn);
-		/*
-		 * The HWPoisoned page may be not in buddy system, and
-		 * page_count() is not 0.
-		 */
-		if (unlikely(!PageBuddy(page) && PageHWPoison(page))) {
-			pfn++;
-			continue;
-		}
-		/*
-		 * At this point all remaining PageOffline() pages have a
-		 * reference count of 0 and can simply be skipped.
-		 */
-		if (PageOffline(page)) {
-			BUG_ON(page_count(page));
-			BUG_ON(PageBuddy(page));
-			pfn++;
-			continue;
-		}
-
-		BUG_ON(page_count(page));
-		BUG_ON(!PageBuddy(page));
-		order = buddy_order(page);
-		del_page_from_free_list(page, zone, order);
-		pfn += (1 << order);
-	}
-	spin_unlock_irqrestore(&zone->lock, flags);
-}
-#endif
 
 bool is_free_buddy_page(struct page *page)
 {

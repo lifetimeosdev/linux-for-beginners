@@ -2,7 +2,6 @@
 #ifndef __LINUX_PAGEISOLATION_H
 #define __LINUX_PAGEISOLATION_H
 
-#ifdef CONFIG_MEMORY_ISOLATION
 static inline bool has_isolate_pageblock(struct zone *zone)
 {
 	return zone->nr_isolate_pageblock;
@@ -15,20 +14,6 @@ static inline bool is_migrate_isolate(int migratetype)
 {
 	return migratetype == MIGRATE_ISOLATE;
 }
-#else
-static inline bool has_isolate_pageblock(struct zone *zone)
-{
-	return false;
-}
-static inline bool is_migrate_isolate_page(struct page *page)
-{
-	return false;
-}
-static inline bool is_migrate_isolate(int migratetype)
-{
-	return false;
-}
-#endif
 
 #define MEMORY_OFFLINE	0x1
 #define REPORT_FAILURE	0x2

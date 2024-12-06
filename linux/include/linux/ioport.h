@@ -250,10 +250,6 @@ extern struct resource * __request_region(struct resource *,
 
 extern void __release_region(struct resource *, resource_size_t,
 				resource_size_t);
-#ifdef CONFIG_MEMORY_HOTREMOVE
-extern void release_mem_region_adjustable(resource_size_t, resource_size_t);
-#endif
-
 /* Wrappers for managed devices */
 struct device;
 

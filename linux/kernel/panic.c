@@ -107,7 +107,6 @@ late_initcall(kernel_panic_sysctls_init);
 
 static atomic_t warn_count = ATOMIC_INIT(0);
 
-#ifdef CONFIG_SYSFS
 static ssize_t warn_count_show(struct kobject *kobj, struct kobj_attribute *attr,
 			       char *page)
 {
@@ -122,7 +121,6 @@ static __init int kernel_panic_sysfs_init(void)
 	return 0;
 }
 late_initcall(kernel_panic_sysfs_init);
-#endif
 
 static long no_blink(int state)
 {

@@ -17,9 +17,7 @@ struct user_struct {
 #ifdef CONFIG_FANOTIFY
 	atomic_t fanotify_listeners;
 #endif
-#ifdef CONFIG_EPOLL
 	atomic_long_t epoll_watches; /* The number of file descriptors currently watched */
-#endif
 #ifdef CONFIG_POSIX_MQUEUE
 	/* protected by mq_lock	*/
 	unsigned long mq_bytes;	/* How many bytes can be allocated to mqueue? */

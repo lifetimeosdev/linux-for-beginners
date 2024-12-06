@@ -896,7 +896,6 @@ struct page *swapin_readahead(swp_entry_t entry, gfp_t gfp_mask,
 			swap_cluster_readahead(entry, gfp_mask, vmf);
 }
 
-#ifdef CONFIG_SYSFS
 static ssize_t vma_ra_enabled_show(struct kobject *kobj,
 				     struct kobj_attribute *attr, char *buf)
 {
@@ -950,4 +949,3 @@ delete_obj:
 	return err;
 }
 subsys_initcall(swap_init_sysfs);
-#endif

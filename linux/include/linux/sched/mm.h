@@ -256,7 +256,6 @@ static inline void memalloc_noreclaim_restore(unsigned int flags)
 	current->flags = (current->flags & ~PF_MEMALLOC) | flags;
 }
 
-#ifdef CONFIG_CMA
 static inline unsigned int memalloc_nocma_save(void)
 {
 	unsigned int flags = current->flags & PF_MEMALLOC_NOCMA;
@@ -269,16 +268,6 @@ static inline void memalloc_nocma_restore(unsigned int flags)
 {
 	current->flags = (current->flags & ~PF_MEMALLOC_NOCMA) | flags;
 }
-#else
-static inline unsigned int memalloc_nocma_save(void)
-{
-	return 0;
-}
-
-static inline void memalloc_nocma_restore(unsigned int flags)
-{
-}
-#endif
 
 #ifdef CONFIG_MEMCG
 DECLARE_PER_CPU(struct mem_cgroup *, int_active_memcg);

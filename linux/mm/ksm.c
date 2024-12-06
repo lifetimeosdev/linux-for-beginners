@@ -853,7 +853,6 @@ static inline void set_page_stable_node(struct page *page,
 	page->mapping = (void *)((unsigned long)stable_node | PAGE_MAPPING_KSM);
 }
 
-#ifdef CONFIG_SYSFS
 /*
  * Only called through the sysfs control interface:
  */
@@ -1003,7 +1002,6 @@ error:
 	spin_unlock(&ksm_mmlist_lock);
 	return err;
 }
-#endif /* CONFIG_SYSFS */
 
 static u32 calc_checksum(struct page *page)
 {
@@ -2674,136 +2672,10 @@ void ksm_migrate_page(struct page *newpage, struct page *oldpage)
 }
 #endif /* CONFIG_MIGRATION */
 
-#ifdef CONFIG_MEMORY_HOTREMOVE
-static void wait_while_offlining(void)
-{
-	while (ksm_run & KSM_RUN_OFFLINE) {
-		mutex_unlock(&ksm_thread_mutex);
-		wait_on_bit(&ksm_run, ilog2(KSM_RUN_OFFLINE),
-			    TASK_UNINTERRUPTIBLE);
-		mutex_lock(&ksm_thread_mutex);
-	}
-}
-
-static bool stable_node_dup_remove_range(struct stable_node *stable_node,
-					 unsigned long start_pfn,
-					 unsigned long end_pfn)
-{
-	if (stable_node->kpfn >= start_pfn &&
-	    stable_node->kpfn < end_pfn) {
-		/*
-		 * Don't get_ksm_page, page has already gone:
-		 * which is why we keep kpfn instead of page*
-		 */
-		remove_node_from_stable_tree(stable_node);
-		return true;
-	}
-	return false;
-}
-
-static bool stable_node_chain_remove_range(struct stable_node *stable_node,
-					   unsigned long start_pfn,
-					   unsigned long end_pfn,
-					   struct rb_root *root)
-{
-	struct stable_node *dup;
-	struct hlist_node *hlist_safe;
-
-	if (!is_stable_node_chain(stable_node)) {
-		VM_BUG_ON(is_stable_node_dup(stable_node));
-		return stable_node_dup_remove_range(stable_node, start_pfn,
-						    end_pfn);
-	}
-
-	hlist_for_each_entry_safe(dup, hlist_safe,
-				  &stable_node->hlist, hlist_dup) {
-		VM_BUG_ON(!is_stable_node_dup(dup));
-		stable_node_dup_remove_range(dup, start_pfn, end_pfn);
-	}
-	if (hlist_empty(&stable_node->hlist)) {
-		free_stable_node_chain(stable_node, root);
-		return true; /* notify caller that tree was rebalanced */
-	} else
-		return false;
-}
-
-static void ksm_check_stable_tree(unsigned long start_pfn,
-				  unsigned long end_pfn)
-{
-	struct stable_node *stable_node, *next;
-	struct rb_node *node;
-	int nid;
-
-	for (nid = 0; nid < ksm_nr_node_ids; nid++) {
-		node = rb_first(root_stable_tree + nid);
-		while (node) {
-			stable_node = rb_entry(node, struct stable_node, node);
-			if (stable_node_chain_remove_range(stable_node,
-							   start_pfn, end_pfn,
-							   root_stable_tree +
-							   nid))
-				node = rb_first(root_stable_tree + nid);
-			else
-				node = rb_next(node);
-			cond_resched();
-		}
-	}
-	list_for_each_entry_safe(stable_node, next, &migrate_nodes, list) {
-		if (stable_node->kpfn >= start_pfn &&
-		    stable_node->kpfn < end_pfn)
-			remove_node_from_stable_tree(stable_node);
-		cond_resched();
-	}
-}
-
-static int ksm_memory_callback(struct notifier_block *self,
-			       unsigned long action, void *arg)
-{
-	struct memory_notify *mn = arg;
-
-	switch (action) {
-	case MEM_GOING_OFFLINE:
-		/*
-		 * Prevent ksm_do_scan(), unmerge_and_remove_all_rmap_items()
-		 * and remove_all_stable_nodes() while memory is going offline:
-		 * it is unsafe for them to touch the stable tree at this time.
-		 * But unmerge_ksm_pages(), rmap lookups and other entry points
-		 * which do not need the ksm_thread_mutex are all safe.
-		 */
-		mutex_lock(&ksm_thread_mutex);
-		ksm_run |= KSM_RUN_OFFLINE;
-		mutex_unlock(&ksm_thread_mutex);
-		break;
-
-	case MEM_OFFLINE:
-		/*
-		 * Most of the work is done by page migration; but there might
-		 * be a few stable_nodes left over, still pointing to struct
-		 * pages which have been offlined: prune those from the tree,
-		 * otherwise get_ksm_page() might later try to access a
-		 * non-existent struct page.
-		 */
-		ksm_check_stable_tree(mn->start_pfn,
-				      mn->start_pfn + mn->nr_pages);
-		fallthrough;
-	case MEM_CANCEL_OFFLINE:
-		mutex_lock(&ksm_thread_mutex);
-		ksm_run &= ~KSM_RUN_OFFLINE;
-		mutex_unlock(&ksm_thread_mutex);
-
-		smp_mb();	/* wake_up_bit advises this */
-		wake_up_bit(&ksm_run, ilog2(KSM_RUN_OFFLINE));
-		break;
-	}
-	return NOTIFY_OK;
-}
-#else
 static void wait_while_offlining(void)
 {
 }
-#endif /* CONFIG_MEMORY_HOTREMOVE */
 
-#ifdef CONFIG_SYSFS
 /*
  * This all compiles without CONFIG_SYSFS, but is a waste of space.
  */
@@ -3078,7 +2950,6 @@ static const struct attribute_group ksm_attr_group = {
 	.attrs = ksm_attrs,
 	.name = "ksm",
 };
-#endif /* CONFIG_SYSFS */
 
 static int __init ksm_init(void)
 {
@@ -3101,22 +2972,13 @@ static int __init ksm_init(void)
 		goto out_free;
 	}
 
-#ifdef CONFIG_SYSFS
 	err = sysfs_create_group(mm_kobj, &ksm_attr_group);
 	if (err) {
 		pr_err("ksm: register sysfs failed\n");
 		kthread_stop(ksm_thread);
 		goto out_free;
 	}
-#else
-	ksm_run = KSM_RUN_MERGE;	/* no way for user to start it */
 
-#endif /* CONFIG_SYSFS */
-
-#ifdef CONFIG_MEMORY_HOTREMOVE
-	/* There is no significance to this priority 100 */
-	hotplug_memory_notifier(ksm_memory_callback, 100);
-#endif
 	return 0;
 
 out_free:

@@ -99,7 +99,6 @@ late_initcall(kernel_exit_sysctls_init);
 
 static atomic_t oops_count = ATOMIC_INIT(0);
 
-#ifdef CONFIG_SYSFS
 static ssize_t oops_count_show(struct kobject *kobj, struct kobj_attribute *attr,
 			       char *page)
 {
@@ -114,7 +113,6 @@ static __init int kernel_exit_sysfs_init(void)
 	return 0;
 }
 late_initcall(kernel_exit_sysfs_init);
-#endif
 
 static void __unhash_process(struct task_struct *p, bool group_dead)
 {

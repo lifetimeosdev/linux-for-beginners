@@ -823,9 +823,7 @@ static void init_once(void *foo)
 
 	memset(bdev, 0, sizeof(*bdev));
 	mutex_init(&bdev->bd_mutex);
-#ifdef CONFIG_SYSFS
 	INIT_LIST_HEAD(&bdev->bd_holder_disks);
-#endif
 	bdev->bd_bdi = &noop_backing_dev_info;
 	inode_init_once(&ei->vfs_inode);
 	/* Initialize mutex for freeze. */
@@ -1185,7 +1183,6 @@ void bd_abort_claiming(struct block_device *bdev, struct block_device *whole,
 }
 EXPORT_SYMBOL(bd_abort_claiming);
 
-#ifdef CONFIG_SYSFS
 struct bd_holder_disk {
 	struct list_head	list;
 	struct gendisk		*disk;
@@ -1326,7 +1323,6 @@ void bd_unlink_disk_holder(struct block_device *bdev, struct gendisk *disk)
 	mutex_unlock(&bdev->bd_mutex);
 }
 EXPORT_SYMBOL_GPL(bd_unlink_disk_holder);
-#endif
 
 /**
  * check_disk_size_change - checks for disk size change and adjusts bdev size.

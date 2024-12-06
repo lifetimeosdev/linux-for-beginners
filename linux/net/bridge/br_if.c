@@ -262,9 +262,7 @@ static void brport_get_ownership(struct kobject *kobj, kuid_t *uid, kgid_t *gid)
 }
 
 static struct kobj_type brport_ktype = {
-#ifdef CONFIG_SYSFS
 	.sysfs_ops = &brport_sysfs_ops,
-#endif
 	.release = release_nbp,
 	.get_ownership = brport_get_ownership,
 };

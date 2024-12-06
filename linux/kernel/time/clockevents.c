@@ -610,7 +610,6 @@ void clockevents_resume(void)
 			dev->resume(dev);
 }
 
-#ifdef CONFIG_SYSFS
 static struct bus_type clockevents_subsys = {
 	.name		= "clockevents",
 	.dev_name       = "clockevent",
@@ -726,4 +725,3 @@ static int __init clockevents_init_sysfs(void)
 	return err;
 }
 device_initcall(clockevents_init_sysfs);
-#endif /* SYSFS */

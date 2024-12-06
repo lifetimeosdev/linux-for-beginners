@@ -257,9 +257,7 @@ struct workqueue_struct {
 	struct workqueue_attrs	*unbound_attrs;	/* PW: only for unbound wqs */
 	struct pool_workqueue	*dfl_pwq;	/* PW: only for unbound wqs */
 
-#ifdef CONFIG_SYSFS
 	struct wq_device	*wq_dev;	/* I: for sysfs interface */
-#endif
 	char			name[WQ_NAME_LEN]; /* I: workqueue name */
 
 	/*
@@ -5345,7 +5343,6 @@ out_unlock:
 	return ret;
 }
 
-#ifdef CONFIG_SYSFS
 /*
  * Workqueues with WQ_SYSFS flag set is visible to userland via
  * /sys/bus/workqueue/devices/WQ_NAME.  All visible workqueues have the
@@ -5713,9 +5710,6 @@ static void workqueue_sysfs_unregister(struct workqueue_struct *wq)
 	wq->wq_dev = NULL;
 	device_unregister(&wq_dev->dev);
 }
-#else	/* CONFIG_SYSFS */
-static void workqueue_sysfs_unregister(struct workqueue_struct *wq)	{ }
-#endif	/* CONFIG_SYSFS */
 
 /*
  * Workqueue watchdog.
