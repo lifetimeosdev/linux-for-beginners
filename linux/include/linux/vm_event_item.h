@@ -2,17 +2,9 @@
 #ifndef VM_EVENT_ITEM_H_INCLUDED
 #define VM_EVENT_ITEM_H_INCLUDED
 
-#ifdef CONFIG_ZONE_DMA
-#define DMA_ZONE(xx) xx##_DMA,
-#else
 #define DMA_ZONE(xx)
-#endif
 
-#ifdef CONFIG_ZONE_DMA32
-#define DMA32_ZONE(xx) xx##_DMA32,
-#else
 #define DMA32_ZONE(xx)
-#endif
 
 #define HIGHMEM_ZONE(xx)
 

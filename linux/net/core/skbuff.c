@@ -886,10 +886,8 @@ static inline void _kfree_skb_defer(struct sk_buff *skb)
 	/* record skb to CPU local list */
 	nc->skb_cache[nc->skb_count++] = skb;
 
-#ifdef CONFIG_SLUB
 	/* SLUB writes into objects when freeing */
 	prefetchw(skb);
-#endif
 
 	/* flush skb_cache if it is filled */
 	if (unlikely(nc->skb_count == NAPI_SKB_CACHE_SIZE)) {

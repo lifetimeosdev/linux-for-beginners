@@ -49,26 +49,6 @@ static void init_bounce_bioset(void)
 	bounce_bs_setup = true;
 }
 
-#if defined(CONFIG_HIGHMEM)
-static __init int init_emergency_pool(void)
-{
-	int ret;
-#if defined(CONFIG_HIGHMEM) && !defined(CONFIG_MEMORY_HOTPLUG)
-	if (max_pfn <= max_low_pfn)
-		return 0;
-#endif
-
-	ret = mempool_init_page_pool(&page_pool, POOL_SIZE, 0);
-	BUG_ON(ret);
-	pr_info("pool size: %d pages\n", POOL_SIZE);
-
-	init_bounce_bioset();
-	return 0;
-}
-
-__initcall(init_emergency_pool);
-#endif
-
 #define bounce_copy_vec(to, vfrom)	\
 	memcpy(page_address((to)->bv_page) + (to)->bv_offset, vfrom, (to)->bv_len)
 

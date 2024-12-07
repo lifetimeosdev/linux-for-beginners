@@ -355,17 +355,9 @@ static inline bool gfpflags_normal_context(const gfp_t gfp_flags)
 
 #define OPT_ZONE_HIGHMEM ZONE_NORMAL
 
-#ifdef CONFIG_ZONE_DMA
-#define OPT_ZONE_DMA ZONE_DMA
-#else
 #define OPT_ZONE_DMA ZONE_NORMAL
-#endif
 
-#ifdef CONFIG_ZONE_DMA32
-#define OPT_ZONE_DMA32 ZONE_DMA32
-#else
 #define OPT_ZONE_DMA32 ZONE_NORMAL
-#endif
 
 /*
  * GFP_ZONE_TABLE is a word size bitstring that is used for looking up the

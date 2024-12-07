@@ -1376,10 +1376,6 @@ static __always_inline void *lowmem_page_address(const struct page *page)
 	return page_to_virt(page);
 }
 
-#if defined(CONFIG_HIGHMEM) && !defined(WANT_PAGE_VIRTUAL)
-#define HASHED_PAGE_VIRTUAL
-#endif
-
 #if defined(WANT_PAGE_VIRTUAL)
 static inline void *page_address(const struct page *page)
 {
@@ -2199,14 +2195,6 @@ extern void free_initmem(void);
  */
 extern unsigned long free_reserved_area(void *start, void *end,
 					int poison, const char *s);
-
-#ifdef	CONFIG_HIGHMEM
-/*
- * Free a highmem page into the buddy system, adjusting totalhigh_pages
- * and totalram_pages.
- */
-extern void free_highmem_page(struct page *page);
-#endif
 
 extern void adjust_managed_page_count(struct page *page, long count);
 extern void mem_init_print_info(const char *str);

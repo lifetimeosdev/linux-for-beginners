@@ -290,11 +290,11 @@ config GENERIC_CALIBRATE_DELAY
 
 config ZONE_DMA
 	bool "Support DMA zone" if EXPERT
-	default y
+	default n
 
 config ZONE_DMA32
 	bool "Support DMA32 zone" if EXPERT
-	default y
+	default n
 
 config ARCH_ENABLE_MEMORY_HOTPLUG
 	def_bool y

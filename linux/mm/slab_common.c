@@ -69,9 +69,7 @@ static int __init setup_slab_nomerge(char *str)
 	return 1;
 }
 
-#ifdef CONFIG_SLUB
 __setup_param("slub_nomerge", slub_nomerge, setup_slab_nomerge, 0);
-#endif
 
 __setup("slab_nomerge", setup_slab_nomerge);
 
@@ -217,10 +215,6 @@ struct kmem_cache *find_mergeable(unsigned int size, unsigned int align,
 			continue;
 
 		if (s->size - size >= sizeof(void *))
-			continue;
-
-		if (IS_ENABLED(CONFIG_SLAB) && align &&
-			(align > s->align || s->align % align))
 			continue;
 
 		return s;
@@ -535,7 +529,6 @@ bool slab_is_available(void)
 	return slab_state >= UP;
 }
 
-#ifndef CONFIG_SLOB
 /* Create a cache during boot when no slab services are available yet */
 void __init create_boot_cache(struct kmem_cache *s, const char *name,
 		unsigned int size, slab_flags_t flags,
@@ -647,22 +640,12 @@ struct kmem_cache *kmalloc_slab(size_t size, gfp_t flags)
 	return kmalloc_caches[kmalloc_type(flags)][index];
 }
 
-#ifdef CONFIG_ZONE_DMA
-#define INIT_KMALLOC_INFO(__size, __short_size)			\
-{								\
-	.name[KMALLOC_NORMAL]  = "kmalloc-" #__short_size,	\
-	.name[KMALLOC_RECLAIM] = "kmalloc-rcl-" #__short_size,	\
-	.name[KMALLOC_DMA]     = "dma-kmalloc-" #__short_size,	\
-	.size = __size,						\
-}
-#else
 #define INIT_KMALLOC_INFO(__size, __short_size)			\
 {								\
 	.name[KMALLOC_NORMAL]  = "kmalloc-" #__short_size,	\
 	.name[KMALLOC_RECLAIM] = "kmalloc-rcl-" #__short_size,	\
 	.size = __size,						\
 }
-#endif
 
 /*
  * kmalloc_info[] is to make slub_debug=,kmalloc-xx option work at boot time.
@@ -790,21 +773,7 @@ void __init create_kmalloc_caches(slab_flags_t flags)
 	/* Kmalloc array is now usable */
 	slab_state = UP;
 
-#ifdef CONFIG_ZONE_DMA
-	for (i = 0; i <= KMALLOC_SHIFT_HIGH; i++) {
-		struct kmem_cache *s = kmalloc_caches[KMALLOC_NORMAL][i];
-
-		if (s) {
-			kmalloc_caches[KMALLOC_DMA][i] = create_kmalloc_cache(
-				kmalloc_info[i].name[KMALLOC_DMA],
-				kmalloc_info[i].size,
-				SLAB_CACHE_DMA | flags, 0,
-				kmalloc_info[i].size);
-		}
-	}
-#endif
 }
-#endif /* !CONFIG_SLOB */
 
 gfp_t kmalloc_fix_flags(gfp_t flags)
 {
@@ -903,11 +872,7 @@ void cache_random_seq_destroy(struct kmem_cache *cachep)
 #endif /* CONFIG_SLAB_FREELIST_RANDOM */
 
 #if defined(CONFIG_SLAB) || defined(CONFIG_SLUB_DEBUG)
-#ifdef CONFIG_SLAB
-#define SLABINFO_RIGHTS (0600)
-#else
 #define SLABINFO_RIGHTS (0400)
-#endif
 
 static void print_slabinfo_header(struct seq_file *m)
 {

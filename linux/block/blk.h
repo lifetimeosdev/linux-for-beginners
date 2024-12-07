@@ -325,10 +325,6 @@ static inline void blk_throtl_bio_endio(struct bio *bio) { }
 static inline void blk_throtl_stat_add(struct request *rq, u64 time) { }
 #endif
 
-#ifdef CONFIG_BOUNCE
-extern int init_emergency_isa_pool(void);
-extern void blk_queue_bounce(struct request_queue *q, struct bio **bio);
-#else
 static inline int init_emergency_isa_pool(void)
 {
 	return 0;
@@ -336,7 +332,6 @@ static inline int init_emergency_isa_pool(void)
 static inline void blk_queue_bounce(struct request_queue *q, struct bio **bio)
 {
 }
-#endif /* CONFIG_BOUNCE */
 
 #ifdef CONFIG_BLK_CGROUP_IOLATENCY
 extern int blk_iolatency_init(struct request_queue *q);

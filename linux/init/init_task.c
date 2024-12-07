@@ -60,10 +60,8 @@ struct task_struct init_task
 #endif
 	__aligned(L1_CACHE_BYTES)
 = {
-#ifdef CONFIG_THREAD_INFO_IN_TASK
 	.thread_info	= INIT_THREAD_INFO(init_task),
 	.stack_refcount	= REFCOUNT_INIT(1),
-#endif
 	.state		= 0,
 	.stack		= init_stack,
 	.usage		= REFCOUNT_INIT(2),
@@ -174,6 +172,3 @@ EXPORT_SYMBOL(init_task);
  * Initial thread structure. Alignment of this is handled by a special
  * linker map entry.
  */
-#ifndef CONFIG_THREAD_INFO_IN_TASK
-struct thread_info init_thread_info __init_thread_info = INIT_THREAD_INFO(init_task);
-#endif

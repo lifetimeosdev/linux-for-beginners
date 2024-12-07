@@ -871,17 +871,9 @@ int fragmentation_index(struct zone *zone, unsigned int order)
 
 #if defined(CONFIG_PROC_FS) || defined(CONFIG_SYSFS) || \
     defined(CONFIG_NUMA) || defined(CONFIG_MEMCG)
-#ifdef CONFIG_ZONE_DMA
-#define TEXT_FOR_DMA(xx) xx "_dma",
-#else
 #define TEXT_FOR_DMA(xx)
-#endif
 
-#ifdef CONFIG_ZONE_DMA32
-#define TEXT_FOR_DMA32(xx) xx "_dma32",
-#else
 #define TEXT_FOR_DMA32(xx)
-#endif
 
 #define TEXT_FOR_HIGHMEM(xx)
 

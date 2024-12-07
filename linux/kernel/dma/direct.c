@@ -91,24 +91,11 @@ static struct page *__dma_direct_alloc_pages(struct device *dev, size_t size,
 		dma_free_contiguous(dev, page, size);
 		page = NULL;
 	}
-again:
 	if (!page)
 		page = alloc_pages_node(node, gfp, get_order(size));
 	if (page && !dma_coherent_ok(dev, page_to_phys(page), size)) {
 		dma_free_contiguous(dev, page, size);
 		page = NULL;
-
-		if (IS_ENABLED(CONFIG_ZONE_DMA32) &&
-		    phys_limit < DMA_BIT_MASK(64) &&
-		    !(gfp & (GFP_DMA32 | GFP_DMA))) {
-			gfp |= GFP_DMA32;
-			goto again;
-		}
-
-		if (IS_ENABLED(CONFIG_ZONE_DMA) && !(gfp & GFP_DMA)) {
-			gfp = (gfp & ~GFP_DMA32) | GFP_DMA;
-			goto again;
-		}
 	}
 
 	return page;
@@ -483,8 +470,7 @@ int dma_direct_supported(struct device *dev, u64 mask)
 	 * phys_to_dma_unencrypted() here so that the SME encryption mask isn't
 	 * part of the check.
 	 */
-	if (IS_ENABLED(CONFIG_ZONE_DMA))
-		min_mask = min_t(u64, min_mask, DMA_BIT_MASK(zone_dma_bits));
+
 	return mask >= phys_to_dma_unencrypted(dev, min_mask);
 }
 

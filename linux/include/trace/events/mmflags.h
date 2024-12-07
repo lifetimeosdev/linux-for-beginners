@@ -215,17 +215,9 @@ IF_HAVE_VM_SOFTDIRTY(VM_SOFTDIRTY,	"softdirty"	)		\
 #define COMPACTION_FEEDBACK
 #endif
 
-#ifdef CONFIG_ZONE_DMA
-#define IFDEF_ZONE_DMA(X) X
-#else
 #define IFDEF_ZONE_DMA(X)
-#endif
 
-#ifdef CONFIG_ZONE_DMA32
-#define IFDEF_ZONE_DMA32(X) X
-#else
 #define IFDEF_ZONE_DMA32(X)
-#endif
 
 #define IFDEF_ZONE_HIGHMEM(X)
 

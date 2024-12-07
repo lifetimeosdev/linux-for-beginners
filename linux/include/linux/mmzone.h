@@ -330,12 +330,6 @@ enum zone_type {
 	 * platforms may need both zones as they support peripherals with
 	 * different DMA addressing limitations.
 	 */
-#ifdef CONFIG_ZONE_DMA
-	ZONE_DMA,
-#endif
-#ifdef CONFIG_ZONE_DMA32
-	ZONE_DMA32,
-#endif
 	/*
 	 * Normal addressable memory is in ZONE_NORMAL. DMA operations can be
 	 * performed on pages in ZONE_NORMAL if the DMA devices support
@@ -849,14 +843,10 @@ static inline int is_highmem_idx(enum zone_type idx)
 	return 0;
 }
 
-#ifdef CONFIG_ZONE_DMA
-bool has_managed_dma(void);
-#else
 static inline bool has_managed_dma(void)
 {
 	return false;
 }
-#endif
 
 /**
  * is_highmem - helper function to quickly check if a struct zone is a

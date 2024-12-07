@@ -222,25 +222,6 @@ static inline void __check_heap_object(const void *ptr, unsigned long n,
  * Kmalloc array related definitions
  */
 
-#ifdef CONFIG_SLAB
-/*
- * The largest kmalloc size supported by the SLAB allocators is
- * 32 megabyte (2^25) or the maximum allocatable page order if that is
- * less than 32 MB.
- *
- * WARNING: Its not easy to increase this value since the allocators have
- * to do various tricks to work around compiler limitations in order to
- * ensure proper constant folding.
- */
-#define KMALLOC_SHIFT_HIGH	((MAX_ORDER + PAGE_SHIFT - 1) <= 25 ? \
-				(MAX_ORDER + PAGE_SHIFT - 1) : 25)
-#define KMALLOC_SHIFT_MAX	KMALLOC_SHIFT_HIGH
-#ifndef KMALLOC_SHIFT_LOW
-#define KMALLOC_SHIFT_LOW	5
-#endif
-#endif
-
-#ifdef CONFIG_SLUB
 /*
  * SLUB directly allocates requests fitting in to an order-1 page
  * (PAGE_SIZE*2).  Larger requests are passed to the page allocator.
@@ -249,20 +230,6 @@ static inline void __check_heap_object(const void *ptr, unsigned long n,
 #define KMALLOC_SHIFT_MAX	(MAX_ORDER + PAGE_SHIFT - 1)
 #ifndef KMALLOC_SHIFT_LOW
 #define KMALLOC_SHIFT_LOW	3
-#endif
-#endif
-
-#ifdef CONFIG_SLOB
-/*
- * SLOB passes all requests larger than one page to the page allocator.
- * No kmalloc array is necessary since objects of different sizes can
- * be allocated from the same page.
- */
-#define KMALLOC_SHIFT_HIGH	PAGE_SHIFT
-#define KMALLOC_SHIFT_MAX	(MAX_ORDER + PAGE_SHIFT - 1)
-#ifndef KMALLOC_SHIFT_LOW
-#define KMALLOC_SHIFT_LOW	3
-#endif
 #endif
 
 /* Maximum allocatable size */
@@ -297,34 +264,15 @@ static inline void __check_heap_object(const void *ptr, unsigned long n,
 enum kmalloc_cache_type {
 	KMALLOC_NORMAL = 0,
 	KMALLOC_RECLAIM,
-#ifdef CONFIG_ZONE_DMA
-	KMALLOC_DMA,
-#endif
 	NR_KMALLOC_TYPES
 };
 
-#ifndef CONFIG_SLOB
 extern struct kmem_cache *
 kmalloc_caches[NR_KMALLOC_TYPES][KMALLOC_SHIFT_HIGH + 1];
 
 static __always_inline enum kmalloc_cache_type kmalloc_type(gfp_t flags)
 {
-#ifdef CONFIG_ZONE_DMA
-	/*
-	 * The most common case is KMALLOC_NORMAL, so test for it
-	 * with a single branch for both flags.
-	 */
-	if (likely((flags & (__GFP_DMA | __GFP_RECLAIMABLE)) == 0))
-		return KMALLOC_NORMAL;
-
-	/*
-	 * At least one of the flags has to be set. If both are, __GFP_DMA
-	 * is more important.
-	 */
-	return flags & __GFP_DMA ? KMALLOC_DMA : KMALLOC_RECLAIM;
-#else
 	return flags & __GFP_RECLAIMABLE ? KMALLOC_RECLAIM : KMALLOC_NORMAL;
-#endif
 }
 
 /*
@@ -376,7 +324,6 @@ static __always_inline unsigned int kmalloc_index(size_t size)
 	/* Will never be reached. Needed because the compiler may complain */
 	return -1;
 }
-#endif /* !CONFIG_SLOB */
 
 void *__kmalloc(size_t size, gfp_t flags) __assume_kmalloc_alignment __malloc;
 void *kmem_cache_alloc(struct kmem_cache *, gfp_t flags) __assume_slab_alignment __malloc;
@@ -519,12 +466,9 @@ static __always_inline void *kmalloc_large(size_t size, gfp_t flags)
 static __always_inline void *kmalloc(size_t size, gfp_t flags)
 {
 	if (__builtin_constant_p(size)) {
-#ifndef CONFIG_SLOB
 		unsigned int index;
-#endif
 		if (size > KMALLOC_MAX_CACHE_SIZE)
 			return kmalloc_large(size, flags);
-#ifndef CONFIG_SLOB
 		index = kmalloc_index(size);
 
 		if (!index)
@@ -533,14 +477,12 @@ static __always_inline void *kmalloc(size_t size, gfp_t flags)
 		return kmem_cache_alloc_trace(
 				kmalloc_caches[kmalloc_type(flags)][index],
 				flags, size);
-#endif
 	}
 	return __kmalloc(size, flags);
 }
 
 static __always_inline void *kmalloc_node(size_t size, gfp_t flags, int node)
 {
-#ifndef CONFIG_SLOB
 	if (__builtin_constant_p(size) &&
 		size <= KMALLOC_MAX_CACHE_SIZE) {
 		unsigned int i = kmalloc_index(size);
@@ -552,7 +494,6 @@ static __always_inline void *kmalloc_node(size_t size, gfp_t flags, int node)
 				kmalloc_caches[kmalloc_type(flags)][i],
 						flags, node, size);
 	}
-#endif
 	return __kmalloc_node(size, flags, node);
 }
 
@@ -649,12 +590,7 @@ static inline void *kzalloc_node(size_t size, gfp_t flags, int node)
 unsigned int kmem_cache_size(struct kmem_cache *s);
 void __init kmem_cache_init_late(void);
 
-#if defined(CONFIG_SMP) && defined(CONFIG_SLAB)
-int slab_prepare_cpu(unsigned int cpu);
-int slab_dead_cpu(unsigned int cpu);
-#else
 #define slab_prepare_cpu	NULL
 #define slab_dead_cpu		NULL
-#endif
 
 #endif	/* _LINUX_SLAB_H */
