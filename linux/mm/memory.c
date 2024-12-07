@@ -4979,28 +4979,6 @@ void print_vma_addr(char *prefix, unsigned long ip)
 	mmap_read_unlock(mm);
 }
 
-#if defined(CONFIG_PROVE_LOCKING) || defined(CONFIG_DEBUG_ATOMIC_SLEEP)
-void __might_fault(const char *file, int line)
-{
-	/*
-	 * Some code (nfs/sunrpc) uses socket ops on kernel memory while
-	 * holding the mmap_lock, this is safe because kernel memory doesn't
-	 * get paged out, therefore we'll never actually fault, and the
-	 * below annotations will generate false positives.
-	 */
-	if (uaccess_kernel())
-		return;
-	if (pagefault_disabled())
-		return;
-	__might_sleep(file, line, 0);
-#if defined(CONFIG_DEBUG_ATOMIC_SLEEP)
-	if (current->mm)
-		might_lock_read(&current->mm->mmap_lock);
-#endif
-}
-EXPORT_SYMBOL(__might_fault);
-#endif
-
 #if defined(CONFIG_TRANSPARENT_HUGEPAGE) || defined(CONFIG_HUGETLBFS)
 /*
  * Process all subpages of the specified huge page with the specified

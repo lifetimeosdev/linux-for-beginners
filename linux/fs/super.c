@@ -1543,7 +1543,7 @@ EXPORT_SYMBOL(mount_single);
  * be used for mounting.  The filesystem places a pointer to the root to be
  * used for mounting in @fc->root.
  */
-__attribute__((optimize(0))) int vfs_get_tree(struct fs_context *fc)
+int vfs_get_tree(struct fs_context *fc)
 {
 	struct super_block *sb;
 	int error;

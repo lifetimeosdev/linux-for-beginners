@@ -934,11 +934,7 @@ static inline long __do_sys_fanotify_init(unsigned int flags, unsigned int event
 	if (!capable(CAP_SYS_ADMIN))
 		return -EPERM;
 
-#ifdef CONFIG_AUDITSYSCALL
-	if (flags & ~(FANOTIFY_INIT_FLAGS | FAN_ENABLE_AUDIT))
-#else
 	if (flags & ~FANOTIFY_INIT_FLAGS)
-#endif
 		return -EINVAL;
 
 	if (event_f_flags & ~FANOTIFY_INIT_ALL_EVENT_F_BITS)

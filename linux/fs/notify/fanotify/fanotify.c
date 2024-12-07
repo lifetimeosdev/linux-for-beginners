@@ -211,10 +211,6 @@ static int fanotify_get_response(struct fsnotify_group *group,
 		ret = -EPERM;
 	}
 
-	/* Check if the response should be audited */
-	if (event->response & FAN_AUDIT)
-		audit_fanotify(event->response & ~FAN_AUDIT);
-
 	pr_debug("%s: group=%p event=%p about to return ret=%d\n", __func__,
 		 group, event, ret);
 out:

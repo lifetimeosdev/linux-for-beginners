@@ -2859,7 +2859,7 @@ static int do_new_mount_fc(struct fs_context *fc, struct path *mountpoint,
  * create a new mount for userspace and request it to be added into the
  * namespace's tree
  */
-static __attribute__((optimize(0))) int do_new_mount(struct path *path, const char *fstype, int sb_flags,
+static int do_new_mount(struct path *path, const char *fstype, int sb_flags,
 			int mnt_flags, const char *name, void *data)
 {
 	struct file_system_type *type;
@@ -3178,9 +3178,6 @@ int path_mount(const char *dev_name, struct path *path,
 	if (flags & MS_NOUSER)
 		return -EINVAL;
 
-	// ret = security_sb_mount(dev_name, path, type_page, flags, data_page);
-	// if (ret)
-	// 	return ret;
 	if (!may_mount())
 		return -EPERM;
 	if ((flags & SB_MANDLOCK) && !may_mandlock())

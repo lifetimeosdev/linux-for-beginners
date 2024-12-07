@@ -619,7 +619,6 @@ out_unlock:
 
 int vfs_fchmod(struct file *file, umode_t mode)
 {
-	audit_file(file);
 	return chmod_common(&file->f_path, mode);
 }
 
@@ -798,7 +797,6 @@ int vfs_fchown(struct file *file, uid_t user, gid_t group)
 	error = mnt_want_write_file(file);
 	if (error)
 		return error;
-	audit_file(file);
 	error = chown_common(&file->f_path, user, group);
 	mnt_drop_write_file(file);
 	return error;

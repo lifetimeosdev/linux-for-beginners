@@ -1994,7 +1994,6 @@ static __latent_entropy struct task_struct *copy_process(
 	posix_cputimers_init(&p->posix_cputimers);
 
 	p->io_context = NULL;
-	audit_set_context(p, NULL);
 	cgroup_fork(p);
 #ifdef CONFIG_CPUSETS
 	p->cpuset_mem_spread_rotor = NUMA_NO_NODE;
@@ -2020,9 +2019,6 @@ static __latent_entropy struct task_struct *copy_process(
 	retval = perf_event_init_task(p);
 	if (retval)
 		goto bad_fork_cleanup_policy;
-	retval = audit_alloc(p);
-	if (retval)
-		goto bad_fork_cleanup_perf;
 	/* copy all the process information */
 	shm_init_task(p);
 	retval = security_task_alloc(p, clone_flags);
@@ -2302,8 +2298,6 @@ bad_fork_cleanup_semundo:
 bad_fork_cleanup_security:
 	security_task_free(p);
 bad_fork_cleanup_audit:
-	audit_free(p);
-bad_fork_cleanup_perf:
 	perf_event_free_task(p);
 bad_fork_cleanup_policy:
 	lockdep_free_task(p);

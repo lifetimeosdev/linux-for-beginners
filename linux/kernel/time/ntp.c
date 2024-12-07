@@ -723,27 +723,12 @@ int __do_adjtimex(struct __kernel_timex *txc, const struct timespec64 *ts,
 			/* adjtime() is independent from ntp_adjtime() */
 			time_adjust = txc->offset;
 			ntp_update_frequency();
-
-			audit_ntp_set_old(ad, AUDIT_NTP_ADJUST,	save_adjust);
-			audit_ntp_set_new(ad, AUDIT_NTP_ADJUST,	time_adjust);
 		}
 		txc->offset = save_adjust;
 	} else {
 		/* If there are input parameters, then process them: */
 		if (txc->modes) {
-			audit_ntp_set_old(ad, AUDIT_NTP_OFFSET,	time_offset);
-			audit_ntp_set_old(ad, AUDIT_NTP_FREQ,	time_freq);
-			audit_ntp_set_old(ad, AUDIT_NTP_STATUS,	time_status);
-			audit_ntp_set_old(ad, AUDIT_NTP_TAI,	*time_tai);
-			audit_ntp_set_old(ad, AUDIT_NTP_TICK,	tick_usec);
-
 			process_adjtimex_modes(txc, time_tai);
-
-			audit_ntp_set_new(ad, AUDIT_NTP_OFFSET,	time_offset);
-			audit_ntp_set_new(ad, AUDIT_NTP_FREQ,	time_freq);
-			audit_ntp_set_new(ad, AUDIT_NTP_STATUS,	time_status);
-			audit_ntp_set_new(ad, AUDIT_NTP_TAI,	*time_tai);
-			audit_ntp_set_new(ad, AUDIT_NTP_TICK,	tick_usec);
 		}
 
 		txc->offset = shift_right(time_offset * NTP_INTERVAL_FREQ,

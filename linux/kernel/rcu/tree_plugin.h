@@ -374,8 +374,6 @@ static void rcu_preempt_depth_set(int val)
 void __rcu_read_lock(void)
 {
 	rcu_preempt_read_enter();
-	if (IS_ENABLED(CONFIG_PROVE_LOCKING))
-		WARN_ON_ONCE(rcu_preempt_depth() > RCU_NEST_PMAX);
 	if (IS_ENABLED(CONFIG_RCU_STRICT_GRACE_PERIOD) && rcu_state.gp_kthread)
 		WRITE_ONCE(current->rcu_read_unlock_special.b.need_qs, true);
 	barrier();  /* critical section after entry code. */
@@ -397,11 +395,6 @@ void __rcu_read_unlock(void)
 		barrier();  /* critical section before exit code. */
 		if (unlikely(READ_ONCE(t->rcu_read_unlock_special.s)))
 			rcu_read_unlock_special(t);
-	}
-	if (IS_ENABLED(CONFIG_PROVE_LOCKING)) {
-		int rrln = rcu_preempt_depth();
-
-		WARN_ON_ONCE(rrln < 0 || rrln > RCU_NEST_PMAX);
 	}
 }
 EXPORT_SYMBOL_GPL(__rcu_read_unlock);

@@ -19,13 +19,8 @@
 
 #ifdef CONFIG_SMP
 
-#ifdef MODULE
-#define PER_CPU_SHARED_ALIGNED_SECTION ""
-#define PER_CPU_ALIGNED_SECTION ""
-#else
 #define PER_CPU_SHARED_ALIGNED_SECTION "..shared_aligned"
 #define PER_CPU_ALIGNED_SECTION "..shared_aligned"
-#endif
 #define PER_CPU_FIRST_SECTION "..first"
 
 #else

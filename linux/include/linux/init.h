@@ -74,11 +74,7 @@
 #define __refdata        __section(".ref.data")
 #define __refconst       __section(".ref.rodata")
 
-#ifdef MODULE
-#define __exitused
-#else
 #define __exitused  __used
-#endif
 
 #define __exit          __section(".exit.text") __exitused __cold notrace
 
@@ -300,10 +296,6 @@ void __init parse_early_options(char *cmdline);
 /* Data marked not to be saved by software suspend */
 #define __nosavedata __section(".data..nosave")
 
-#ifdef MODULE
-#define __exit_p(x) x
-#else
 #define __exit_p(x) NULL
-#endif
 
 #endif /* _LINUX_INIT_H */

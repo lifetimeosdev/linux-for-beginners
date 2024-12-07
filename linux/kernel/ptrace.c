@@ -416,8 +416,6 @@ static int ptrace_attach(struct task_struct *task, long request,
 		flags = PT_PTRACED;
 	}
 
-	audit_ptrace(task);
-
 	retval = -EPERM;
 	if (unlikely(task->flags & PF_KTHREAD))
 		goto out;

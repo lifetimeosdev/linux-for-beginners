@@ -12,12 +12,7 @@
  */
 
 #ifndef __ASSEMBLY__
-#ifdef MODULE
-extern struct module __this_module;
-#define THIS_MODULE (&__this_module)
-#else
 #define THIS_MODULE ((struct module *)0)
-#endif
 
 #ifdef CONFIG_MODVERSIONS
 /* Mark the CRC weak since genksyms apparently decides not to

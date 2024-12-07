@@ -540,7 +540,8 @@ static int msgctl_stat(struct ipc_namespace *ns, int msqid,
 
 	/* see comment for SHM_STAT_ANY */
 	if (cmd == MSG_STAT_ANY)
-		audit_ipc_obj(&msq->q_perm);
+		// audit_ipc_obj(&msq->q_perm);
+		;
 	else {
 		err = -EACCES;
 		if (ipcperms(ns, &msq->q_perm, S_IRUGO))

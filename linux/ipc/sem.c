@@ -1259,7 +1259,8 @@ static int semctl_stat(struct ipc_namespace *ns, int semid,
 
 	/* see comment for SHM_STAT_ANY */
 	if (cmd == SEM_STAT_ANY)
-		audit_ipc_obj(&sma->sem_perm);
+		// audit_ipc_obj(&sma->sem_perm);
+		;
 	else {
 		err = -EACCES;
 		if (ipcperms(ns, &sma->sem_perm, S_IRUGO))

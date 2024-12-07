@@ -608,8 +608,6 @@ void do_coredump(const kernel_siginfo_t *siginfo)
 		.vma_meta = NULL,
 	};
 
-	audit_core_dumps(siginfo->si_signo);
-
 	binfmt = mm->binfmt;
 	if (!binfmt || !binfmt->core_dump)
 		goto fail;

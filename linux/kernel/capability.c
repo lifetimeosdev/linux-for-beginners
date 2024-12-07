@@ -277,8 +277,6 @@ static inline long __do_sys_capset(cap_user_header_t header, const cap_user_data
 	if (ret < 0)
 		goto error;
 
-	audit_log_capset(new, current_cred());
-
 	return commit_creds(new);
 
 error:

@@ -42,9 +42,6 @@ struct svc_stat {
 struct net;
 int			rpc_proc_init(struct net *);
 void			rpc_proc_exit(struct net *);
-#ifdef MODULE
-void			rpc_modcount(struct inode *, int);
-#endif
 
 struct proc_dir_entry *	rpc_proc_register(struct net *,struct rpc_stat *);
 void			rpc_proc_unregister(struct net *,const char *);

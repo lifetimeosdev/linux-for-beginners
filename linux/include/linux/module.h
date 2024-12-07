@@ -165,11 +165,7 @@ extern void cleanup_module(void);
  * MODULE_FILE is used for generating modules.builtin
  * So, make it no-op when this is being built as a module
  */
-#ifdef MODULE
-#define MODULE_FILE
-#else
 #define MODULE_FILE	MODULE_INFO(file, KBUILD_MODFILE);
-#endif
 
 /*
  * The following license idents are currently accepted as indicating free
@@ -226,14 +222,7 @@ extern void cleanup_module(void);
 /* What your module does. */
 #define MODULE_DESCRIPTION(_description) MODULE_INFO(description, _description)
 
-#ifdef MODULE
-/* Creates an alias so file2alias.c can find device table. */
-#define MODULE_DEVICE_TABLE(type, name)					\
-extern typeof(name) __mod_##type##__##name##_device_table		\
-  __attribute__ ((unused, alias(__stringify(name))))
-#else  /* !MODULE */
 #define MODULE_DEVICE_TABLE(type, name)
-#endif
 
 /* Version of form [<epoch>:]<version>[-<extra-version>].
  * Or for CVS/RCS ID version, everything but the number is stripped.
@@ -331,8 +320,6 @@ static inline bool within_module(unsigned long addr, const struct module *mod)
 
 /* Get/put a kernel symbol (calls should be symmetric) */
 #define symbol_get(x) ({ extern typeof(x) x __attribute__((weak,visibility("hidden"))); &(x); })
-#define symbol_put(x) do { } while (0)
-#define symbol_put_addr(x) do { } while (0)
 
 static inline void __module_get(struct module *module)
 {

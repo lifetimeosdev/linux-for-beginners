@@ -970,7 +970,6 @@ static int __do_pipe_flags(int *fd, struct file **files, int flags)
 		goto err_fdr;
 	fdw = error;
 
-	audit_fd_pair(fdr, fdw);
 	fd[0] = fdr;
 	fd[1] = fdw;
 	return 0;

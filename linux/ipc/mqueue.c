@@ -876,12 +876,10 @@ static int prepare_open(struct dentry *dentry, int oflag, int ro,
 			return -ENOENT;
 		if (ro)
 			return ro;
-		audit_inode_parent_hidden(name, dentry->d_parent);
 		return vfs_mkobj(dentry, mode & ~current_umask(),
 				  mqueue_create_attr, attr);
 	}
 	/* it already existed */
-	audit_inode(name, dentry, 0);
 	if ((oflag & (O_CREAT|O_EXCL)) == (O_CREAT|O_EXCL))
 		return -EEXIST;
 	if ((oflag & O_ACCMODE) == (O_RDWR | O_WRONLY))
@@ -899,8 +897,6 @@ static int do_mq_open(const char __user *u_name, int oflag, umode_t mode,
 	struct path path;
 	int fd, error;
 	int ro;
-
-	audit_mq_open(oflag, mode, attr);
 
 	if (IS_ERR(name = getname(u_name)))
 		return PTR_ERR(name);
@@ -969,7 +965,6 @@ static inline long __do_sys_mq_unlink(const char *u_name)
 	if (IS_ERR(name))
 		return PTR_ERR(name);
 
-	audit_inode_parent_hidden(name, mnt->mnt_root);
 	err = mnt_want_write(mnt);
 	if (err)
 		goto out_name;
@@ -1093,8 +1088,6 @@ static int do_mq_timedsend(mqd_t mqdes, const char __user *u_msg_ptr,
 		timeout = &expires;
 	}
 
-	audit_mq_sendrecv(mqdes, msg_len, msg_prio, ts);
-
 	f = fdget(mqdes);
 	if (unlikely(!f.file)) {
 		ret = -EBADF;
@@ -1107,7 +1100,6 @@ static int do_mq_timedsend(mqd_t mqdes, const char __user *u_msg_ptr,
 		goto out_fput;
 	}
 	info = MQUEUE_I(inode);
-	audit_file(f.file);
 
 	if (unlikely(!(f.file->f_mode & FMODE_WRITE))) {
 		ret = -EBADF;
@@ -1208,8 +1200,6 @@ static int do_mq_timedreceive(mqd_t mqdes, char __user *u_msg_ptr,
 		timeout = &expires;
 	}
 
-	audit_mq_sendrecv(mqdes, msg_len, 0, ts);
-
 	f = fdget(mqdes);
 	if (unlikely(!f.file)) {
 		ret = -EBADF;
@@ -1222,7 +1212,6 @@ static int do_mq_timedreceive(mqd_t mqdes, char __user *u_msg_ptr,
 		goto out_fput;
 	}
 	info = MQUEUE_I(inode);
-	audit_file(f.file);
 
 	if (unlikely(!(f.file->f_mode & FMODE_READ))) {
 		ret = -EBADF;
@@ -1351,8 +1340,6 @@ static int do_mq_notify(mqd_t mqdes, const struct sigevent *notification)
 	struct inode *inode;
 	struct mqueue_inode_info *info;
 	struct sk_buff *nc;
-
-	audit_mq_notify(mqdes, notification);
 
 	nc = NULL;
 	sock = NULL;
@@ -1511,7 +1498,6 @@ static int do_mq_getsetattr(int mqdes, struct mq_attr *new, struct mq_attr *old)
 		old->mq_flags = f.file->f_flags & O_NONBLOCK;
 	}
 	if (new) {
-		audit_mq_getsetattr(mqdes, new);
 		spin_lock(&f.file->f_lock);
 		if (new->mq_flags & O_NONBLOCK)
 			f.file->f_flags |= O_NONBLOCK;

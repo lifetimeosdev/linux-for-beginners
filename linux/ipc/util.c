@@ -519,7 +519,6 @@ int ipcperms(struct ipc_namespace *ns, struct kern_ipc_perm *ipcp, short flag)
 	kuid_t euid = current_euid();
 	int requested_mode, granted_mode;
 
-	audit_ipc_obj(ipcp);
 	requested_mode = (flag >> 6) | (flag >> 3) | flag;
 	granted_mode = ipcp->mode;
 	if (uid_eq(euid, ipcp->cuid) ||
@@ -696,11 +695,6 @@ struct kern_ipc_perm *ipcctl_obtain_check(struct ipc_namespace *ns,
 		err = PTR_ERR(ipcp);
 		goto err;
 	}
-
-	audit_ipc_obj(ipcp);
-	if (cmd == IPC_SET)
-		audit_ipc_set_perm(extra_perm, perm->uid,
-				   perm->gid, perm->mode);
 
 	euid = current_euid();
 	if (uid_eq(euid, ipcp->cuid) || uid_eq(euid, ipcp->uid)  ||

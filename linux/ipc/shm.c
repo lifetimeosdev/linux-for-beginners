@@ -1079,7 +1079,8 @@ static int shmctl_stat(struct ipc_namespace *ns, int shmid,
 	 * the ipc object.
 	 */
 	if (cmd == SHM_STAT_ANY)
-		audit_ipc_obj(&shp->shm_perm);
+		// audit_ipc_obj(&shp->shm_perm);
+		;
 	else {
 		err = -EACCES;
 		if (ipcperms(ns, &shp->shm_perm, S_IRUGO))
@@ -1145,7 +1146,6 @@ static int shmctl_do_lock(struct ipc_namespace *ns, int shmid, int cmd)
 		goto out_unlock1;
 	}
 
-	audit_ipc_obj(&(shp->shm_perm));
 	err = security_shm_shmctl(&shp->shm_perm, cmd);
 	if (err)
 		goto out_unlock1;

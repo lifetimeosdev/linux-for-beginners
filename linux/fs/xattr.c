@@ -610,7 +610,6 @@ static inline long __do_sys_fsetxattr(int fd, const char *name, const void *valu
 
 	if (!f.file)
 		return error;
-	audit_file(f.file);
 	error = mnt_want_write_file(f.file);
 	if (!error) {
 		error = setxattr(f.file->f_path.dentry, name, value, size, flags);
@@ -722,7 +721,6 @@ static inline long __do_sys_fgetxattr(int fd, const char *name, void *value, siz
 
 	if (!f.file)
 		return error;
-	audit_file(f.file);
 	error = getxattr(f.file->f_path.dentry, name, value, size);
 	fdput(f);
 	return error;
@@ -813,7 +811,6 @@ static inline long __do_sys_flistxattr(int fd, char *list, size_t size)
 
 	if (!f.file)
 		return error;
-	audit_file(f.file);
 	error = listxattr(f.file->f_path.dentry, list, size);
 	fdput(f);
 	return error;
@@ -894,7 +891,6 @@ static inline long __do_sys_fremovexattr(int fd, const char *name)
 
 	if (!f.file)
 		return error;
-	audit_file(f.file);
 	error = mnt_want_write_file(f.file);
 	if (!error) {
 		error = removexattr(f.file->f_path.dentry, name);

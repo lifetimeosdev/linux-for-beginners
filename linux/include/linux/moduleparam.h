@@ -8,14 +8,9 @@
 
 /* You can override this manually, but generally this should match the
    module name. */
-#ifdef MODULE
-#define MODULE_PARAM_PREFIX /* empty */
-#define __MODULE_INFO_PREFIX /* empty */
-#else
 #define MODULE_PARAM_PREFIX KBUILD_MODNAME "."
 /* We cannot use MODULE_PARAM_PREFIX because some modules override it. */
 #define __MODULE_INFO_PREFIX KBUILD_MODNAME "."
-#endif
 
 /* Chosen so that structs with an unsigned long line up. */
 #define MAX_PARAM_PREFIX_LEN (64 - sizeof(unsigned long))

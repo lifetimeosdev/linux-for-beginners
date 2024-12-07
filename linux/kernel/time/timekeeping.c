@@ -1332,7 +1332,6 @@ out:
 	clock_was_set();
 
 	if (!ret) {
-		audit_tk_injoffset(ts_delta);
 		add_device_randomness(ts, sizeof(*ts));
 	}
 
@@ -2424,11 +2423,7 @@ int do_adjtimex(struct __kernel_timex *txc)
 		ret = timekeeping_inject_offset(&delta);
 		if (ret)
 			return ret;
-
-		audit_tk_injoffset(delta);
 	}
-
-	audit_ntp_init(&ad);
 
 	ktime_get_real_ts64(&ts);
 	add_device_randomness(&ts, sizeof(ts));
@@ -2447,8 +2442,6 @@ int do_adjtimex(struct __kernel_timex *txc)
 
 	write_seqcount_end(&tk_core.seq);
 	raw_spin_unlock_irqrestore(&timekeeper_lock, flags);
-
-	audit_ntp_log(&ad);
 
 	/* Update the multiplier immediately if frequency was set directly */
 	if (txc->modes & (ADJ_FREQUENCY | ADJ_TICK))

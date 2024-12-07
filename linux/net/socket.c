@@ -1606,8 +1606,6 @@ int __sys_socketpair(int family, int type, int protocol, int __user *usockvec)
 		goto out;
 	}
 
-	audit_fd_pair(fd1, fd2);
-
 	fd_install(fd1, newfile1);
 	fd_install(fd2, newfile2);
 	return 0;
