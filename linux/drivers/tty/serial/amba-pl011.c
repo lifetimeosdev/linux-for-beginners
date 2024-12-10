@@ -124,23 +124,6 @@ static const struct vendor_data vendor_sbsa = {
 	.fixed_options		= true,
 };
 
-#ifdef CONFIG_ACPI_SPCR_TABLE
-static const struct vendor_data vendor_qdt_qdf2400_e44 = {
-	.reg_offset		= pl011_std_offsets,
-	.fr_busy		= UART011_FR_TXFE,
-	.fr_dsr			= UART01x_FR_DSR,
-	.fr_cts			= UART01x_FR_CTS,
-	.fr_ri			= UART011_FR_RI,
-	.inv_fr			= UART011_FR_TXFE,
-	.access_32b		= true,
-	.oversampling		= false,
-	.dma_threshold		= false,
-	.cts_event_workaround	= false,
-	.always_enabled		= true,
-	.fixed_options		= true,
-};
-#endif
-
 static u16 pl011_st_offsets[REG_ARRAY_SIZE] = {
 	[REG_DR] = UART01x_DR,
 	[REG_ST_DMAWM] = ST_UART011_DMAWM,
@@ -2752,12 +2735,6 @@ static int sbsa_uart_probe(struct platform_device *pdev)
 		return ret;
 	uap->port.irq	= ret;
 
-#ifdef CONFIG_ACPI_SPCR_TABLE
-	if (qdf2400_e44_present) {
-		dev_info(&pdev->dev, "working around QDF2400 SoC erratum 44\n");
-		uap->vendor = &vendor_qdt_qdf2400_e44;
-	} else
-#endif
 		uap->vendor = &vendor_sbsa;
 
 	uap->reg_offset	= uap->vendor->reg_offset;

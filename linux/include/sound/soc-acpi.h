@@ -21,18 +21,6 @@ struct snd_soc_acpi_package_context {
 /* codec name is used in DAIs is i2c-<HID>:00 with HID being 8 chars */
 #define SND_ACPI_I2C_ID_LEN (4 + ACPI_ID_LEN + 3 + 1)
 
-#if IS_ENABLED(CONFIG_ACPI)
-/* acpi match */
-struct snd_soc_acpi_mach *
-snd_soc_acpi_find_machine(struct snd_soc_acpi_mach *machines);
-
-bool snd_soc_acpi_find_package_from_hid(const u8 hid[ACPI_ID_LEN],
-				    struct snd_soc_acpi_package_context *ctx);
-
-/* check all codecs */
-struct snd_soc_acpi_mach *snd_soc_acpi_codec_list(void *arg);
-
-#else
 /* acpi match */
 static inline struct snd_soc_acpi_mach *
 snd_soc_acpi_find_machine(struct snd_soc_acpi_mach *machines)
@@ -52,7 +40,6 @@ static inline struct snd_soc_acpi_mach *snd_soc_acpi_codec_list(void *arg)
 {
 	return NULL;
 }
-#endif
 
 /**
  * snd_soc_acpi_mach_params: interface for machine driver configuration

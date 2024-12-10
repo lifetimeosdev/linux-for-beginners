@@ -21,9 +21,6 @@
 
 static bool platform_registered;
 static bool si_tryplatform = true;
-#ifdef CONFIG_ACPI
-static bool          si_tryacpi = true;
-#endif
 #ifdef CONFIG_OF
 static bool          si_tryopenfirmware = true;
 #endif
@@ -37,11 +34,6 @@ module_param_named(tryplatform, si_tryplatform, bool, 0);
 MODULE_PARM_DESC(tryplatform, "Setting this to zero will disable the"
 		 " default scan of the interfaces identified via platform"
 		 " interfaces besides ACPI, OpenFirmware, and DMI");
-#ifdef CONFIG_ACPI
-module_param_named(tryacpi, si_tryacpi, bool, 0);
-MODULE_PARM_DESC(tryacpi, "Setting this to zero will disable the"
-		 " default scan of the interfaces identified via ACPI");
-#endif
 #ifdef CONFIG_OF
 module_param_named(tryopenfirmware, si_tryopenfirmware, bool, 0);
 MODULE_PARM_DESC(tryopenfirmware, "Setting this to zero will disable the"
@@ -51,53 +43,6 @@ MODULE_PARM_DESC(tryopenfirmware, "Setting this to zero will disable the"
 module_param_named(trydmi, si_trydmi, bool, 0);
 MODULE_PARM_DESC(trydmi, "Setting this to zero will disable the"
 		 " default scan of the interfaces identified via DMI");
-#endif
-
-#ifdef CONFIG_ACPI
-/* For GPE-type interrupts. */
-static u32 ipmi_acpi_gpe(acpi_handle gpe_device,
-	u32 gpe_number, void *context)
-{
-	struct si_sm_io *io = context;
-
-	ipmi_si_irq_handler(io->irq, io->irq_handler_data);
-	return ACPI_INTERRUPT_HANDLED;
-}
-
-static void acpi_gpe_irq_cleanup(struct si_sm_io *io)
-{
-	if (!io->irq)
-		return;
-
-	ipmi_irq_start_cleanup(io);
-	acpi_remove_gpe_handler(NULL, io->irq, &ipmi_acpi_gpe);
-}
-
-static int acpi_gpe_irq_setup(struct si_sm_io *io)
-{
-	acpi_status status;
-
-	if (!io->irq)
-		return 0;
-
-	status = acpi_install_gpe_handler(NULL,
-					  io->irq,
-					  ACPI_GPE_LEVEL_TRIGGERED,
-					  &ipmi_acpi_gpe,
-					  io);
-	if (status != AE_OK) {
-		dev_warn(io->dev,
-			 "Unable to claim ACPI GPE %d, running polled\n",
-			 io->irq);
-		io->irq = 0;
-		return -EINVAL;
-	} else {
-		io->irq_cleanup = acpi_gpe_irq_cleanup;
-		ipmi_irq_finish_setup(io);
-		dev_info(io->dev, "Using ACPI GPE %d\n", io->irq);
-		return 0;
-	}
-}
 #endif
 
 static struct resource *
@@ -302,116 +247,10 @@ static int of_ipmi_probe(struct platform_device *dev)
 }
 #endif
 
-#ifdef CONFIG_ACPI
-static int find_slave_address(struct si_sm_io *io, int slave_addr)
-{
-#ifdef CONFIG_IPMI_DMI_DECODE
-	if (!slave_addr)
-		slave_addr = ipmi_dmi_get_slave_addr(io->si_type,
-						     io->addr_space,
-						     io->addr_data);
-#endif
-
-	return slave_addr;
-}
-
-static int acpi_ipmi_probe(struct platform_device *pdev)
-{
-	struct si_sm_io io;
-	acpi_handle handle;
-	acpi_status status;
-	unsigned long long tmp;
-	struct resource *res;
-	int rv = -EINVAL;
-
-	if (!si_tryacpi)
-		return -ENODEV;
-
-	handle = ACPI_HANDLE(&pdev->dev);
-	if (!handle)
-		return -ENODEV;
-
-	memset(&io, 0, sizeof(io));
-	io.addr_source = SI_ACPI;
-	dev_info(&pdev->dev, "probing via ACPI\n");
-
-	io.addr_info.acpi_info.acpi_handle = handle;
-
-	/* _IFT tells us the interface type: KCS, BT, etc */
-	status = acpi_evaluate_integer(handle, "_IFT", NULL, &tmp);
-	if (ACPI_FAILURE(status)) {
-		dev_err(&pdev->dev,
-			"Could not find ACPI IPMI interface type\n");
-		goto err_free;
-	}
-
-	switch (tmp) {
-	case 1:
-		io.si_type = SI_KCS;
-		break;
-	case 2:
-		io.si_type = SI_SMIC;
-		break;
-	case 3:
-		io.si_type = SI_BT;
-		break;
-	case 4: /* SSIF, just ignore */
-		rv = -ENODEV;
-		goto err_free;
-	default:
-		dev_info(&pdev->dev, "unknown IPMI type %lld\n", tmp);
-		goto err_free;
-	}
-
-	io.regsize = DEFAULT_REGSIZE;
-	io.regshift = 0;
-
-	res = ipmi_get_info_from_resources(pdev, &io);
-	if (!res) {
-		rv = -EINVAL;
-		goto err_free;
-	}
-
-	/* If _GPE exists, use it; otherwise use standard interrupts */
-	status = acpi_evaluate_integer(handle, "_GPE", NULL, &tmp);
-	if (ACPI_SUCCESS(status)) {
-		io.irq = tmp;
-		io.irq_setup = acpi_gpe_irq_setup;
-	} else {
-		int irq = platform_get_irq_optional(pdev, 0);
-
-		if (irq > 0) {
-			io.irq = irq;
-			io.irq_setup = ipmi_std_irq_setup;
-		}
-	}
-
-	io.slave_addr = find_slave_address(&io, io.slave_addr);
-
-	io.dev = &pdev->dev;
-
-	dev_info(io.dev, "%pR regsize %d spacing %d irq %d\n",
-		 res, io.regsize, io.regspacing, io.irq);
-
-	request_module("acpi_ipmi");
-
-	return ipmi_si_add_smi(&io);
-
-err_free:
-	return rv;
-}
-
-static const struct acpi_device_id acpi_ipmi_match[] = {
-	{ "IPI0001", 0 },
-	{ },
-};
-MODULE_DEVICE_TABLE(acpi, acpi_ipmi_match);
-#else
 static int acpi_ipmi_probe(struct platform_device *dev)
 {
 	return -ENODEV;
 }
-#endif
 
 static int ipmi_probe(struct platform_device *pdev)
 {

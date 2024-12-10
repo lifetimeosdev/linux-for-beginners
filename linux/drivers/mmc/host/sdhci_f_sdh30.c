@@ -207,14 +207,6 @@ static const struct of_device_id f_sdh30_dt_ids[] = {
 MODULE_DEVICE_TABLE(of, f_sdh30_dt_ids);
 #endif
 
-#ifdef CONFIG_ACPI
-static const struct acpi_device_id f_sdh30_acpi_ids[] = {
-	{ "SCX0002" },
-	{ /* sentinel */ }
-};
-MODULE_DEVICE_TABLE(acpi, f_sdh30_acpi_ids);
-#endif
-
 static struct platform_driver sdhci_f_sdh30_driver = {
 	.driver = {
 		.name = "f_sdh30",

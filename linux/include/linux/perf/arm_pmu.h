@@ -157,11 +157,7 @@ int arm_pmu_device_probe(struct platform_device *pdev,
 			 const struct of_device_id *of_table,
 			 const struct pmu_probe_info *probe_table);
 
-#ifdef CONFIG_ACPI
-int arm_pmu_acpi_probe(armpmu_init_fn init_fn);
-#else
 static inline int arm_pmu_acpi_probe(armpmu_init_fn init_fn) { return 0; }
-#endif
 
 /* Internal functions only for core arm_pmu code */
 struct arm_pmu *armpmu_alloc(void);

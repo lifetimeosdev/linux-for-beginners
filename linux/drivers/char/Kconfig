@@ -440,7 +440,7 @@ config UV_MMTIMER
 	  The uv_mmtimer device allows direct userspace access to the
 	  UV system timer.
 
-source "drivers/char/tpm/Kconfig"
+# source "drivers/char/tpm/Kconfig"
 
 config TELCLOCK
 	tristate "Telecom clock driver for ATCA SBC"

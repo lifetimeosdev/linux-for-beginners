@@ -86,21 +86,12 @@ void pci_hp_deregister(struct hotplug_slot *slot);
 #define pci_hp_initialize(slot, bus, nr, name) \
 	__pci_hp_initialize(slot, bus, nr, name, THIS_MODULE, KBUILD_MODNAME)
 
-#ifdef CONFIG_ACPI
-#include <linux/acpi.h>
-bool pciehp_is_native(struct pci_dev *bridge);
-int acpi_get_hp_hw_control_from_firmware(struct pci_dev *bridge);
-bool shpchp_is_native(struct pci_dev *bridge);
-int acpi_pci_check_ejectable(struct pci_bus *pbus, acpi_handle handle);
-int acpi_pci_detect_ejectable(acpi_handle handle);
-#else
 static inline int acpi_get_hp_hw_control_from_firmware(struct pci_dev *bridge)
 {
 	return 0;
 }
 static inline bool pciehp_is_native(struct pci_dev *bridge) { return true; }
 static inline bool shpchp_is_native(struct pci_dev *bridge) { return true; }
-#endif
 
 static inline bool hotplug_is_native(struct pci_dev *bridge)
 {

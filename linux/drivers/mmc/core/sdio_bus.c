@@ -344,18 +344,6 @@ struct sdio_func *sdio_alloc_func(struct mmc_card *card)
 	return func;
 }
 
-#ifdef CONFIG_ACPI
-static void sdio_acpi_set_handle(struct sdio_func *func)
-{
-	struct mmc_host *host = func->card->host;
-	u64 addr = ((u64)host->slotno << 16) | func->num;
-
-	acpi_preset_companion(&func->dev, ACPI_COMPANION(host->parent), addr);
-}
-#else
-static inline void sdio_acpi_set_handle(struct sdio_func *func) {}
-#endif
-
 static void sdio_set_of_node(struct sdio_func *func)
 {
 	struct mmc_host *host = func->card->host;
@@ -373,7 +361,6 @@ int sdio_add_func(struct sdio_func *func)
 	dev_set_name(&func->dev, "%s:%d", mmc_card_id(func->card), func->num);
 
 	sdio_set_of_node(func);
-	sdio_acpi_set_handle(func);
 	device_enable_async_suspend(&func->dev);
 	ret = device_add(&func->dev);
 	if (ret == 0)

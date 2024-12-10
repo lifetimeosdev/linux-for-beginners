@@ -247,16 +247,6 @@
 #define CPU_METHOD_OF_TABLES()	OF_TABLE(CONFIG_SMP, cpu_method)
 #define CPUIDLE_METHOD_OF_TABLES() OF_TABLE(CONFIG_CPU_IDLE, cpuidle_method)
 
-#ifdef CONFIG_ACPI
-#define ACPI_PROBE_TABLE(name)						\
-	. = ALIGN(8);							\
-	__##name##_acpi_probe_table = .;				\
-	KEEP(*(__##name##_acpi_probe_table))				\
-	__##name##_acpi_probe_table_end = .;
-#else
-#define ACPI_PROBE_TABLE(name)
-#endif
-
 #ifdef CONFIG_THERMAL
 #define THERMAL_TABLE(name)						\
 	. = ALIGN(8);							\
@@ -686,8 +676,6 @@
 	CPUIDLE_METHOD_OF_TABLES()					\
 	KERNEL_DTB()							\
 	IRQCHIP_OF_MATCH_TABLE()					\
-	ACPI_PROBE_TABLE(irqchip)					\
-	ACPI_PROBE_TABLE(timer)						\
 	THERMAL_TABLE(governor)						\
 	EARLYCON_TABLE()						\
 	LSM_TABLE()							\

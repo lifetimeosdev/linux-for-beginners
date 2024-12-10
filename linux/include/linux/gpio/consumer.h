@@ -680,20 +680,6 @@ struct acpi_gpio_mapping {
 	unsigned int quirks;
 };
 
-#if IS_ENABLED(CONFIG_GPIOLIB) && IS_ENABLED(CONFIG_ACPI)
-
-struct acpi_device;
-
-int acpi_dev_add_driver_gpios(struct acpi_device *adev,
-			      const struct acpi_gpio_mapping *gpios);
-void acpi_dev_remove_driver_gpios(struct acpi_device *adev);
-
-int devm_acpi_dev_add_driver_gpios(struct device *dev,
-				   const struct acpi_gpio_mapping *gpios);
-void devm_acpi_dev_remove_driver_gpios(struct device *dev);
-
-#else  /* CONFIG_GPIOLIB && CONFIG_ACPI */
-
 struct acpi_device;
 
 static inline int acpi_dev_add_driver_gpios(struct acpi_device *adev,
@@ -701,16 +687,12 @@ static inline int acpi_dev_add_driver_gpios(struct acpi_device *adev,
 {
 	return -ENXIO;
 }
-static inline void acpi_dev_remove_driver_gpios(struct acpi_device *adev) {}
 
 static inline int devm_acpi_dev_add_driver_gpios(struct device *dev,
 			      const struct acpi_gpio_mapping *gpios)
 {
 	return -ENXIO;
 }
-static inline void devm_acpi_dev_remove_driver_gpios(struct device *dev) {}
-
-#endif /* CONFIG_GPIOLIB && CONFIG_ACPI */
 
 
 #if IS_ENABLED(CONFIG_GPIOLIB) && IS_ENABLED(CONFIG_GPIO_SYSFS)

@@ -151,10 +151,6 @@ struct tpm_chip {
 
 	u32 nr_allocated_banks;
 	struct tpm_bank_info *allocated_banks;
-#ifdef CONFIG_ACPI
-	acpi_handle acpi_dev_handle;
-	char ppi_version[TPM_PPI_VERSION_LEN + 1];
-#endif /* CONFIG_ACPI */
 
 	struct tpm_space work_space;
 	u32 last_cc;
@@ -395,22 +391,6 @@ static inline u32 tpm2_rc_value(u32 rc)
 	return (rc & BIT(7)) ? rc & 0xff : rc;
 }
 
-#if defined(CONFIG_TCG_TPM) || defined(CONFIG_TCG_TPM_MODULE)
-
-extern int tpm_is_tpm2(struct tpm_chip *chip);
-extern __must_check int tpm_try_get_ops(struct tpm_chip *chip);
-extern void tpm_put_ops(struct tpm_chip *chip);
-extern ssize_t tpm_transmit_cmd(struct tpm_chip *chip, struct tpm_buf *buf,
-				size_t min_rsp_body_length, const char *desc);
-extern int tpm_pcr_read(struct tpm_chip *chip, u32 pcr_idx,
-			struct tpm_digest *digest);
-extern int tpm_pcr_extend(struct tpm_chip *chip, u32 pcr_idx,
-			  struct tpm_digest *digests);
-extern int tpm_send(struct tpm_chip *chip, void *cmd, size_t buflen);
-extern int tpm_get_random(struct tpm_chip *chip, u8 *data, size_t max);
-extern struct tpm_chip *tpm_default_chip(void);
-void tpm2_flush_context(struct tpm_chip *chip, u32 handle);
-#else
 static inline int tpm_is_tpm2(struct tpm_chip *chip)
 {
 	return -ENODEV;
@@ -440,5 +420,4 @@ static inline struct tpm_chip *tpm_default_chip(void)
 {
 	return NULL;
 }
-#endif
 #endif

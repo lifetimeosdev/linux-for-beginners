@@ -1630,12 +1630,8 @@ static inline int pci_domain_nr(struct pci_bus *bus)
 {
 	return bus->domain_nr;
 }
-#ifdef CONFIG_ACPI
-int acpi_pci_bus_find_domain_nr(struct pci_bus *bus);
-#else
 static inline int acpi_pci_bus_find_domain_nr(struct pci_bus *bus)
 { return 0; }
-#endif
 int pci_bus_find_domain_nr(struct pci_bus *bus, struct device *parent);
 #endif
 
@@ -2330,17 +2326,9 @@ static inline struct device_node *pci_bus_to_OF_node(struct pci_bus *bus)
 	return bus ? bus->dev.of_node : NULL;
 }
 
-#ifdef CONFIG_ACPI
-struct irq_domain *pci_host_bridge_acpi_msi_domain(struct pci_bus *bus);
-
-void
-pci_msi_register_fwnode_provider(struct fwnode_handle *(*fn)(struct device *));
-bool pci_pr3_present(struct pci_dev *pdev);
-#else
 static inline struct irq_domain *
 pci_host_bridge_acpi_msi_domain(struct pci_bus *bus) { return NULL; }
 static inline bool pci_pr3_present(struct pci_dev *pdev) { return false; }
-#endif
 
 #ifdef CONFIG_EEH
 static inline struct eeh_dev *pci_dev_to_eeh_dev(struct pci_dev *pdev)

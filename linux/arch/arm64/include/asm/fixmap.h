@@ -51,16 +51,6 @@ enum fixed_addresses {
 	FIX_EARLYCON_MEM_BASE,
 	FIX_TEXT_POKE0,
 
-#ifdef CONFIG_ACPI_APEI_GHES
-	/* Used for GHES mapping from assorted contexts */
-	FIX_APEI_GHES_IRQ,
-	FIX_APEI_GHES_SEA,
-#ifdef CONFIG_ARM_SDE_INTERFACE
-	FIX_APEI_GHES_SDEI_NORMAL,
-	FIX_APEI_GHES_SDEI_CRITICAL,
-#endif
-#endif /* CONFIG_ACPI_APEI_GHES */
-
 	__end_of_permanent_fixed_addresses,
 
 	/*

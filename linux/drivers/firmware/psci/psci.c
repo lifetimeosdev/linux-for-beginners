@@ -560,26 +560,3 @@ int __init psci_dt_init(void)
 	of_node_put(np);
 	return ret;
 }
-
-#ifdef CONFIG_ACPI
-/*
- * We use PSCI 0.2+ when ACPI is deployed on ARM64 and it's
- * explicitly clarified in SBBR
- */
-int __init psci_acpi_init(void)
-{
-	if (!acpi_psci_present()) {
-		pr_info("is not implemented in ACPI.\n");
-		return -EOPNOTSUPP;
-	}
-
-	pr_info("probing for conduit method from ACPI.\n");
-
-	if (acpi_psci_use_hvc())
-		set_conduit(SMCCC_CONDUIT_HVC);
-	else
-		set_conduit(SMCCC_CONDUIT_SMC);
-
-	return psci_probe();
-}
-#endif
