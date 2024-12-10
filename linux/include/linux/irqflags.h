@@ -18,31 +18,11 @@
 
 /* Currently lockdep_softirqs_on/off is used only by lockdep */
 
-# define trace_hardirqs_on_prepare()		do { } while (0)
 # define lockdep_hardirq_context()		0
 # define lockdep_softirq_context(p)		0
 # define lockdep_hardirqs_enabled()		0
 # define lockdep_softirqs_enabled(p)		0
-# define lockdep_hardirq_enter()		do { } while (0)
-# define lockdep_hardirq_threaded()		do { } while (0)
-# define lockdep_hardirq_exit()			do { } while (0)
-# define lockdep_softirq_enter()		do { } while (0)
-# define lockdep_softirq_exit()			do { } while (0)
 # define lockdep_hrtimer_enter(__hrtimer)	false
-# define lockdep_hrtimer_exit(__context)	do { } while (0)
-# define lockdep_posixtimer_enter()		do { } while (0)
-# define lockdep_posixtimer_exit()		do { } while (0)
-# define lockdep_irq_work_enter(__work)		do { } while (0)
-# define lockdep_irq_work_exit(__work)		do { } while (0)
-
-#if defined(CONFIG_IRQSOFF_TRACER) || \
-	defined(CONFIG_PREEMPT_TRACER)
- extern void stop_critical_timings(void);
- extern void start_critical_timings(void);
-#else
-# define stop_critical_timings() do { } while (0)
-# define start_critical_timings() do { } while (0)
-#endif
 
 /*
  * Wrap the arch provided IRQ routines to provide appropriate checks.

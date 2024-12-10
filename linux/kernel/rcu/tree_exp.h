@@ -49,7 +49,6 @@ static unsigned long rcu_exp_gp_seq_snap(void)
 
 	smp_mb(); /* Caller's modifications seen first by other CPUs. */
 	s = rcu_seq_snap(&rcu_state.expedited_sequence);
-	trace_rcu_exp_grace_period(rcu_state.name, s, TPS("snap"));
 	return s;
 }
 
@@ -263,7 +262,6 @@ static void rcu_report_exp_rdp(struct rcu_data *rdp)
 static bool sync_exp_work_done(unsigned long s)
 {
 	if (rcu_exp_gp_seq_done(s)) {
-		trace_rcu_exp_grace_period(rcu_state.name, s, TPS("done"));
 		smp_mb(); /* Ensure test happens before caller kfree(). */
 		return true;
 	}
@@ -307,17 +305,12 @@ static bool exp_funnel_lock(unsigned long s)
 
 			/* Someone else doing GP, so wait for them. */
 			spin_unlock(&rnp->exp_lock);
-			trace_rcu_exp_funnel_lock(rcu_state.name, rnp->level,
-						  rnp->grplo, rnp->grphi,
-						  TPS("wait"));
 			wait_event(rnp->exp_wq[rcu_seq_ctr(s) & 0x3],
 				   sync_exp_work_done(s));
 			return true;
 		}
 		WRITE_ONCE(rnp->exp_seq_rq, s); /* Followers can wait on us. */
 		spin_unlock(&rnp->exp_lock);
-		trace_rcu_exp_funnel_lock(rcu_state.name, rnp->level,
-					  rnp->grplo, rnp->grphi, TPS("nxtlvl"));
 	}
 	mutex_lock(&rcu_state.exp_mutex);
 fastpath:
@@ -326,7 +319,6 @@ fastpath:
 		return true;
 	}
 	rcu_exp_gp_seq_start();
-	trace_rcu_exp_grace_period(rcu_state.name, s, TPS("start"));
 	return false;
 }
 
@@ -403,7 +395,6 @@ retry_ipi:
 		    (rnp->expmask & mask)) {
 			/* Online, so delay for a bit and try again. */
 			raw_spin_unlock_irqrestore_rcu_node(rnp, flags);
-			trace_rcu_exp_grace_period(rcu_state.name, rcu_exp_gp_seq_endval(), TPS("selectofl"));
 			schedule_timeout_idle(1);
 			goto retry_ipi;
 		}
@@ -426,9 +417,7 @@ static void sync_rcu_exp_select_cpus(void)
 	int cpu;
 	struct rcu_node *rnp;
 
-	trace_rcu_exp_grace_period(rcu_state.name, rcu_exp_gp_seq_endval(), TPS("reset"));
 	sync_exp_reset_tree();
-	trace_rcu_exp_grace_period(rcu_state.name, rcu_exp_gp_seq_endval(), TPS("select"));
 
 	/* Schedule work for each leaf rcu_node structure. */
 	rcu_for_each_leaf_node(rnp) {
@@ -495,7 +484,6 @@ static void synchronize_rcu_expedited_wait(void)
 	struct rcu_node *rnp;
 	struct rcu_node *rnp_root = rcu_get_root();
 
-	trace_rcu_exp_grace_period(rcu_state.name, rcu_exp_gp_seq_endval(), TPS("startwait"));
 	jiffies_stall = rcu_jiffies_till_stall_check();
 	jiffies_start = jiffies;
 	if (tick_nohz_full_enabled() && rcu_inkernel_boot_has_ended()) {
@@ -593,7 +581,6 @@ static void rcu_exp_wait_wake(unsigned long s)
 	// to ensure that only one GP runs concurrently with wakeups.
 	mutex_lock(&rcu_state.exp_wake_mutex);
 	rcu_exp_gp_seq_end();
-	trace_rcu_exp_grace_period(rcu_state.name, s, TPS("end"));
 
 	rcu_for_each_node_breadth_first(rnp) {
 		if (ULONG_CMP_LT(READ_ONCE(rnp->exp_seq_rq), s)) {
@@ -606,7 +593,6 @@ static void rcu_exp_wait_wake(unsigned long s)
 		smp_mb(); /* All above changes before wakeup. */
 		wake_up_all(&rnp->exp_wq[rcu_seq_ctr(s) & 0x3]);
 	}
-	trace_rcu_exp_grace_period(rcu_state.name, s, TPS("endwake"));
 	mutex_unlock(&rcu_state.exp_wake_mutex);
 }
 

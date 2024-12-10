@@ -548,35 +548,10 @@ void __weak __init free_initrd_mem(unsigned long start, unsigned long end)
 			"initrd");
 }
 
-#ifdef CONFIG_KEXEC_CORE
-static bool __init kexec_free_initrd(void)
-{
-	unsigned long crashk_start = (unsigned long)__va(crashk_res.start);
-	unsigned long crashk_end   = (unsigned long)__va(crashk_res.end);
-
-	/*
-	 * If the initrd region is overlapped with crashkernel reserved region,
-	 * free only memory that is not part of crashkernel region.
-	 */
-	if (initrd_start >= crashk_end || initrd_end <= crashk_start)
-		return false;
-
-	/*
-	 * Initialize initrd memory region since the kexec boot does not do.
-	 */
-	memset((void *)initrd_start, 0, initrd_end - initrd_start);
-	if (initrd_start < crashk_start)
-		free_initrd_mem(initrd_start, crashk_start);
-	if (initrd_end > crashk_end)
-		free_initrd_mem(crashk_end, initrd_end);
-	return true;
-}
-#else
 static inline bool kexec_free_initrd(void)
 {
 	return false;
 }
-#endif /* CONFIG_KEXEC_CORE */
 
 #ifdef CONFIG_BLK_DEV_RAM
 static void __init populate_initrd_image(char *err)

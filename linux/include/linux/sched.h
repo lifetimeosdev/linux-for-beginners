@@ -206,11 +206,9 @@ extern void io_schedule(void);
  * monotonicity.
  */
 struct prev_cputime {
-#ifndef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
 	u64				utime;
 	u64				stime;
 	raw_spinlock_t			lock;
-#endif
 };
 
 enum vtime_state {
@@ -780,12 +778,6 @@ struct task_struct {
 #ifdef CONFIG_COMPAT_BRK
 	unsigned			brk_randomized:1;
 #endif
-#ifdef CONFIG_CGROUPS
-	/* disallow userland-initiated cgroup migration */
-	unsigned			no_cgroup_migration:1;
-	/* task is frozen/stopped (used by the cgroup freezer) */
-	unsigned			frozen:1;
-#endif
 #ifdef CONFIG_BLK_CGROUP
 	unsigned			use_memdelay:1;
 #endif
@@ -858,9 +850,6 @@ struct task_struct {
 #endif
 	u64				gtime;
 	struct prev_cputime		prev_cputime;
-#ifdef CONFIG_VIRT_CPU_ACCOUNTING_GEN
-	struct vtime			vtime;
-#endif
 
 #ifdef CONFIG_NO_HZ_FULL
 	atomic_t			tick_dep_mask;
@@ -881,10 +870,6 @@ struct task_struct {
 
 	/* Empty if CONFIG_POSIX_CPUTIMERS=n */
 	struct posix_cputimers		posix_cputimers;
-
-#ifdef CONFIG_POSIX_CPU_TIMERS_TASK_WORK
-	struct posix_cputimers_work	posix_cputimers_work;
-#endif
 
 	/* Process credentials: */
 
@@ -994,9 +979,6 @@ struct task_struct {
 
 	struct io_context		*io_context;
 
-#ifdef CONFIG_COMPACTION
-	struct capture_control		*capture_control;
-#endif
 	/* Ptrace state: */
 	unsigned long			ptrace_message;
 	kernel_siginfo_t		*last_siginfo;
@@ -1021,12 +1003,6 @@ struct task_struct {
 	seqcount_spinlock_t		mems_allowed_seq;
 	int				cpuset_mem_spread_rotor;
 	int				cpuset_slab_spread_rotor;
-#endif
-#ifdef CONFIG_CGROUPS
-	/* Control Group info protected by css_set_lock: */
-	struct css_set __rcu		*cgroups;
-	/* cg_list protected by css_set_lock and tsk->alloc_lock: */
-	struct list_head		cg_list;
 #endif
 #ifdef CONFIG_X86_CPU_RESCTRL
 	u32				closid;
@@ -1123,14 +1099,6 @@ struct task_struct {
 	atomic_t			tracing_graph_pause;
 #endif
 
-#ifdef CONFIG_TRACING
-	/* State flags for use by tracers: */
-	unsigned long			trace;
-
-	/* Bitmask and counter of trace recursion: */
-	unsigned long			trace_recursion;
-#endif /* CONFIG_TRACING */
-
 #ifdef CONFIG_KCOV
 	/* See kernel/kcov.c for more details. */
 
@@ -1189,10 +1157,6 @@ struct task_struct {
 #endif
 	/* A live task holds one reference: */
 	refcount_t			stack_refcount;
-#ifdef CONFIG_LIVEPATCH
-	int patch_state;
-#endif
-
 #ifdef CONFIG_GCC_PLUGIN_STACKLEAK
 	unsigned long			lowest_stack;
 	unsigned long			prev_lowest_stack;
@@ -1898,18 +1862,6 @@ static inline void rseq_fork(struct task_struct *t, unsigned long clone_flags)
 {
 }
 static inline void rseq_execve(struct task_struct *t)
-{
-}
-
-#endif
-
-#ifdef CONFIG_DEBUG_RSEQ
-
-void rseq_syscall(struct pt_regs *regs);
-
-#else
-
-static inline void rseq_syscall(struct pt_regs *regs)
 {
 }
 

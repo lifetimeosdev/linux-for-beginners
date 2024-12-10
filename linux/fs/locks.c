@@ -273,7 +273,6 @@ locks_get_lock_context(struct inode *inode, int type)
 		ctx = smp_load_acquire(&inode->i_flctx);
 	}
 out:
-	trace_locks_get_lock_context(inode, type, ctx);
 	return ctx;
 }
 
@@ -1124,7 +1123,6 @@ out:
 	if (new_fl)
 		locks_free_lock(new_fl);
 	locks_dispose_list(&dispose);
-	trace_flock_lock_inode(inode, request, error);
 	return error;
 }
 
@@ -1339,7 +1337,6 @@ static int posix_lock_inode(struct inode *inode, struct file_lock *request,
  out:
 	spin_unlock(&ctx->flc_lock);
 	percpu_up_read(&file_rwsem);
-	trace_posix_lock_inode(inode, request, error);
 	/*
 	 * Free any unused locks.
 	 */
@@ -1546,7 +1543,6 @@ static void time_out_leases(struct inode *inode, struct list_head *dispose)
 	lockdep_assert_held(&ctx->flc_lock);
 
 	list_for_each_entry_safe(fl, tmp, &ctx->flc_lease, fl_list) {
-		trace_time_out_leases(inode, fl);
 		if (past_time(fl->fl_downgrade_time))
 			lease_modify(fl, F_RDLCK, dispose);
 		if (past_time(fl->fl_break_time))
@@ -1572,7 +1568,6 @@ static bool leases_conflict(struct file_lock *lease, struct file_lock *breaker)
 
 	rc = locks_conflict(breaker, lease);
 trace:
-	trace_leases_conflict(rc, lease, breaker);
 	return rc;
 }
 
@@ -1662,7 +1657,6 @@ int __break_lease(struct inode *inode, unsigned int mode, unsigned int type)
 		goto out;
 
 	if (mode & O_NONBLOCK) {
-		trace_break_lease_noblock(inode, new_fl);
 		error = -EWOULDBLOCK;
 		goto out;
 	}
@@ -1675,7 +1669,6 @@ restart:
 	if (break_time == 0)
 		break_time++;
 	locks_insert_block(fl, new_fl, leases_conflict);
-	trace_break_lease_block(inode, new_fl);
 	spin_unlock(&ctx->flc_lock);
 	percpu_up_read(&file_rwsem);
 
@@ -1686,7 +1679,6 @@ restart:
 
 	percpu_down_read(&file_rwsem);
 	spin_lock(&ctx->flc_lock);
-	trace_break_lease_unblock(inode, new_fl);
 	locks_delete_block(new_fl);
 	if (error >= 0) {
 		/*
@@ -1843,7 +1835,6 @@ generic_add_lease(struct file *filp, long arg, struct file_lock **flp, void **pr
 	LIST_HEAD(dispose);
 
 	lease = *flp;
-	trace_generic_add_lease(inode, lease);
 
 	/* Note that arg is never F_UNLCK here */
 	ctx = locks_get_lock_context(inode, arg);
@@ -1958,7 +1949,6 @@ static int generic_delete_lease(struct file *filp, void *owner)
 
 	ctx = smp_load_acquire(&inode->i_flctx);
 	if (!ctx) {
-		trace_generic_delete_lease(inode, NULL);
 		return error;
 	}
 
@@ -1971,7 +1961,6 @@ static int generic_delete_lease(struct file *filp, void *owner)
 			break;
 		}
 	}
-	trace_generic_delete_lease(inode, victim);
 	if (victim)
 		error = fl->fl_lmops->lm_change(victim, F_UNLCK, &dispose);
 	spin_unlock(&ctx->flc_lock);
@@ -2558,7 +2547,6 @@ int fcntl_setlk(unsigned int fd, struct file *filp, unsigned int cmd,
 		}
 	}
 out:
-	trace_fcntl_setlk(inode, file_lock, error);
 	locks_free_lock(file_lock);
 	return error;
 }
@@ -2730,7 +2718,6 @@ void locks_remove_posix(struct file *filp, fl_owner_t owner)
 
 	if (lock.fl_ops && lock.fl_ops->fl_release_private)
 		lock.fl_ops->fl_release_private(&lock);
-	trace_locks_remove_posix(inode, &lock, error);
 }
 EXPORT_SYMBOL(locks_remove_posix);
 

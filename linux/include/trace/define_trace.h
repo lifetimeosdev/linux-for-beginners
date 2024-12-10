@@ -68,10 +68,6 @@
 #define DEFINE_EVENT_CONDITION(template, name, proto, args, cond) \
 	DEFINE_EVENT(template, name, PARAMS(proto), PARAMS(args))
 
-#undef DECLARE_TRACE
-#define DECLARE_TRACE(name, proto, args)	\
-	DEFINE_TRACE(name, PARAMS(proto), PARAMS(args))
-
 #undef TRACE_INCLUDE
 #undef __TRACE_INCLUDE
 
@@ -93,16 +89,6 @@
 #define TRACE_HEADER_MULTI_READ
 
 #include TRACE_INCLUDE(TRACE_INCLUDE_FILE)
-
-/* Make all open coded DECLARE_TRACE nops */
-#undef DECLARE_TRACE
-#define DECLARE_TRACE(name, proto, args)
-
-#ifdef TRACEPOINTS_ENABLED
-#include <trace/trace_events.h>
-#include <trace/perf.h>
-#include <trace/bpf_probe.h>
-#endif
 
 #undef TRACE_EVENT
 #undef TRACE_EVENT_FN

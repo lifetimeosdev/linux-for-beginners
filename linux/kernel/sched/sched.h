@@ -69,10 +69,6 @@
 #include <asm/tlb.h>
 #include <asm-generic/vmlinux.lds.h>
 
-#ifdef CONFIG_PARAVIRT
-# include <asm/paravirt.h>
-#endif
-
 #include "cpupri.h"
 #include "cpudeadline.h"
 
@@ -1003,16 +999,6 @@ struct rq {
 	u64			max_idle_balance_cost;
 #endif /* CONFIG_SMP */
 
-#ifdef CONFIG_IRQ_TIME_ACCOUNTING
-	u64			prev_irq_time;
-#endif
-#ifdef CONFIG_PARAVIRT
-	u64			prev_steal_time;
-#endif
-#ifdef CONFIG_PARAVIRT_TIME_ACCOUNTING
-	u64			prev_steal_time_rq;
-#endif
-
 	/* calc_load related fields */
 	unsigned long		calc_load_update;
 	long			calc_load_active;
@@ -1934,9 +1920,6 @@ static inline void add_nr_running(struct rq *rq, unsigned count)
 	unsigned prev_nr = rq->nr_running;
 
 	rq->nr_running = prev_nr + count;
-	if (trace_sched_update_nr_running_tp_enabled()) {
-		call_trace_sched_update_nr_running(rq, count);
-	}
 
 #ifdef CONFIG_SMP
 	if (prev_nr < 2 && rq->nr_running >= 2) {
@@ -1951,9 +1934,6 @@ static inline void add_nr_running(struct rq *rq, unsigned count)
 static inline void sub_nr_running(struct rq *rq, unsigned count)
 {
 	rq->nr_running -= count;
-	if (trace_sched_update_nr_running_tp_enabled()) {
-		call_trace_sched_update_nr_running(rq, -count);
-	}
 
 	/* Check if we still need preemption */
 	sched_update_tick_dependency(rq);
@@ -2265,37 +2245,6 @@ void __dl_update(struct dl_bw *dl_b, s64 bw)
 	dl->extra_bw += bw;
 }
 #endif
-
-
-#ifdef CONFIG_IRQ_TIME_ACCOUNTING
-struct irqtime {
-	u64			total;
-	u64			tick_delta;
-	u64			irq_start_time;
-	struct u64_stats_sync	sync;
-};
-
-DECLARE_PER_CPU(struct irqtime, cpu_irqtime);
-
-/*
- * Returns the irqtime minus the softirq time computed by ksoftirqd.
- * Otherwise ksoftirqd's sum_exec_runtime is substracted its own runtime
- * and never move forward.
- */
-static inline u64 irq_time_read(int cpu)
-{
-	struct irqtime *irqtime = &per_cpu(cpu_irqtime, cpu);
-	unsigned int seq;
-	u64 total;
-
-	do {
-		seq = __u64_stats_fetch_begin(&irqtime->sync);
-		total = irqtime->total;
-	} while (__u64_stats_fetch_retry(&irqtime->sync, seq));
-
-	return total;
-}
-#endif /* CONFIG_IRQ_TIME_ACCOUNTING */
 
 #ifdef CONFIG_CPU_FREQ
 DECLARE_PER_CPU(struct update_util_data __rcu *, cpufreq_update_util_data);

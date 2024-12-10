@@ -278,7 +278,6 @@ int dma_fence_signal_locked(struct dma_fence *fence)
 
 	fence->timestamp = ktime_get();
 	set_bit(DMA_FENCE_FLAG_TIMESTAMP_BIT, &fence->flags);
-	trace_dma_fence_signaled(fence);
 
 	list_for_each_entry_safe(cur, tmp, &cb_list, node) {
 		INIT_LIST_HEAD(&cur->node);
@@ -353,12 +352,10 @@ dma_fence_wait_timeout(struct dma_fence *fence, bool intr, signed long timeout)
 
 	__dma_fence_might_wait();
 
-	trace_dma_fence_wait_start(fence);
 	if (fence->ops->wait)
 		ret = fence->ops->wait(fence, intr, timeout);
 	else
 		ret = dma_fence_default_wait(fence, intr, timeout);
-	trace_dma_fence_wait_end(fence);
 	return ret;
 }
 EXPORT_SYMBOL(dma_fence_wait_timeout);
@@ -374,8 +371,6 @@ void dma_fence_release(struct kref *kref)
 {
 	struct dma_fence *fence =
 		container_of(kref, struct dma_fence, refcount);
-
-	trace_dma_fence_destroy(fence);
 
 	if (WARN(!list_empty(&fence->cb_list) &&
 		 !test_bit(DMA_FENCE_FLAG_SIGNALED_BIT, &fence->flags),
@@ -431,8 +426,6 @@ static bool __dma_fence_enable_signaling(struct dma_fence *fence)
 		return false;
 
 	if (!was_set && fence->ops->enable_signaling) {
-		trace_dma_fence_enable_signal(fence);
-
 		if (!fence->ops->enable_signaling(fence)) {
 			dma_fence_signal_locked(fence);
 			return false;
@@ -794,7 +787,5 @@ dma_fence_init(struct dma_fence *fence, const struct dma_fence_ops *ops,
 	fence->seqno = seqno;
 	fence->flags = 0UL;
 	fence->error = 0;
-
-	trace_dma_fence_init(fence);
 }
 EXPORT_SYMBOL(dma_fence_init);

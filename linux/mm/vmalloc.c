@@ -334,11 +334,6 @@ int is_vmalloc_or_module_addr(const void *x)
 	 * and fall back on vmalloc() if that fails. Others
 	 * just put it in the vmalloc space.
 	 */
-#if defined(CONFIG_MODULES) && defined(MODULES_VADDR)
-	unsigned long addr = (unsigned long)x;
-	if (addr >= MODULES_VADDR && addr < MODULES_END)
-		return 1;
-#endif
 	return is_vmalloc_addr(x);
 }
 

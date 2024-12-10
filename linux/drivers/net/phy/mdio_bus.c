@@ -756,7 +756,6 @@ int __mdiobus_read(struct mii_bus *bus, int addr, u32 regnum)
 
 	retval = bus->read(bus, addr, regnum);
 
-	trace_mdio_access(bus, 1, addr, regnum, retval, retval);
 	mdiobus_stats_acct(&bus->stats[addr], true, retval);
 
 	return retval;
@@ -782,7 +781,6 @@ int __mdiobus_write(struct mii_bus *bus, int addr, u32 regnum, u16 val)
 
 	err = bus->write(bus, addr, regnum, val);
 
-	trace_mdio_access(bus, 0, addr, regnum, val, err);
 	mdiobus_stats_acct(&bus->stats[addr], false, err);
 
 	return err;

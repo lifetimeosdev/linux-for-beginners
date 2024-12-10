@@ -13,13 +13,6 @@
 #include <linux/tracepoint.h>
 #include <rdma/ib_mad.h>
 
-#ifdef CONFIG_TRACEPOINTS
-struct trace_event_raw_ib_mad_send_template;
-static void create_mad_addr_info(struct ib_mad_send_wr_private *mad_send_wr,
-			  struct ib_mad_qp_info *qp_info,
-			  struct trace_event_raw_ib_mad_send_template *entry);
-#endif
-
 DECLARE_EVENT_CLASS(ib_mad_send_template,
 	TP_PROTO(struct ib_mad_send_wr_private *wr,
 		 struct ib_mad_qp_info *qp_info),

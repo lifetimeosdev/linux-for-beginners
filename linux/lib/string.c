@@ -556,7 +556,6 @@ char *strim(char *s)
 }
 EXPORT_SYMBOL(strim);
 
-#ifndef __HAVE_ARCH_STRLEN
 /**
  * strlen - Find the length of a string
  * @s: The string to be sized
@@ -570,7 +569,6 @@ size_t strlen(const char *s)
 	return sc - s;
 }
 EXPORT_SYMBOL(strlen);
-#endif
 
 #ifndef __HAVE_ARCH_STRNLEN
 /**

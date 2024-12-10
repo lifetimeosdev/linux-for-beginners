@@ -33,10 +33,6 @@ struct perf_guest_info_callbacks {
 	void				(*handle_intel_pt_intr)(void);
 };
 
-#ifdef CONFIG_HAVE_HW_BREAKPOINT
-#include <asm/hw_breakpoint.h>
-#endif
-
 #include <linux/list.h>
 #include <linux/mutex.h>
 #include <linux/rculist.h>
@@ -158,17 +154,6 @@ struct hw_perf_event {
 			u64	pwr_acc;
 			u64	ptsc;
 		};
-#ifdef CONFIG_HAVE_HW_BREAKPOINT
-		struct { /* breakpoint */
-			/*
-			 * Crufty hack to avoid the chicken and egg
-			 * problem hw_breakpoint has with context
-			 * creation and event initalization.
-			 */
-			struct arch_hw_breakpoint	info;
-			struct list_head		bp_list;
-		};
-#endif
 		struct { /* amd_iommu */
 			u8	iommu_bank;
 			u8	iommu_cntr;
@@ -752,14 +737,6 @@ struct perf_event {
 #ifdef CONFIG_BPF_SYSCALL
 	perf_overflow_handler_t		orig_overflow_handler;
 	struct bpf_prog			*prog;
-#endif
-
-#ifdef CONFIG_EVENT_TRACING
-	struct trace_event_call		*tp_event;
-	struct event_filter		*filter;
-#ifdef CONFIG_FUNCTION_TRACER
-	struct ftrace_ops               ftrace_ops;
-#endif
 #endif
 
 #ifdef CONFIG_CGROUP_PERF

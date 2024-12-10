@@ -202,38 +202,12 @@
 
 #define ERROR_INJECT_WHITELIST()
 
-#ifdef CONFIG_EVENT_TRACING
-#define FTRACE_EVENTS()	. = ALIGN(8);					\
-			__start_ftrace_events = .;			\
-			KEEP(*(_ftrace_events))				\
-			__stop_ftrace_events = .;			\
-			__start_ftrace_eval_maps = .;			\
-			KEEP(*(_ftrace_eval_map))			\
-			__stop_ftrace_eval_maps = .;
-#else
 #define FTRACE_EVENTS()
-#endif
 
-#ifdef CONFIG_TRACING
-#define TRACE_PRINTKS()	 __start___trace_bprintk_fmt = .;      \
-			 KEEP(*(__trace_printk_fmt)) /* Trace_printk fmt' pointer */ \
-			 __stop___trace_bprintk_fmt = .;
-#define TRACEPOINT_STR() __start___tracepoint_str = .;	\
-			 KEEP(*(__tracepoint_str)) /* Trace_printk fmt' pointer */ \
-			 __stop___tracepoint_str = .;
-#else
 #define TRACE_PRINTKS()
 #define TRACEPOINT_STR()
-#endif
 
-#ifdef CONFIG_FTRACE_SYSCALLS
-#define TRACE_SYSCALLS() . = ALIGN(8);					\
-			 __start_syscalls_metadata = .;			\
-			 KEEP(*(__syscalls_metadata))			\
-			 __stop_syscalls_metadata = .;
-#else
 #define TRACE_SYSCALLS()
-#endif
 
 #ifdef CONFIG_BPF_EVENTS
 #define BPF_RAW_TP() STRUCT_ALIGN();					\

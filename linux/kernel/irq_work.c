@@ -144,9 +144,7 @@ void irq_work_single(void *arg)
 	 */
 	flags = atomic_fetch_andnot(IRQ_WORK_PENDING, &work->flags);
 
-	lockdep_irq_work_enter(work);
 	work->func(work);
-	lockdep_irq_work_exit(work);
 	/*
 	 * Clear the BUSY bit and return to the free state if
 	 * no-one else claimed it meanwhile.

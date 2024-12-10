@@ -8,20 +8,6 @@
  * cputime accounting APIs:
  */
 
-#ifdef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
-#include <asm/cputime.h>
-
-#ifndef cputime_to_nsecs
-# define cputime_to_nsecs(__ct)	\
-	(cputime_to_usecs(__ct) * NSEC_PER_USEC)
-#endif
-#endif /* CONFIG_VIRT_CPU_ACCOUNTING_NATIVE */
-
-#ifdef CONFIG_VIRT_CPU_ACCOUNTING_GEN
-extern void task_cputime(struct task_struct *t,
-			 u64 *utime, u64 *stime);
-extern u64 task_gtime(struct task_struct *t);
-#else
 static inline void task_cputime(struct task_struct *t,
 				u64 *utime, u64 *stime)
 {
@@ -33,7 +19,6 @@ static inline u64 task_gtime(struct task_struct *t)
 {
 	return t->gtime;
 }
-#endif
 
 #ifdef CONFIG_ARCH_HAS_SCALED_CPUTIME
 static inline void task_cputime_scaled(struct task_struct *t,
@@ -179,10 +164,8 @@ static inline void account_group_exec_runtime(struct task_struct *tsk,
 
 static inline void prev_cputime_init(struct prev_cputime *prev)
 {
-#ifndef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
 	prev->utime = prev->stime = 0;
 	raw_spin_lock_init(&prev->lock);
-#endif
 }
 
 extern unsigned long long

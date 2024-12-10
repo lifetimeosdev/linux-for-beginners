@@ -376,12 +376,6 @@ static inline long __do_sys_reboot(int magic1, int magic2, unsigned int cmd, voi
 		kernel_restart(buffer);
 		break;
 
-#ifdef CONFIG_KEXEC_CORE
-	case LINUX_REBOOT_CMD_KEXEC:
-		ret = kernel_kexec();
-		break;
-#endif
-
 	default:
 		ret = -EINVAL;
 		break;

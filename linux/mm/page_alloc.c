@@ -803,43 +803,6 @@ static inline bool page_is_buddy(struct page *page, struct page *buddy,
 	return true;
 }
 
-#ifdef CONFIG_COMPACTION
-static inline struct capture_control *task_capc(struct zone *zone)
-{
-	struct capture_control *capc = current->capture_control;
-
-	return unlikely(capc) &&
-		!(current->flags & PF_KTHREAD) &&
-		!capc->page &&
-		capc->cc->zone == zone ? capc : NULL;
-}
-
-static inline bool
-compaction_capture(struct capture_control *capc, struct page *page,
-		   int order, int migratetype)
-{
-	if (!capc || order != capc->cc->order)
-		return false;
-
-	/* Do not accidentally pollute CMA or isolated regions*/
-	if (is_migrate_cma(migratetype) ||
-	    is_migrate_isolate(migratetype))
-		return false;
-
-	/*
-	 * Do not let lower order allocations polluate a movable pageblock.
-	 * This might let an unmovable request use a reclaimable pageblock
-	 * and vice-versa but no more than normal fallback logic which can
-	 * have trouble finding a high-order free page.
-	 */
-	if (order < pageblock_order && migratetype == MIGRATE_MOVABLE)
-		return false;
-
-	capc->page = page;
-	return true;
-}
-
-#else
 static inline struct capture_control *task_capc(struct zone *zone)
 {
 	return NULL;
@@ -851,7 +814,6 @@ compaction_capture(struct capture_control *capc, struct page *page,
 {
 	return false;
 }
-#endif /* CONFIG_COMPACTION */
 
 /* Used for pages not on another list */
 static inline void add_to_free_list(struct page *page, struct zone *zone,
@@ -1178,8 +1140,6 @@ static __always_inline bool free_pages_prepare(struct page *page,
 
 	VM_BUG_ON_PAGE(PageTail(page), page);
 
-	trace_mm_page_free(page, order);
-
 	if (unlikely(PageHWPoison(page)) && !order) {
 		/*
 		 * Do not let hwpoison pages hit pcplists/buddy
@@ -1387,7 +1347,6 @@ static void free_pcppages_bulk(struct zone *zone, int count,
 			mt = get_pageblock_migratetype(page);
 
 		__free_one_page(page, page_to_pfn(page), zone, 0, mt, FPI_NONE);
-		trace_mm_page_pcpu_drain(page, 0, mt);
 	}
 	spin_unlock(&zone->lock);
 }
@@ -2787,9 +2746,6 @@ do_steal:
 	steal_suitable_fallback(zone, page, alloc_flags, start_migratetype,
 								can_steal);
 
-	trace_mm_page_alloc_extfrag(page, order, current_order,
-		start_migratetype, fallback_mt);
-
 	return true;
 
 }
@@ -2829,8 +2785,6 @@ retry:
 			goto retry;
 	}
 out:
-	if (page)
-		trace_mm_page_alloc_zone_locked(page, order, migratetype);
 	return page;
 }
 
@@ -3118,7 +3072,6 @@ void free_unref_page_list(struct list_head *list)
 		unsigned long pfn = page_private(page);
 
 		set_page_private(page, 0);
-		trace_mm_page_free_batched(page);
 		free_unref_page_commit(page, pfn);
 
 		/*
@@ -3323,8 +3276,6 @@ struct page *rmqueue(struct zone *preferred_zone,
 		 */
 		if (order > 0 && alloc_flags & ALLOC_HARDER) {
 			page = __rmqueue_smallest(zone, order, MIGRATE_HIGHATOMIC);
-			if (page)
-				trace_mm_page_alloc_zone_locked(page, order, migratetype);
 		}
 		if (!page)
 			page = __rmqueue(zone, order, migratetype, alloc_flags);
@@ -3929,141 +3880,6 @@ out:
  */
 #define MAX_COMPACT_RETRIES 16
 
-#ifdef CONFIG_COMPACTION
-/* Try memory compaction for high-order allocations before reclaim */
-static struct page *
-__alloc_pages_direct_compact(gfp_t gfp_mask, unsigned int order,
-		unsigned int alloc_flags, const struct alloc_context *ac,
-		enum compact_priority prio, enum compact_result *compact_result)
-{
-	struct page *page = NULL;
-	unsigned long pflags;
-	unsigned int noreclaim_flag;
-
-	if (!order)
-		return NULL;
-
-	psi_memstall_enter(&pflags);
-	noreclaim_flag = memalloc_noreclaim_save();
-
-	*compact_result = try_to_compact_pages(gfp_mask, order, alloc_flags, ac,
-								prio, &page);
-
-	memalloc_noreclaim_restore(noreclaim_flag);
-	psi_memstall_leave(&pflags);
-
-	/*
-	 * At least in one zone compaction wasn't deferred or skipped, so let's
-	 * count a compaction stall
-	 */
-	count_vm_event(COMPACTSTALL);
-
-	/* Prep a captured page if available */
-	if (page)
-		prep_new_page(page, order, gfp_mask, alloc_flags);
-
-	/* Try get a page from the freelist if available */
-	if (!page)
-		page = get_page_from_freelist(gfp_mask, order, alloc_flags, ac);
-
-	if (page) {
-		struct zone *zone = page_zone(page);
-
-		zone->compact_blockskip_flush = false;
-		compaction_defer_reset(zone, order, true);
-		count_vm_event(COMPACTSUCCESS);
-		return page;
-	}
-
-	/*
-	 * It's bad if compaction run occurs and fails. The most likely reason
-	 * is that pages exist, but not enough to satisfy watermarks.
-	 */
-	count_vm_event(COMPACTFAIL);
-
-	cond_resched();
-
-	return NULL;
-}
-
-static inline bool
-should_compact_retry(struct alloc_context *ac, int order, int alloc_flags,
-		     enum compact_result compact_result,
-		     enum compact_priority *compact_priority,
-		     int *compaction_retries)
-{
-	int max_retries = MAX_COMPACT_RETRIES;
-	int min_priority;
-	bool ret = false;
-	int retries = *compaction_retries;
-	enum compact_priority priority = *compact_priority;
-
-	if (!order)
-		return false;
-
-	if (compaction_made_progress(compact_result))
-		(*compaction_retries)++;
-
-	/*
-	 * compaction considers all the zone as desperately out of memory
-	 * so it doesn't really make much sense to retry except when the
-	 * failure could be caused by insufficient priority
-	 */
-	if (compaction_failed(compact_result))
-		goto check_priority;
-
-	/*
-	 * compaction was skipped because there are not enough order-0 pages
-	 * to work with, so we retry only if it looks like reclaim can help.
-	 */
-	if (compaction_needs_reclaim(compact_result)) {
-		ret = compaction_zonelist_suitable(ac, order, alloc_flags);
-		goto out;
-	}
-
-	/*
-	 * make sure the compaction wasn't deferred or didn't bail out early
-	 * due to locks contention before we declare that we should give up.
-	 * But the next retry should use a higher priority if allowed, so
-	 * we don't just keep bailing out endlessly.
-	 */
-	if (compaction_withdrawn(compact_result)) {
-		goto check_priority;
-	}
-
-	/*
-	 * !costly requests are much more important than __GFP_RETRY_MAYFAIL
-	 * costly ones because they are de facto nofail and invoke OOM
-	 * killer to move on while costly can fail and users are ready
-	 * to cope with that. 1/4 retries is rather arbitrary but we
-	 * would need much more detailed feedback from compaction to
-	 * make a better decision.
-	 */
-	if (order > PAGE_ALLOC_COSTLY_ORDER)
-		max_retries /= 4;
-	if (*compaction_retries <= max_retries) {
-		ret = true;
-		goto out;
-	}
-
-	/*
-	 * Make sure there are attempts at the highest priority if we exhausted
-	 * all retries or failed at the lower priorities.
-	 */
-check_priority:
-	min_priority = (order > PAGE_ALLOC_COSTLY_ORDER) ?
-			MIN_COMPACT_COSTLY_PRIORITY : MIN_COMPACT_PRIORITY;
-
-	if (*compact_priority > min_priority) {
-		(*compact_priority)--;
-		*compaction_retries = 0;
-		ret = true;
-	}
-out:
-	trace_compact_retry(order, priority, compact_result, retries, max_retries, ret);
-	return ret;
-}
-#else
 static inline struct page *
 __alloc_pages_direct_compact(gfp_t gfp_mask, unsigned int order,
 		unsigned int alloc_flags, const struct alloc_context *ac,
@@ -4099,7 +3915,6 @@ should_compact_retry(struct alloc_context *ac, unsigned int order, int alloc_fla
 	}
 	return false;
 }
-#endif /* CONFIG_COMPACTION */
 
 /*
  * Zonelists may change due to hotplug during allocation. Detect when zonelists
@@ -4338,8 +4153,6 @@ should_reclaim_retry(gfp_t gfp_mask, unsigned order,
 		 */
 		wmark = __zone_watermark_ok(zone, order, min_wmark,
 				ac->highest_zoneidx, alloc_flags, available);
-		trace_reclaim_retry_zone(z, order, reclaimable,
-				available, min_wmark, *no_progress_loops, wmark);
 		if (wmark) {
 			/*
 			 * If we didn't make any progress and have a lot of
@@ -4788,8 +4601,6 @@ out:
 		__free_pages(page, order);
 		page = NULL;
 	}
-
-	trace_mm_page_alloc(page, order, alloc_mask, ac.migratetype);
 
 	return page;
 }
@@ -6355,14 +6166,7 @@ static unsigned long __init calc_memmap_size(unsigned long spanned_pages,
 
 static void pgdat_init_split_queue(struct pglist_data *pgdat) {}
 
-#ifdef CONFIG_COMPACTION
-static void pgdat_init_kcompactd(struct pglist_data *pgdat)
-{
-	init_waitqueue_head(&pgdat->kcompactd_wait);
-}
-#else
 static void pgdat_init_kcompactd(struct pglist_data *pgdat) {}
-#endif
 
 static void __meminit pgdat_init_internals(struct pglist_data *pgdat)
 {

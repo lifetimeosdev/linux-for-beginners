@@ -837,7 +837,6 @@ int bdi_register_va(struct backing_dev_info *bdi, const char *fmt, va_list args)
 
 	spin_unlock_bh(&bdi_lock);
 
-	trace_writeback_bdi_register(bdi);
 	return 0;
 }
 
@@ -967,16 +966,12 @@ EXPORT_SYMBOL(set_bdi_congested);
 long congestion_wait(int sync, long timeout)
 {
 	long ret;
-	unsigned long start = jiffies;
 	DEFINE_WAIT(wait);
 	wait_queue_head_t *wqh = &congestion_wqh[sync];
 
 	prepare_to_wait(wqh, &wait, TASK_UNINTERRUPTIBLE);
 	ret = io_schedule_timeout(timeout);
 	finish_wait(wqh, &wait);
-
-	trace_writeback_congestion_wait(jiffies_to_usecs(timeout),
-					jiffies_to_usecs(jiffies - start));
 
 	return ret;
 }
@@ -1023,9 +1018,6 @@ long wait_iff_congested(int sync, long timeout)
 	finish_wait(wqh, &wait);
 
 out:
-	trace_writeback_wait_iff_congested(jiffies_to_usecs(timeout),
-					jiffies_to_usecs(jiffies - start));
-
 	return ret;
 }
 EXPORT_SYMBOL(wait_iff_congested);

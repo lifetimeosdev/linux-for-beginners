@@ -623,8 +623,6 @@ int bus_add_driver(struct device_driver *drv)
 		if (error)
 			goto out_del_list;
 	}
-	module_add_driver(drv->owner, drv);
-
 	error = driver_create_file(drv, &driver_attr_uevent);
 	if (error) {
 		printk(KERN_ERR "%s: uevent attr (%s) failed\n",
@@ -679,7 +677,6 @@ void bus_remove_driver(struct device_driver *drv)
 	klist_remove(&drv->p->knode_bus);
 	pr_debug("bus: '%s': remove driver %s\n", drv->bus->name, drv->name);
 	driver_detach(drv);
-	module_remove_driver(drv);
 	kobject_put(&drv->p->kobj);
 	bus_put(drv->bus);
 }

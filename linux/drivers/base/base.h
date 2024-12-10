@@ -161,15 +161,6 @@ extern void device_unblock_probing(void);
 extern struct kset *devices_kset;
 extern void devices_kset_move_last(struct device *dev);
 
-#if defined(CONFIG_MODULES) && defined(CONFIG_SYSFS)
-extern void module_add_driver(struct module *mod, struct device_driver *drv);
-extern void module_remove_driver(struct device_driver *drv);
-#else
-static inline void module_add_driver(struct module *mod,
-				     struct device_driver *drv) { }
-static inline void module_remove_driver(struct device_driver *drv) { }
-#endif
-
 #ifdef CONFIG_DEVTMPFS
 extern int devtmpfs_init(void);
 #else

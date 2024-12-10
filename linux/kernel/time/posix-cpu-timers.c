@@ -377,7 +377,6 @@ static int posix_cpu_clock_get(const clockid_t clock, struct timespec64 *tp)
  */
 static int posix_cpu_timer_create(struct k_itimer *new_timer)
 {
-	static struct lock_class_key posix_cpu_timers_key;
 	struct pid *pid;
 
 	rcu_read_lock();
@@ -395,8 +394,6 @@ static int posix_cpu_timer_create(struct k_itimer *new_timer)
 	 * the lock class being taken in interrupt context and generate a
 	 * false positive warning.
 	 */
-	if (IS_ENABLED(CONFIG_POSIX_CPU_TIMERS_TASK_WORK))
-		lockdep_set_class(&new_timer->it_lock, &posix_cpu_timers_key);
 
 	new_timer->kclock = &clock_posix_cpu;
 	timerqueue_init(&new_timer->it.cpu.node);
@@ -892,9 +889,6 @@ static void check_cpu_itimer(struct task_struct *tsk, struct cpu_itimer *it,
 		else
 			it->expires = 0;
 
-		trace_itimer_expire(signo == SIGPROF ?
-				    ITIMER_PROF : ITIMER_VIRTUAL,
-				    task_tgid(tsk), cur_time);
 		__group_send_sig_info(signo, SEND_SIG_PRIV, tsk);
 	}
 
@@ -1096,144 +1090,9 @@ static inline bool fastpath_timer_check(struct task_struct *tsk)
 
 static void handle_posix_cpu_timers(struct task_struct *tsk);
 
-#ifdef CONFIG_POSIX_CPU_TIMERS_TASK_WORK
-static void posix_cpu_timers_work(struct callback_head *work)
-{
-	struct posix_cputimers_work *cw = container_of(work, typeof(*cw), work);
-
-	mutex_lock(&cw->mutex);
-	handle_posix_cpu_timers(current);
-	mutex_unlock(&cw->mutex);
-}
-
-/*
- * Invoked from the posix-timer core when a cancel operation failed because
- * the timer is marked firing. The caller holds rcu_read_lock(), which
- * protects the timer and the task which is expiring it from being freed.
- */
-static void posix_cpu_timer_wait_running(struct k_itimer *timr)
-{
-	struct task_struct *tsk = rcu_dereference(timr->it.cpu.handling);
-
-	/* Has the handling task completed expiry already? */
-	if (!tsk)
-		return;
-
-	/* Ensure that the task cannot go away */
-	get_task_struct(tsk);
-	/* Now drop the RCU protection so the mutex can be locked */
-	rcu_read_unlock();
-	/* Wait on the expiry mutex */
-	mutex_lock(&tsk->posix_cputimers_work.mutex);
-	/* Release it immediately again. */
-	mutex_unlock(&tsk->posix_cputimers_work.mutex);
-	/* Drop the task reference. */
-	put_task_struct(tsk);
-	/* Relock RCU so the callsite is balanced */
-	rcu_read_lock();
-}
-
-static void posix_cpu_timer_wait_running_nsleep(struct k_itimer *timr)
-{
-	/* Ensure that timr->it.cpu.handling task cannot go away */
-	rcu_read_lock();
-	spin_unlock_irq(&timr->it_lock);
-	posix_cpu_timer_wait_running(timr);
-	rcu_read_unlock();
-	/* @timr is on stack and is valid */
-	spin_lock_irq(&timr->it_lock);
-}
-
-/*
- * Clear existing posix CPU timers task work.
- */
-void clear_posix_cputimers_work(struct task_struct *p)
-{
-	/*
-	 * A copied work entry from the old task is not meaningful, clear it.
-	 * N.B. init_task_work will not do this.
-	 */
-	memset(&p->posix_cputimers_work.work, 0,
-	       sizeof(p->posix_cputimers_work.work));
-	init_task_work(&p->posix_cputimers_work.work,
-		       posix_cpu_timers_work);
-	mutex_init(&p->posix_cputimers_work.mutex);
-	p->posix_cputimers_work.scheduled = false;
-}
-
-/*
- * Initialize posix CPU timers task work in init task. Out of line to
- * keep the callback static and to avoid header recursion hell.
- */
-void __init posix_cputimers_init_work(void)
-{
-	clear_posix_cputimers_work(current);
-}
-
-/*
- * Note: All operations on tsk->posix_cputimer_work.scheduled happen either
- * in hard interrupt context or in task context with interrupts
- * disabled. Aside of that the writer/reader interaction is always in the
- * context of the current task, which means they are strict per CPU.
- */
-static inline bool posix_cpu_timers_work_scheduled(struct task_struct *tsk)
-{
-	return tsk->posix_cputimers_work.scheduled;
-}
-
 static inline void __run_posix_cpu_timers(struct task_struct *tsk)
 {
-	if (WARN_ON_ONCE(tsk->posix_cputimers_work.scheduled))
-		return;
-
-	/* Schedule task work to actually expire the timers */
-	tsk->posix_cputimers_work.scheduled = true;
-	task_work_add(tsk, &tsk->posix_cputimers_work.work, TWA_RESUME);
-}
-
-static inline bool posix_cpu_timers_enable_work(struct task_struct *tsk,
-						unsigned long start)
-{
-	bool ret = true;
-
-	/*
-	 * On !RT kernels interrupts are disabled while collecting expired
-	 * timers, so no tick can happen and the fast path check can be
-	 * reenabled without further checks.
-	 */
-	if (!IS_ENABLED(CONFIG_PREEMPT_RT)) {
-		tsk->posix_cputimers_work.scheduled = false;
-		return true;
-	}
-
-	/*
-	 * On RT enabled kernels ticks can happen while the expired timers
-	 * are collected under sighand lock. But any tick which observes
-	 * the CPUTIMERS_WORK_SCHEDULED bit set, does not run the fastpath
-	 * checks. So reenabling the tick work has do be done carefully:
-	 *
-	 * Disable interrupts and run the fast path check if jiffies have
-	 * advanced since the collecting of expired timers started. If
-	 * jiffies have not advanced or the fast path check did not find
-	 * newly expired timers, reenable the fast path check in the timer
-	 * interrupt. If there are newly expired timers, return false and
-	 * let the collection loop repeat.
-	 */
-	local_irq_disable();
-	if (start != jiffies && fastpath_timer_check(tsk))
-		ret = false;
-	else
-		tsk->posix_cputimers_work.scheduled = false;
-	local_irq_enable();
-
-	return ret;
-}
-#else /* CONFIG_POSIX_CPU_TIMERS_TASK_WORK */
-static inline void __run_posix_cpu_timers(struct task_struct *tsk)
-{
-	lockdep_posixtimer_enter();
 	handle_posix_cpu_timers(tsk);
-	lockdep_posixtimer_exit();
 }
 
 static void posix_cpu_timer_wait_running(struct k_itimer *timr)
@@ -1258,7 +1117,6 @@ static inline bool posix_cpu_timers_enable_work(struct task_struct *tsk,
 {
 	return true;
 }
-#endif /* CONFIG_POSIX_CPU_TIMERS_TASK_WORK */
 
 static void handle_posix_cpu_timers(struct task_struct *tsk)
 {

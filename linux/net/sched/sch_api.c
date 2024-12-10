@@ -1275,7 +1275,6 @@ static struct Qdisc *qdisc_create(struct net_device *dev,
 	}
 
 	qdisc_hash_add(sch, false);
-	trace_qdisc_create(ops, dev, parent);
 
 	return sch;
 

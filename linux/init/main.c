@@ -779,13 +779,9 @@ void __init __weak pgtable_cache_init(void) { }
 bool initcall_debug;
 core_param(initcall_debug, initcall_debug, bool, 0644);
 
-#ifdef TRACEPOINTS_ENABLED
-static void __init initcall_debug_enable(void);
-#else
 static inline void initcall_debug_enable(void)
 {
 }
-#endif
 
 /* Report memory auto-initialization states for this boot. */
 static void __init report_meminit(void)
@@ -939,7 +935,6 @@ asmlinkage __visible void __init __no_sanitize_address start_kernel(void)
 	if (initcall_debug)
 		initcall_debug_enable();
 
-	context_tracking_init();
 	/* init some links before init_ISA_irqs() */
 	early_irq_init();
 	init_IRQ();
@@ -1155,20 +1150,6 @@ trace_initcall_finish_cb(void *data, initcall_t fn, int ret)
 
 static ktime_t initcall_calltime;
 
-#ifdef TRACEPOINTS_ENABLED
-static void __init initcall_debug_enable(void)
-{
-	int ret;
-
-	ret = register_trace_initcall_start(trace_initcall_start_cb,
-					    &initcall_calltime);
-	ret |= register_trace_initcall_finish(trace_initcall_finish_cb,
-					      &initcall_calltime);
-	WARN(ret, "Failed to register initcall tracepoints\n");
-}
-# define do_trace_initcall_start	trace_initcall_start
-# define do_trace_initcall_finish	trace_initcall_finish
-#else
 static inline void __init do_trace_initcall_start(initcall_t fn)
 {
 	if (!initcall_debug)
@@ -1181,7 +1162,6 @@ static inline void __init do_trace_initcall_finish(initcall_t fn, int ret)
 		return;
 	trace_initcall_finish_cb(&initcall_calltime, fn, ret);
 }
-#endif /* !TRACEPOINTS_ENABLED */
 
 int __init_or_module do_one_initcall(initcall_t fn)
 {
@@ -1264,7 +1244,6 @@ static void __init do_initcall_level(int level, char *command_line)
 		   level, level,
 		   NULL, ignore_unknown_bootoption);
 
-	trace_initcall_level(initcall_level_names[level]);
 	for (fn = initcall_levels[level]; fn < initcall_levels[level+1]; fn++)
 		do_one_initcall(initcall_from_entry(fn));
 }
@@ -1309,7 +1288,6 @@ static void __init do_pre_smp_initcalls(void)
 {
 	initcall_entry_t *fn;
 
-	trace_initcall_level("early");
 	for (fn = __initcall_start; fn < __initcall0_start; fn++)
 		do_one_initcall(initcall_from_entry(fn));
 }

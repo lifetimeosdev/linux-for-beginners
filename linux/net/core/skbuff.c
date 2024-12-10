@@ -706,7 +706,6 @@ void kfree_skb(struct sk_buff *skb)
 	if (!skb_unref(skb))
 		return;
 
-	trace_kfree_skb(skb, __builtin_return_address(0));
 	__kfree_skb(skb);
 }
 EXPORT_SYMBOL(kfree_skb);
@@ -830,26 +829,6 @@ void skb_tx_error(struct sk_buff *skb)
 }
 EXPORT_SYMBOL(skb_tx_error);
 
-#ifdef CONFIG_TRACEPOINTS
-/**
- *	consume_skb - free an skbuff
- *	@skb: buffer to free
- *
- *	Drop a ref to the buffer and free it if the usage count has hit zero
- *	Functions identically to kfree_skb, but kfree_skb assumes that the frame
- *	is being dropped after a failure and notes that
- */
-void consume_skb(struct sk_buff *skb)
-{
-	if (!skb_unref(skb))
-		return;
-
-	trace_consume_skb(skb);
-	__kfree_skb(skb);
-}
-EXPORT_SYMBOL(consume_skb);
-#endif
-
 /**
  *	consume_stateless_skb - free an skbuff, assuming it is stateless
  *	@skb: buffer to free
@@ -859,7 +838,6 @@ EXPORT_SYMBOL(consume_skb);
  */
 void __consume_stateless_skb(struct sk_buff *skb)
 {
-	trace_consume_skb(skb);
 	skb_release_data(skb);
 	kfree_skbmem(skb);
 }
@@ -913,7 +891,6 @@ void napi_consume_skb(struct sk_buff *skb, int budget)
 		return;
 
 	/* if reaching here SKB is ready to free */
-	trace_consume_skb(skb);
 
 	/* if SKB is a clone, don't handle this case */
 	if (skb->fclone != SKB_FCLONE_UNAVAILABLE) {

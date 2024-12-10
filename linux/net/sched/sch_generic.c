@@ -292,7 +292,6 @@ bulk:
 			try_bulk_dequeue_skb_slow(q, skb, packets);
 	}
 trace:
-	trace_qdisc_dequeue(q, txq, *packets, skb);
 	return skb;
 }
 
@@ -463,7 +462,6 @@ static void dev_watchdog(struct timer_list *t)
 			}
 
 			if (some_queue_timedout) {
-				trace_net_dev_xmit_timeout(dev, i);
 				WARN_ONCE(1, KERN_INFO "NETDEV WATCHDOG: %s (%s): transmit queue %u timed out\n",
 				       dev->name, netdev_drivername(dev), i);
 				dev->netdev_ops->ndo_tx_timeout(dev, i);
@@ -929,7 +927,6 @@ struct Qdisc *qdisc_create_dflt(struct netdev_queue *dev_queue,
 	sch->parent = parentid;
 
 	if (!ops->init || ops->init(sch, NULL, extack) == 0) {
-		trace_qdisc_create(ops, dev_queue->dev, parentid);
 		return sch;
 	}
 
@@ -944,8 +941,6 @@ void qdisc_reset(struct Qdisc *qdisc)
 {
 	const struct Qdisc_ops *ops = qdisc->ops;
 	struct sk_buff *skb, *tmp;
-
-	trace_qdisc_reset(qdisc);
 
 	if (ops->reset)
 		ops->reset(qdisc);
@@ -1000,8 +995,6 @@ static void qdisc_destroy(struct Qdisc *qdisc)
 
 	module_put(ops->owner);
 	dev_put(qdisc_dev(qdisc));
-
-	trace_qdisc_destroy(qdisc);
 
 	call_rcu(&qdisc->rcu, qdisc_free_cb);
 }

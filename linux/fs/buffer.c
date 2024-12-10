@@ -59,7 +59,6 @@ static int submit_bh_wbc(int op, int op_flags, struct buffer_head *bh,
 
 inline void touch_buffer(struct buffer_head *bh)
 {
-	trace_block_touch_buffer(bh);
 	mark_page_accessed(bh->b_page);
 }
 EXPORT_SYMBOL(touch_buffer);
@@ -1111,8 +1110,6 @@ __getblk_slow(struct block_device *bdev, sector_t block,
 void mark_buffer_dirty(struct buffer_head *bh)
 {
 	WARN_ON_ONCE(!buffer_uptodate(bh));
-
-	trace_block_dirty_buffer(bh);
 
 	/*
 	 * Very *carefully* optimize the it-is-already-dirty case.

@@ -21,11 +21,6 @@
 #include <linux/workqueue.h>
 #include <linux/ctype.h>
 
-#ifdef CONFIG_FTRACE_SYSCALLS
-#include <asm/unistd.h>		/* For NR_SYSCALLS	     */
-#include <asm/syscall.h>	/* some archs define it here */
-#endif
-
 enum trace_type {
 	__TRACE_FIRST_TYPE = 0,
 
@@ -329,12 +324,6 @@ struct trace_array {
 	 */
 	arch_spinlock_t		max_lock;
 	int			buffer_disabled;
-#ifdef CONFIG_FTRACE_SYSCALLS
-	int			sys_refcount_enter;
-	int			sys_refcount_exit;
-	struct trace_event_file __rcu *enter_syscall_files[NR_syscalls];
-	struct trace_event_file __rcu *exit_syscall_files[NR_syscalls];
-#endif
 	int			stop_count;
 	int			clock_id;
 	int			nr_topts;
@@ -2050,27 +2039,11 @@ int perf_ftrace_event_register(struct trace_event_call *call,
 #define perf_ftrace_event_register NULL
 #endif
 
-#ifdef CONFIG_FTRACE_SYSCALLS
-void init_ftrace_syscalls(void);
-const char *get_syscall_name(int syscall);
-#else
-static inline void init_ftrace_syscalls(void) { }
 static inline const char *get_syscall_name(int syscall)
 {
 	return NULL;
 }
-#endif
 
-#ifdef CONFIG_EVENT_TRACING
-void trace_event_init(void);
-void trace_event_eval_update(struct trace_eval_map **map, int len);
-/* Used from boot time tracer */
-extern int ftrace_set_clr_event(struct trace_array *tr, char *buf, int set);
-extern int trigger_process_regex(struct trace_event_file *file, char *buff);
-#else
-static inline void __init trace_event_init(void) { }
-static inline void trace_event_eval_update(struct trace_eval_map **map, int len) { }
-#endif
 
 #ifdef CONFIG_TRACER_SNAPSHOT
 void tracing_snapshot_instance(struct trace_array *tr);

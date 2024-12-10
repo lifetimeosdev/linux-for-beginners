@@ -786,8 +786,6 @@ static void tcp_v4_send_reset(const struct sock *sk, struct sk_buff *skb)
 	 */
 	if (sk) {
 		arg.bound_dev_if = sk->sk_bound_dev_if;
-		if (sk_fullsock(sk))
-			trace_tcp_send_reset(sk, skb);
 	}
 
 	BUILD_BUG_ON(offsetof(struct sock, sk_bound_dev_if) !=
@@ -2229,8 +2227,6 @@ static int tcp_v4_init_sock(struct sock *sk)
 void tcp_v4_destroy_sock(struct sock *sk)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
-
-	trace_tcp_destroy_sock(sk);
 
 	tcp_clear_xmit_timers(sk);
 

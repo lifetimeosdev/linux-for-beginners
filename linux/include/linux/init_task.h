@@ -28,13 +28,9 @@ extern struct nsproxy init_nsproxy;
 extern struct group_info init_groups;
 extern struct cred init_cred;
 
-#ifndef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
 #define INIT_PREV_CPUTIME(x)	.prev_cputime = {			\
 	.lock = __RAW_SPIN_LOCK_UNLOCKED(x.prev_cputime.lock),		\
 },
-#else
-#define INIT_PREV_CPUTIME(x)
-#endif
 
 #define INIT_TASK_COMM "swapper"
 

@@ -358,18 +358,6 @@ static __always_inline void *kmem_cache_alloc_node(struct kmem_cache *s, gfp_t f
 	return kmem_cache_alloc(s, flags);
 }
 
-#ifdef CONFIG_TRACING
-extern void *kmem_cache_alloc_trace(struct kmem_cache *, gfp_t, size_t) __assume_slab_alignment __malloc;
-
-static __always_inline void *
-kmem_cache_alloc_node_trace(struct kmem_cache *s,
-			      gfp_t gfpflags,
-			      int node, size_t size)
-{
-	return kmem_cache_alloc_trace(s, gfpflags, size);
-}
-
-#else /* CONFIG_TRACING */
 static __always_inline void *kmem_cache_alloc_trace(struct kmem_cache *s,
 		gfp_t flags, size_t size)
 {
@@ -389,19 +377,14 @@ kmem_cache_alloc_node_trace(struct kmem_cache *s,
 	ret = kasan_kmalloc(s, ret, size, gfpflags);
 	return ret;
 }
-#endif /* CONFIG_TRACING */
 
 extern void *kmalloc_order(size_t size, gfp_t flags, unsigned int order) __assume_page_alignment __malloc;
 
-#ifdef CONFIG_TRACING
-extern void *kmalloc_order_trace(size_t size, gfp_t flags, unsigned int order) __assume_page_alignment __malloc;
-#else
 static __always_inline void *
 kmalloc_order_trace(size_t size, gfp_t flags, unsigned int order)
 {
 	return kmalloc_order(size, flags, order);
 }
-#endif
 
 static __always_inline void *kmalloc_large(size_t size, gfp_t flags)
 {

@@ -514,7 +514,6 @@ static void veth_xdp_flush_bq(struct veth_rq *rq, struct veth_xdp_tx_bq *bq)
 		for (i = 0; i < bq->count; i++)
 			xdp_return_frame(bq->q[i]);
 	}
-	trace_xdp_bulk_tx(rq->dev, sent, bq->count - sent, err);
 
 	u64_stats_update_begin(&rq->stats.syncp);
 	rq->stats.vs.xdp_tx += sent;
@@ -598,7 +597,6 @@ static struct sk_buff *veth_xdp_rcv_one(struct veth_rq *rq,
 			orig_frame = *frame;
 			xdp.rxq->mem = frame->mem;
 			if (unlikely(veth_xdp_tx(rq, &xdp, bq) < 0)) {
-				trace_xdp_exception(rq->dev, xdp_prog, act);
 				frame = &orig_frame;
 				stats->rx_drops++;
 				goto err_xdp;
@@ -621,7 +619,6 @@ static struct sk_buff *veth_xdp_rcv_one(struct veth_rq *rq,
 			bpf_warn_invalid_xdp_action(act);
 			fallthrough;
 		case XDP_ABORTED:
-			trace_xdp_exception(rq->dev, xdp_prog, act);
 			fallthrough;
 		case XDP_DROP:
 			stats->xdp_drops++;
@@ -734,7 +731,6 @@ static struct sk_buff *veth_xdp_rcv_skb(struct veth_rq *rq,
 		consume_skb(skb);
 		xdp.rxq->mem = rq->xdp_mem;
 		if (unlikely(veth_xdp_tx(rq, &xdp, bq) < 0)) {
-			trace_xdp_exception(rq->dev, xdp_prog, act);
 			stats->rx_drops++;
 			goto err_xdp;
 		}
@@ -756,7 +752,6 @@ static struct sk_buff *veth_xdp_rcv_skb(struct veth_rq *rq,
 		bpf_warn_invalid_xdp_action(act);
 		fallthrough;
 	case XDP_ABORTED:
-		trace_xdp_exception(rq->dev, xdp_prog, act);
 		fallthrough;
 	case XDP_DROP:
 		stats->xdp_drops++;

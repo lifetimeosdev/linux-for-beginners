@@ -124,17 +124,12 @@ extern void arch_uninstall_hw_breakpoint(struct perf_event *bp);
 extern void hw_breakpoint_pmu_read(struct perf_event *bp);
 extern int hw_breakpoint_slots(int type);
 
-#ifdef CONFIG_HAVE_HW_BREAKPOINT
-extern void hw_breakpoint_thread_switch(struct task_struct *next);
-extern void ptrace_hw_copy_thread(struct task_struct *task);
-#else
 static inline void hw_breakpoint_thread_switch(struct task_struct *next)
 {
 }
 static inline void ptrace_hw_copy_thread(struct task_struct *task)
 {
 }
-#endif
 
 /* Determine number of BRP registers available. */
 static inline int get_num_brps(void)

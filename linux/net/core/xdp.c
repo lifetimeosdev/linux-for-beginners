@@ -80,8 +80,6 @@ static void __xdp_mem_allocator_rcu_free(struct rcu_head *rcu)
 
 static void mem_xa_remove(struct xdp_mem_allocator *xa)
 {
-	trace_mem_disconnect(xa);
-
 	if (!rhashtable_remove_fast(mem_id_ht, &xa->node, mem_id_rht_params))
 		call_rcu(&xa->rcu, __xdp_mem_allocator_rcu_free);
 }
@@ -322,7 +320,6 @@ int xdp_rxq_info_reg_mem_model(struct xdp_rxq_info *xdp_rxq,
 
 	mutex_unlock(&mem_id_lock);
 
-	trace_mem_connect(xdp_alloc, xdp_rxq);
 	return 0;
 err:
 	mutex_unlock(&mem_id_lock);

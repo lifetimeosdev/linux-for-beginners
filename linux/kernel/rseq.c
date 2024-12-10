@@ -89,7 +89,6 @@ static int rseq_update_cpu_id(struct task_struct *t)
 		return -EFAULT;
 	if (put_user(cpu_id, &t->rseq->cpu_id))
 		return -EFAULT;
-	trace_rseq_update(t);
 	return 0;
 }
 
@@ -251,8 +250,6 @@ static int rseq_ip_fixup(struct pt_regs *regs)
 	ret = clear_rseq_cs(t);
 	if (ret)
 		return ret;
-	trace_rseq_ip_fixup(ip, rseq_cs.start_ip, rseq_cs.post_commit_offset,
-			    rseq_cs.abort_ip);
 	instruction_pointer_set(regs, (unsigned long)rseq_cs.abort_ip);
 	return 0;
 }
@@ -295,27 +292,6 @@ error:
 	sig = ksig ? ksig->sig : 0;
 	force_sigsegv(sig);
 }
-
-#ifdef CONFIG_DEBUG_RSEQ
-
-/*
- * Terminate the process if a syscall is issued within a restartable
- * sequence.
- */
-void rseq_syscall(struct pt_regs *regs)
-{
-	unsigned long ip = instruction_pointer(regs);
-	struct task_struct *t = current;
-	struct rseq_cs rseq_cs;
-
-	if (!t->rseq)
-		return;
-	if (!access_ok(t->rseq, sizeof(*t->rseq)) ||
-	    rseq_get_rseq_cs(t, &rseq_cs) || in_rseq_cs(ip, &rseq_cs))
-		force_sig(SIGSEGV);
-}
-
-#endif
 
 /*
  * sys_rseq - setup restartable sequences for caller thread.

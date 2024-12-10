@@ -463,19 +463,6 @@ const struct debug_obj_descr rcuhead_debug_descr = {
 EXPORT_SYMBOL_GPL(rcuhead_debug_descr);
 #endif /* #ifdef CONFIG_DEBUG_OBJECTS_RCU_HEAD */
 
-#if defined(CONFIG_TREE_RCU) || defined(CONFIG_RCU_TRACE)
-void do_trace_rcu_torture_read(const char *rcutorturename, struct rcu_head *rhp,
-			       unsigned long secs,
-			       unsigned long c_old, unsigned long c)
-{
-	trace_rcu_torture_read(rcutorturename, rhp, secs, c_old, c);
-}
-EXPORT_SYMBOL_GPL(do_trace_rcu_torture_read);
-#else
-#define do_trace_rcu_torture_read(rcutorturename, rhp, secs, c_old, c) \
-	do { } while (0)
-#endif
-
 #if IS_ENABLED(CONFIG_RCU_TORTURE_TEST) || IS_MODULE(CONFIG_RCU_TORTURE_TEST)
 /* Get rcutorture access to sched_setaffinity(). */
 long rcutorture_sched_setaffinity(pid_t pid, const struct cpumask *in_mask)

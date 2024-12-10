@@ -41,31 +41,19 @@
 #endif
 
 /* Main tracing buffer and events set up */
-#ifdef CONFIG_TRACING
-void trace_init(void);
-void early_trace_init(void);
-#else
 static inline void trace_init(void) { }
 static inline void early_trace_init(void) { }
-#endif
 
 struct module;
 struct ftrace_hash;
 struct ftrace_direct_func;
 
-#if defined(CONFIG_FUNCTION_TRACER) && defined(CONFIG_MODULES) && \
-	defined(CONFIG_DYNAMIC_FTRACE)
-const char *
-ftrace_mod_address_lookup(unsigned long addr, unsigned long *size,
-		   unsigned long *off, char **modname, char *sym);
-#else
 static inline const char *
 ftrace_mod_address_lookup(unsigned long addr, unsigned long *size,
 		   unsigned long *off, char **modname, char *sym)
 {
 	return NULL;
 }
-#endif
 
 #if defined(CONFIG_FUNCTION_TRACER) && defined(CONFIG_DYNAMIC_FTRACE)
 int ftrace_mod_get_kallsym(unsigned int symnum, unsigned long *value,
@@ -976,67 +964,6 @@ static inline void pause_graph_tracing(void) { }
 static inline void unpause_graph_tracing(void) { }
 #endif /* CONFIG_FUNCTION_GRAPH_TRACER */
 
-#ifdef CONFIG_TRACING
-
-/* flags for current->trace */
-enum {
-	TSK_TRACE_FL_TRACE_BIT	= 0,
-	TSK_TRACE_FL_GRAPH_BIT	= 1,
-};
-enum {
-	TSK_TRACE_FL_TRACE	= 1 << TSK_TRACE_FL_TRACE_BIT,
-	TSK_TRACE_FL_GRAPH	= 1 << TSK_TRACE_FL_GRAPH_BIT,
-};
-
-static inline void set_tsk_trace_trace(struct task_struct *tsk)
-{
-	set_bit(TSK_TRACE_FL_TRACE_BIT, &tsk->trace);
-}
-
-static inline void clear_tsk_trace_trace(struct task_struct *tsk)
-{
-	clear_bit(TSK_TRACE_FL_TRACE_BIT, &tsk->trace);
-}
-
-static inline int test_tsk_trace_trace(struct task_struct *tsk)
-{
-	return tsk->trace & TSK_TRACE_FL_TRACE;
-}
-
-static inline void set_tsk_trace_graph(struct task_struct *tsk)
-{
-	set_bit(TSK_TRACE_FL_GRAPH_BIT, &tsk->trace);
-}
-
-static inline void clear_tsk_trace_graph(struct task_struct *tsk)
-{
-	clear_bit(TSK_TRACE_FL_GRAPH_BIT, &tsk->trace);
-}
-
-static inline int test_tsk_trace_graph(struct task_struct *tsk)
-{
-	return tsk->trace & TSK_TRACE_FL_GRAPH;
-}
-
-enum ftrace_dump_mode;
-
-extern enum ftrace_dump_mode ftrace_dump_on_oops;
-extern int tracepoint_printk;
-
-extern void disable_trace_on_warning(void);
-extern int __disable_trace_on_warning;
-
-int tracepoint_printk_sysctl(struct ctl_table *table, int write,
-			     void *buffer, size_t *lenp, loff_t *ppos);
-
-#else /* CONFIG_TRACING */
 static inline void  disable_trace_on_warning(void) { }
-#endif /* CONFIG_TRACING */
-
-#ifdef CONFIG_FTRACE_SYSCALLS
-
-unsigned long arch_syscall_addr(int nr);
-
-#endif /* CONFIG_FTRACE_SYSCALLS */
 
 #endif /* _LINUX_FTRACE_H */

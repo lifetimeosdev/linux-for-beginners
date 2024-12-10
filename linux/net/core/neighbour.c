@@ -96,7 +96,6 @@ static int neigh_blackhole(struct neighbour *neigh, struct sk_buff *skb)
 
 static void neigh_cleanup_and_release(struct neighbour *neigh)
 {
-	trace_neigh_cleanup_and_release(neigh, 0);
 	__neigh_notify(neigh, RTM_DELNEIGH, 0, 0);
 	call_netevent_notifiers(NETEVENT_NEIGH_UPDATE, neigh);
 	neigh_release(neigh);
@@ -588,7 +587,6 @@ ___neigh_create(struct neigh_table *tbl, const void *pkey,
 	int error;
 
 	n = neigh_alloc(tbl, dev, flags, exempt_from_gc);
-	trace_neigh_create(tbl, dev, pkey, n, exempt_from_gc);
 	if (!n) {
 		rc = ERR_PTR(-ENOBUFS);
 		goto out;
@@ -1108,8 +1106,6 @@ out:
 	if (notify)
 		neigh_update_notify(neigh, 0);
 
-	trace_neigh_timer_handler(neigh, 0);
-
 	neigh_release(neigh);
 }
 
@@ -1182,7 +1178,6 @@ out_unlock_bh:
 	else
 		write_unlock(&neigh->lock);
 	local_bh_enable();
-	trace_neigh_event_send_done(neigh, rc);
 	return rc;
 
 out_dead:
@@ -1190,7 +1185,6 @@ out_dead:
 		goto out_unlock_bh;
 	write_unlock_bh(&neigh->lock);
 	kfree_skb(skb);
-	trace_neigh_event_send_dead(neigh, 1);
 	return 1;
 }
 EXPORT_SYMBOL(__neigh_event_send);
@@ -1245,8 +1239,6 @@ static int __neigh_update(struct neighbour *neigh, const u8 *lladdr,
 	int notify = 0;
 	struct net_device *dev;
 	int update_isrouter = 0;
-
-	trace_neigh_update(neigh, lladdr, new, flags, nlmsg_pid);
 
 	write_lock_bh(&neigh->lock);
 
@@ -1420,8 +1412,6 @@ out:
 
 	if (notify)
 		neigh_update_notify(neigh, nlmsg_pid);
-
-	trace_neigh_update_done(neigh, err);
 
 	return err;
 }

@@ -780,7 +780,6 @@ static struct sk_buff *receive_small(struct net_device *dev,
 				goto err_xdp;
 			err = virtnet_xdp_xmit(dev, 1, &xdpf, 0);
 			if (unlikely(err < 0)) {
-				trace_xdp_exception(vi->dev, xdp_prog, act);
 				goto err_xdp;
 			}
 			*xdp_xmit |= VIRTIO_XDP_TX;
@@ -798,7 +797,6 @@ static struct sk_buff *receive_small(struct net_device *dev,
 			bpf_warn_invalid_xdp_action(act);
 			fallthrough;
 		case XDP_ABORTED:
-			trace_xdp_exception(vi->dev, xdp_prog, act);
 		case XDP_DROP:
 			goto err_xdp;
 		}
@@ -979,7 +977,6 @@ static struct sk_buff *receive_mergeable(struct net_device *dev,
 			}
 			err = virtnet_xdp_xmit(dev, 1, &xdpf, 0);
 			if (unlikely(err < 0)) {
-				trace_xdp_exception(vi->dev, xdp_prog, act);
 				if (unlikely(xdp_page != page))
 					put_page(xdp_page);
 				goto err_xdp;
@@ -1006,7 +1003,6 @@ static struct sk_buff *receive_mergeable(struct net_device *dev,
 			bpf_warn_invalid_xdp_action(act);
 			fallthrough;
 		case XDP_ABORTED:
-			trace_xdp_exception(vi->dev, xdp_prog, act);
 			fallthrough;
 		case XDP_DROP:
 			if (unlikely(xdp_page != page))

@@ -852,12 +852,9 @@ static void clk_core_unprepare(struct clk_core *core)
 
 	WARN(core->enable_count > 0, "Unpreparing enabled %s\n", core->name);
 
-	trace_clk_unprepare(core);
-
 	if (core->ops->unprepare)
 		core->ops->unprepare(core->hw);
 
-	trace_clk_unprepare_complete(core);
 	clk_core_unprepare(core->parent);
 	clk_pm_runtime_put(core);
 }
@@ -907,12 +904,8 @@ static int clk_core_prepare(struct clk_core *core)
 		if (ret)
 			goto runtime_put;
 
-		trace_clk_prepare(core);
-
 		if (core->ops->prepare)
 			ret = core->ops->prepare(core->hw);
-
-		trace_clk_prepare_complete(core);
 
 		if (ret)
 			goto unprepare;
@@ -987,12 +980,8 @@ static void clk_core_disable(struct clk_core *core)
 	if (--core->enable_count > 0)
 		return;
 
-	trace_clk_disable_rcuidle(core);
-
 	if (core->ops->disable)
 		core->ops->disable(core->hw);
-
-	trace_clk_disable_complete_rcuidle(core);
 
 	clk_core_disable(core->parent);
 }
@@ -1046,12 +1035,8 @@ static int clk_core_enable(struct clk_core *core)
 		if (ret)
 			return ret;
 
-		trace_clk_enable_rcuidle(core);
-
 		if (core->ops->enable)
 			ret = core->ops->enable(core->hw);
-
-		trace_clk_enable_complete_rcuidle(core);
 
 		if (ret) {
 			clk_core_disable(core->parent);
@@ -1232,12 +1217,10 @@ static void __init clk_unprepare_unused_subtree(struct clk_core *core)
 		return;
 
 	if (clk_core_is_prepared(core)) {
-		trace_clk_unprepare(core);
 		if (core->ops->unprepare_unused)
 			core->ops->unprepare_unused(core->hw);
 		else if (core->ops->unprepare)
 			core->ops->unprepare(core->hw);
-		trace_clk_unprepare_complete(core);
 	}
 
 	clk_pm_runtime_put(core);
@@ -1273,12 +1256,10 @@ static void __init clk_disable_unused_subtree(struct clk_core *core)
 	 * back to .disable
 	 */
 	if (clk_core_is_enabled(core)) {
-		trace_clk_disable(core);
 		if (core->ops->disable_unused)
 			core->ops->disable_unused(core->hw);
 		else if (core->ops->disable)
 			core->ops->disable(core->hw);
-		trace_clk_disable_complete(core);
 	}
 
 unlock_out:
@@ -1846,13 +1827,9 @@ static int __clk_set_parent(struct clk_core *core, struct clk_core *parent,
 
 	old_parent = __clk_set_parent_before(core, parent);
 
-	trace_clk_set_parent(core, parent);
-
 	/* change clock input source */
 	if (parent && core->ops->set_parent)
 		ret = core->ops->set_parent(core->hw, p_index);
-
-	trace_clk_set_parent_complete(core, parent);
 
 	if (ret) {
 		flags = clk_enable_lock();
@@ -2095,8 +2072,6 @@ static void clk_change_rate(struct clk_core *core)
 
 	if (core->new_parent && core->new_parent != core->parent) {
 		old_parent = __clk_set_parent_before(core, core->new_parent);
-		trace_clk_set_parent(core, core->new_parent);
-
 		if (core->ops->set_rate_and_parent) {
 			skip_set_rate = true;
 			core->ops->set_rate_and_parent(core->hw, core->new_rate,
@@ -2106,19 +2081,14 @@ static void clk_change_rate(struct clk_core *core)
 			core->ops->set_parent(core->hw, core->new_parent_index);
 		}
 
-		trace_clk_set_parent_complete(core, core->new_parent);
 		__clk_set_parent_after(core, core->new_parent, old_parent);
 	}
 
 	if (core->flags & CLK_OPS_PARENT_ENABLE)
 		clk_core_prepare_enable(parent);
 
-	trace_clk_set_rate(core, core->new_rate);
-
 	if (!skip_set_rate && core->ops->set_rate)
 		core->ops->set_rate(core->hw, core->new_rate, best_parent_rate);
-
-	trace_clk_set_rate_complete(core, core->new_rate);
 
 	core->rate = clk_recalc(core, best_parent_rate);
 
@@ -2641,15 +2611,11 @@ static int clk_core_set_phase_nolock(struct clk_core *core, int degrees)
 	if (clk_core_rate_is_protected(core))
 		return -EBUSY;
 
-	trace_clk_set_phase(core, degrees);
-
 	if (core->ops->set_phase) {
 		ret = core->ops->set_phase(core->hw, degrees);
 		if (!ret)
 			core->phase = degrees;
 	}
-
-	trace_clk_set_phase_complete(core, degrees);
 
 	return ret;
 }
@@ -2802,16 +2768,12 @@ static int clk_core_set_duty_cycle_nolock(struct clk_core *core,
 	if (clk_core_rate_is_protected(core))
 		return -EBUSY;
 
-	trace_clk_set_duty_cycle(core, duty);
-
 	if (!core->ops->set_duty_cycle)
 		return clk_core_set_duty_cycle_parent_nolock(core, duty);
 
 	ret = core->ops->set_duty_cycle(core->hw, duty);
 	if (!ret)
 		memcpy(&core->duty, duty, sizeof(*duty));
-
-	trace_clk_set_duty_cycle_complete(core, duty);
 
 	return ret;
 }

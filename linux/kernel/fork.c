@@ -1972,12 +1972,6 @@ static __latent_entropy struct task_struct *copy_process(
 #endif
 	prev_cputime_init(&p->prev_cputime);
 
-#ifdef CONFIG_VIRT_CPU_ACCOUNTING_GEN
-	seqcount_init(&p->vtime.seqcount);
-	p->vtime.starttime = 0;
-	p->vtime.state = VTIME_INACTIVE;
-#endif
-
 #if defined(SPLIT_RSS_COUNTING)
 	memset(&p->rss_stat, 0, sizeof(p->rss_stat));
 #endif
@@ -2128,7 +2122,6 @@ static __latent_entropy struct task_struct *copy_process(
 	p->pdeath_signal = 0;
 	INIT_LIST_HEAD(&p->thread_group);
 	p->task_works = NULL;
-	clear_posix_cputimers_work(p);
 
 	/*
 	 * Ensure that the cgroup subsystem policies allow the new process to be
@@ -2242,7 +2235,6 @@ static __latent_entropy struct task_struct *copy_process(
 	total_forks++;
 	hlist_del_init(&delayed.node);
 	spin_unlock(&current->sighand->siglock);
-	syscall_tracepoint_update(p);
 	write_unlock_irq(&tasklist_lock);
 
 	if (pidfile)
@@ -2253,7 +2245,6 @@ static __latent_entropy struct task_struct *copy_process(
 	cgroup_post_fork(p, args);
 	perf_event_fork(p);
 
-	trace_task_newtask(p, clone_flags);
 	uprobe_copy_process(p, clone_flags);
 
 	copy_oom_score_adj(clone_flags, p);
@@ -2423,8 +2414,6 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 	 * Do this prior waking up the new thread - the thread pointer
 	 * might get invalid after that point, if the thread exits quickly.
 	 */
-	trace_sched_process_fork(current, p);
-
 	pid = get_task_pid(p, PIDTYPE_PID);
 	nr = pid_vnr(pid);
 

@@ -217,7 +217,7 @@ endif
 # source "net/atm/Kconfig"
 # source "net/l2tp/Kconfig"
 source "net/802/Kconfig"
-source "net/bridge/Kconfig"
+# source "net/bridge/Kconfig"
 # source "net/dsa/Kconfig"
 source "net/8021q/Kconfig"
 source "net/llc/Kconfig"

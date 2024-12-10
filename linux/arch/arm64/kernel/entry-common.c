@@ -45,7 +45,6 @@ static void noinstr exit_to_kernel_mode(struct pt_regs *regs)
 
 	if (interrupts_enabled(regs)) {
 		if (regs->exit_rcu) {
-			trace_hardirqs_on_prepare();
 			rcu_irq_exit();
 			return;
 		}
@@ -60,7 +59,6 @@ void noinstr arm64_enter_nmi(struct pt_regs *regs)
 	regs->lockdep_hardirqs = lockdep_hardirqs_enabled();
 
 	__nmi_enter();
-	lockdep_hardirq_enter();
 	rcu_nmi_enter();
 
 	ftrace_nmi_enter();
@@ -68,15 +66,9 @@ void noinstr arm64_enter_nmi(struct pt_regs *regs)
 
 void noinstr arm64_exit_nmi(struct pt_regs *regs)
 {
-	bool restore = regs->lockdep_hardirqs;
-
 	ftrace_nmi_exit();
-	if (restore) {
-		trace_hardirqs_on_prepare();
-	}
 
 	rcu_nmi_exit();
-	lockdep_hardirq_exit();
 	__nmi_exit();
 }
 
@@ -155,12 +147,6 @@ static void noinstr arm64_enter_el1_dbg(struct pt_regs *regs)
 
 static void noinstr arm64_exit_el1_dbg(struct pt_regs *regs)
 {
-	bool restore = regs->lockdep_hardirqs;
-
-	if (restore) {
-		trace_hardirqs_on_prepare();
-	}
-
 	rcu_nmi_exit();
 }
 
@@ -224,11 +210,6 @@ asmlinkage void noinstr enter_from_user_mode(void)
 	CT_WARN_ON(ct_state() != CONTEXT_USER);
 }
 
-asmlinkage void noinstr exit_to_user_mode(void)
-{
-	trace_hardirqs_on_prepare();
-	user_enter_irqoff();
-}
 
 static void noinstr el0_da(struct pt_regs *regs, unsigned long esr)
 {

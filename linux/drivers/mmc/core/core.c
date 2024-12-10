@@ -159,8 +159,6 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 
 	mmc_complete_cmd(mrq);
 
-	trace_mmc_request_done(host, mrq);
-
 	/*
 	 * We list various conditions for the command to be considered
 	 * properly done:
@@ -252,8 +250,6 @@ static void __mmc_start_request(struct mmc_host *host, struct mmc_request *mrq)
 		 */
 		reinit_completion(&mrq->cmd_completion);
 	}
-
-	trace_mmc_request_start(host, mrq);
 
 	if (host->cqe_on)
 		host->cqe_ops->cqe_off(host);
@@ -454,8 +450,6 @@ int mmc_cqe_start_req(struct mmc_host *host, struct mmc_request *mrq)
 	if (err)
 		goto out_err;
 
-	trace_mmc_request_start(host, mrq);
-
 	return 0;
 
 out_err:
@@ -486,8 +480,6 @@ void mmc_cqe_request_done(struct mmc_host *host, struct mmc_request *mrq)
 	if ((mrq->cmd && mrq->cmd->error == -EILSEQ) ||
 	    (mrq->data && mrq->data->error == -EILSEQ))
 		mmc_retune_needed(host);
-
-	trace_mmc_request_done(host, mrq);
 
 	if (mrq->cmd) {
 		pr_debug("%s: CQE req done (direct CMD%u): %d\n",

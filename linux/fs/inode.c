@@ -1712,7 +1712,6 @@ retry:
 		if (inode->i_nlink && (inode->i_state & I_DIRTY_TIME)) {
 			atomic_inc(&inode->i_count);
 			spin_unlock(&inode->i_lock);
-			trace_writeback_lazytime_iput(inode);
 			mark_inode_dirty_sync(inode);
 			goto retry;
 		}

@@ -66,6 +66,4 @@ void __init time_init(void)
 
 	/* Calibrate the delay loop directly */
 	lpj_fine = arch_timer_rate / HZ;
-
-	pv_time_init();
 }

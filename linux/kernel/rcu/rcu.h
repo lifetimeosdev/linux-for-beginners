@@ -240,13 +240,6 @@ static inline bool rcu_stall_is_suppressed(void)
 #endif /* #ifdef CONFIG_RCU_STALL_COMMON */
 
 /*
- * Strings used in tracepoints need to be exported via the
- * tracing system such that tools like perf and trace-cmd can
- * translate the string address pointers to actual text.
- */
-#define TPS(x)  tracepoint_string(x)
-
-/*
  * Dump the ftrace buffer, but only one time per callsite per boot.
  */
 #define rcu_ftrace_dump(oops_dump_mode) \

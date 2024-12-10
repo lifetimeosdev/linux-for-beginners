@@ -1876,8 +1876,6 @@ static void call_console_drivers(const char *ext_text, size_t ext_len,
 	size_t dropped_len = 0;
 	struct console *con;
 
-	trace_console_rcuidle(text, len);
-
 	if (!console_drivers)
 		return;
 
@@ -2523,9 +2521,7 @@ skip:
 		 */
 		console_lock_spinning_enable();
 
-		stop_critical_timings();	/* don't trace print latency */
 		call_console_drivers(ext_text, ext_len, text, len);
-		start_critical_timings();
 
 		if (console_lock_spinning_disable_and_check()) {
 			printk_safe_exit_irqrestore(flags);
@@ -2971,12 +2967,9 @@ void __init console_init(void)
 	 * inform about problems etc..
 	 */
 	ce = __con_initcall_start;
-	trace_initcall_level("console");
 	while (ce < __con_initcall_end) {
 		call = initcall_from_entry(ce);
-		trace_initcall_start(call);
 		ret = call();
-		trace_initcall_finish(call, ret);
 		ce++;
 	}
 }

@@ -538,11 +538,6 @@ static int phy_request_driver_module(struct phy_device *dev, u32 phy_id)
 	 * Accept -ENOENT because this may occur in case no initramfs exists,
 	 * then modprobe isn't available.
 	 */
-	if (IS_ENABLED(CONFIG_MODULES) && ret < 0 && ret != -ENOENT) {
-		phydev_err(dev, "error %d loading PHY driver module for ID 0x%08lx\n",
-			   ret, (unsigned long)phy_id);
-		return ret;
-	}
 
 	return 0;
 }

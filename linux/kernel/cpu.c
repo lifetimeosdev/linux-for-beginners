@@ -152,9 +152,7 @@ static int cpuhp_invoke_callback(unsigned int cpu, enum cpuhp_state state,
 		cb = bringup ? step->startup.single : step->teardown.single;
 		if (!cb)
 			return 0;
-		trace_cpuhp_enter(cpu, st->target, state, cb);
 		ret = cb(cpu);
-		trace_cpuhp_exit(cpu, st->state, state, ret);
 		return ret;
 	}
 	cbm = bringup ? step->startup.multi : step->teardown.multi;
@@ -164,9 +162,7 @@ static int cpuhp_invoke_callback(unsigned int cpu, enum cpuhp_state state,
 	/* Single invocation for instance add/remove */
 	if (node) {
 		WARN_ON_ONCE(lastp && *lastp);
-		trace_cpuhp_multi_enter(cpu, st->target, state, cbm, node);
 		ret = cbm(cpu, node);
-		trace_cpuhp_exit(cpu, st->state, state, ret);
 		return ret;
 	}
 
@@ -176,9 +172,7 @@ static int cpuhp_invoke_callback(unsigned int cpu, enum cpuhp_state state,
 		if (lastp && node == *lastp)
 			break;
 
-		trace_cpuhp_multi_enter(cpu, st->target, state, cbm, node);
 		ret = cbm(cpu, node);
-		trace_cpuhp_exit(cpu, st->state, state, ret);
 		if (ret) {
 			if (!lastp)
 				goto err;
@@ -201,9 +195,7 @@ err:
 		if (!cnt--)
 			break;
 
-		trace_cpuhp_multi_enter(cpu, st->target, state, cbm, node);
 		ret = cbm(cpu, node);
-		trace_cpuhp_exit(cpu, st->state, state, ret);
 		/*
 		 * Rollback must not fail,
 		 */
@@ -491,8 +483,6 @@ static void undo_cpu_up(unsigned int cpu, struct cpuhp_cpu_state *st)
 
 static inline bool can_rollback_cpu(struct cpuhp_cpu_state *st)
 {
-	if (IS_ENABLED(CONFIG_HOTPLUG_CPU))
-		return true;
 	/*
 	 * When CPU hotplug is disabled, then taking the CPU down is not
 	 * possible because takedown_cpu() and the architecture and
@@ -682,7 +672,6 @@ cpuhp_invoke_ap_callback(int cpu, enum cpuhp_state state, bool bringup,
 static int cpuhp_kick_ap_work(unsigned int cpu)
 {
 	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
-	enum cpuhp_state prev_state = st->state;
 	int ret;
 
 	cpuhp_lock_acquire(false);
@@ -691,9 +680,7 @@ static int cpuhp_kick_ap_work(unsigned int cpu)
 	cpuhp_lock_acquire(true);
 	cpuhp_lock_release(true);
 
-	trace_cpuhp_enter(cpu, st->target, prev_state, cpuhp_kick_ap_work);
 	ret = cpuhp_kick_ap(st, st->target);
-	trace_cpuhp_exit(cpu, st->state, prev_state, ret);
 
 	return ret;
 }
@@ -1756,288 +1743,6 @@ int cpuhp_smt_enable(void)
 	return ret;
 }
 #endif
-
-#if defined(CONFIG_SYSFS) && defined(CONFIG_HOTPLUG_CPU)
-static ssize_t show_cpuhp_state(struct device *dev,
-				struct device_attribute *attr, char *buf)
-{
-	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, dev->id);
-
-	return sprintf(buf, "%d\n", st->state);
-}
-static DEVICE_ATTR(state, 0444, show_cpuhp_state, NULL);
-
-static ssize_t write_cpuhp_target(struct device *dev,
-				  struct device_attribute *attr,
-				  const char *buf, size_t count)
-{
-	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, dev->id);
-	struct cpuhp_step *sp;
-	int target, ret;
-
-	ret = kstrtoint(buf, 10, &target);
-	if (ret)
-		return ret;
-
-#ifdef CONFIG_CPU_HOTPLUG_STATE_CONTROL
-	if (target < CPUHP_OFFLINE || target > CPUHP_ONLINE)
-		return -EINVAL;
-#else
-	if (target != CPUHP_OFFLINE && target != CPUHP_ONLINE)
-		return -EINVAL;
-#endif
-
-	ret = lock_device_hotplug_sysfs();
-	if (ret)
-		return ret;
-
-	mutex_lock(&cpuhp_state_mutex);
-	sp = cpuhp_get_step(target);
-	ret = !sp->name || sp->cant_stop ? -EINVAL : 0;
-	mutex_unlock(&cpuhp_state_mutex);
-	if (ret)
-		goto out;
-
-	if (st->state < target)
-		ret = cpu_up(dev->id, target);
-	else if (st->state > target)
-		ret = cpu_down(dev->id, target);
-	else if (WARN_ON(st->target != target))
-		st->target = target;
-out:
-	unlock_device_hotplug();
-	return ret ? ret : count;
-}
-
-static ssize_t show_cpuhp_target(struct device *dev,
-				 struct device_attribute *attr, char *buf)
-{
-	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, dev->id);
-
-	return sprintf(buf, "%d\n", st->target);
-}
-static DEVICE_ATTR(target, 0644, show_cpuhp_target, write_cpuhp_target);
-
-
-static ssize_t write_cpuhp_fail(struct device *dev,
-				struct device_attribute *attr,
-				const char *buf, size_t count)
-{
-	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, dev->id);
-	struct cpuhp_step *sp;
-	int fail, ret;
-
-	ret = kstrtoint(buf, 10, &fail);
-	if (ret)
-		return ret;
-
-	if (fail < CPUHP_OFFLINE || fail > CPUHP_ONLINE)
-		return -EINVAL;
-
-	/*
-	 * Cannot fail STARTING/DYING callbacks.
-	 */
-	if (cpuhp_is_atomic_state(fail))
-		return -EINVAL;
-
-	/*
-	 * Cannot fail anything that doesn't have callbacks.
-	 */
-	mutex_lock(&cpuhp_state_mutex);
-	sp = cpuhp_get_step(fail);
-	if (!sp->startup.single && !sp->teardown.single)
-		ret = -EINVAL;
-	mutex_unlock(&cpuhp_state_mutex);
-	if (ret)
-		return ret;
-
-	st->fail = fail;
-
-	return count;
-}
-
-static ssize_t show_cpuhp_fail(struct device *dev,
-			       struct device_attribute *attr, char *buf)
-{
-	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, dev->id);
-
-	return sprintf(buf, "%d\n", st->fail);
-}
-
-static DEVICE_ATTR(fail, 0644, show_cpuhp_fail, write_cpuhp_fail);
-
-static struct attribute *cpuhp_cpu_attrs[] = {
-	&dev_attr_state.attr,
-	&dev_attr_target.attr,
-	&dev_attr_fail.attr,
-	NULL
-};
-
-static const struct attribute_group cpuhp_cpu_attr_group = {
-	.attrs = cpuhp_cpu_attrs,
-	.name = "hotplug",
-	NULL
-};
-
-static ssize_t show_cpuhp_states(struct device *dev,
-				 struct device_attribute *attr, char *buf)
-{
-	ssize_t cur, res = 0;
-	int i;
-
-	mutex_lock(&cpuhp_state_mutex);
-	for (i = CPUHP_OFFLINE; i <= CPUHP_ONLINE; i++) {
-		struct cpuhp_step *sp = cpuhp_get_step(i);
-
-		if (sp->name) {
-			cur = sprintf(buf, "%3d: %s\n", i, sp->name);
-			buf += cur;
-			res += cur;
-		}
-	}
-	mutex_unlock(&cpuhp_state_mutex);
-	return res;
-}
-static DEVICE_ATTR(states, 0444, show_cpuhp_states, NULL);
-
-static struct attribute *cpuhp_cpu_root_attrs[] = {
-	&dev_attr_states.attr,
-	NULL
-};
-
-static const struct attribute_group cpuhp_cpu_root_attr_group = {
-	.attrs = cpuhp_cpu_root_attrs,
-	.name = "hotplug",
-	NULL
-};
-
-#ifdef CONFIG_HOTPLUG_SMT
-
-static ssize_t
-__store_smt_control(struct device *dev, struct device_attribute *attr,
-		    const char *buf, size_t count)
-{
-	int ctrlval, ret;
-
-	if (sysfs_streq(buf, "on"))
-		ctrlval = CPU_SMT_ENABLED;
-	else if (sysfs_streq(buf, "off"))
-		ctrlval = CPU_SMT_DISABLED;
-	else if (sysfs_streq(buf, "forceoff"))
-		ctrlval = CPU_SMT_FORCE_DISABLED;
-	else
-		return -EINVAL;
-
-	if (cpu_smt_control == CPU_SMT_FORCE_DISABLED)
-		return -EPERM;
-
-	if (cpu_smt_control == CPU_SMT_NOT_SUPPORTED)
-		return -ENODEV;
-
-	ret = lock_device_hotplug_sysfs();
-	if (ret)
-		return ret;
-
-	if (ctrlval != cpu_smt_control) {
-		switch (ctrlval) {
-		case CPU_SMT_ENABLED:
-			ret = cpuhp_smt_enable();
-			break;
-		case CPU_SMT_DISABLED:
-		case CPU_SMT_FORCE_DISABLED:
-			ret = cpuhp_smt_disable(ctrlval);
-			break;
-		}
-	}
-
-	unlock_device_hotplug();
-	return ret ? ret : count;
-}
-
-#else /* !CONFIG_HOTPLUG_SMT */
-static ssize_t
-__store_smt_control(struct device *dev, struct device_attribute *attr,
-		    const char *buf, size_t count)
-{
-	return -ENODEV;
-}
-#endif /* CONFIG_HOTPLUG_SMT */
-
-static const char *smt_states[] = {
-	[CPU_SMT_ENABLED]		= "on",
-	[CPU_SMT_DISABLED]		= "off",
-	[CPU_SMT_FORCE_DISABLED]	= "forceoff",
-	[CPU_SMT_NOT_SUPPORTED]		= "notsupported",
-	[CPU_SMT_NOT_IMPLEMENTED]	= "notimplemented",
-};
-
-static ssize_t
-show_smt_control(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	const char *state = smt_states[cpu_smt_control];
-
-	return snprintf(buf, PAGE_SIZE - 2, "%s\n", state);
-}
-
-static ssize_t
-store_smt_control(struct device *dev, struct device_attribute *attr,
-		  const char *buf, size_t count)
-{
-	return __store_smt_control(dev, attr, buf, count);
-}
-static DEVICE_ATTR(control, 0644, show_smt_control, store_smt_control);
-
-static ssize_t
-show_smt_active(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	return snprintf(buf, PAGE_SIZE - 2, "%d\n", sched_smt_active());
-}
-static DEVICE_ATTR(active, 0444, show_smt_active, NULL);
-
-static struct attribute *cpuhp_smt_attrs[] = {
-	&dev_attr_control.attr,
-	&dev_attr_active.attr,
-	NULL
-};
-
-static const struct attribute_group cpuhp_smt_attr_group = {
-	.attrs = cpuhp_smt_attrs,
-	.name = "smt",
-	NULL
-};
-
-static int __init cpu_smt_sysfs_init(void)
-{
-	return sysfs_create_group(&cpu_subsys.dev_root->kobj,
-				  &cpuhp_smt_attr_group);
-}
-
-static int __init cpuhp_sysfs_init(void)
-{
-	int cpu, ret;
-
-	ret = cpu_smt_sysfs_init();
-	if (ret)
-		return ret;
-
-	ret = sysfs_create_group(&cpu_subsys.dev_root->kobj,
-				 &cpuhp_cpu_root_attr_group);
-	if (ret)
-		return ret;
-
-	for_each_possible_cpu(cpu) {
-		struct device *dev = get_cpu_device(cpu);
-
-		if (!dev)
-			continue;
-		ret = sysfs_create_group(&dev->kobj, &cpuhp_cpu_attr_group);
-		if (ret)
-			return ret;
-	}
-	return 0;
-}
-device_initcall(cpuhp_sysfs_init);
-#endif /* CONFIG_SYSFS && CONFIG_HOTPLUG_CPU */
 
 /*
  * cpu_bit_bitmap[] is a special, "compressed" data structure that

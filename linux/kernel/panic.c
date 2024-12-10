@@ -323,7 +323,6 @@ void panic(const char *fmt, ...)
 	 */
 	if (!_crash_kexec_post_notifiers) {
 		printk_safe_flush_on_panic();
-		__crash_kexec(NULL);
 
 		/*
 		 * Note smp_send_stop is the usual smp shutdown function, which
@@ -359,8 +358,8 @@ void panic(const char *fmt, ...)
 	 *
 	 * Bypass the panic_cpu check and call __crash_kexec directly.
 	 */
-	if (_crash_kexec_post_notifiers)
-		__crash_kexec(NULL);
+	// if (_crash_kexec_post_notifiers)
+		// __crash_kexec(NULL);
 
 #ifdef CONFIG_VT
 	unblank_screen();
@@ -749,10 +748,8 @@ device_initcall(register_warn_debugfs);
  */
 __visible noinstr void __stack_chk_fail(void)
 {
-	instrumentation_begin();
 	panic("stack-protector: Kernel stack is corrupted in: %pB",
 		__builtin_return_address(0));
-	instrumentation_end();
 }
 EXPORT_SYMBOL(__stack_chk_fail);
 

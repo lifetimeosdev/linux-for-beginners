@@ -181,14 +181,6 @@ static inline void posix_cputimers_group_init(struct posix_cputimers *pct,
 					      u64 cpu_limit) { }
 #endif
 
-#ifdef CONFIG_POSIX_CPU_TIMERS_TASK_WORK
-void clear_posix_cputimers_work(struct task_struct *p);
-void posix_cputimers_init_work(void);
-#else
-static inline void clear_posix_cputimers_work(struct task_struct *p) { }
-static inline void posix_cputimers_init_work(void) { }
-#endif
-
 #define REQUEUE_PENDING 1
 
 /**

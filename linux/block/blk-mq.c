@@ -735,8 +735,6 @@ void blk_mq_start_request(struct request *rq)
 {
 	struct request_queue *q = rq->q;
 
-	trace_block_rq_issue(rq);
-
 	if (test_bit(QUEUE_FLAG_STATS, &q->queue_flags)) {
 		rq->io_start_time_ns = ktime_get_ns();
 		rq->stats_sectors = blk_rq_sectors(rq);
@@ -762,7 +760,6 @@ static void __blk_mq_requeue_request(struct request *rq)
 
 	blk_mq_put_driver_tag(rq);
 
-	trace_block_rq_requeue(rq);
 	rq_qos_requeue(q, rq);
 
 	if (blk_mq_request_started(rq)) {
@@ -1825,8 +1822,6 @@ static inline void __blk_mq_insert_req_list(struct blk_mq_hw_ctx *hctx,
 
 	lockdep_assert_held(&ctx->lock);
 
-	trace_block_rq_insert(rq);
-
 	if (at_head)
 		list_add(&rq->queuelist, &ctx->rq_lists[type]);
 	else
@@ -1882,7 +1877,6 @@ void blk_mq_insert_requests(struct blk_mq_hw_ctx *hctx, struct blk_mq_ctx *ctx,
 	 */
 	list_for_each_entry(rq, list, queuelist) {
 		BUG_ON(rq->mq_ctx != ctx);
-		trace_block_rq_insert(rq);
 	}
 
 	spin_lock(&ctx->lock);
@@ -1935,7 +1929,6 @@ void blk_mq_flush_plug_list(struct blk_plug *plug, bool from_schedule)
 		}
 
 		list_cut_before(&rq_list, &list, pos);
-		trace_block_unplug(head_rq->q, depth, !from_schedule);
 		blk_mq_sched_insert_requests(this_hctx, this_ctx, &rq_list,
 						from_schedule);
 	} while(!list_empty(&list));
@@ -2201,8 +2194,6 @@ blk_qc_t blk_mq_submit_bio(struct bio *bio)
 		goto queue_exit;
 	}
 
-	trace_block_getrq(q, bio, bio->bi_opf);
-
 	rq_qos_track(q, rq, bio);
 
 	cookie = request_to_qc_t(data.hctx, rq);
@@ -2236,14 +2227,13 @@ blk_qc_t blk_mq_submit_bio(struct bio *bio)
 		struct request *last = NULL;
 
 		if (!request_count)
-			trace_block_plug(q);
+			;
 		else
 			last = list_entry_rq(plug->mq_list.prev);
 
 		if (request_count >= blk_plug_max_rq_count(plug) || (last &&
 		    blk_rq_bytes(last) >= BLK_PLUG_FLUSH_SIZE)) {
 			blk_flush_plug_list(plug, false);
-			trace_block_plug(q);
 		}
 
 		blk_add_rq_to_plug(plug, rq);
@@ -2265,11 +2255,9 @@ blk_qc_t blk_mq_submit_bio(struct bio *bio)
 			plug->rq_count--;
 		}
 		blk_add_rq_to_plug(plug, rq);
-		trace_block_plug(q);
 
 		if (same_queue_rq) {
 			data.hctx = same_queue_rq->mq_hctx;
-			trace_block_unplug(q, 1, true);
 			blk_mq_try_issue_directly(data.hctx, same_queue_rq,
 					&cookie);
 		}

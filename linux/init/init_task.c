@@ -150,20 +150,9 @@ struct task_struct init_task
 	.pi_top_task	= NULL,
 #endif
 	INIT_PREV_CPUTIME(init_task)
-#ifdef CONFIG_VIRT_CPU_ACCOUNTING_GEN
-	.vtime.seqcount	= SEQCNT_ZERO(init_task.vtime_seqcount),
-	.vtime.starttime = 0,
-	.vtime.state	= VTIME_SYS,
-#endif
 #ifdef CONFIG_FUNCTION_GRAPH_TRACER
 	.ret_stack		= NULL,
 	.tracing_graph_pause	= ATOMIC_INIT(0),
-#endif
-#if defined(CONFIG_TRACING) && defined(CONFIG_PREEMPTION)
-	.trace_recursion = 0,
-#endif
-#ifdef CONFIG_LIVEPATCH
-	.patch_state	= KLP_UNDEFINED,
 #endif
 };
 EXPORT_SYMBOL(init_task);

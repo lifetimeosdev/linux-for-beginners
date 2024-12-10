@@ -3500,9 +3500,7 @@ static int xmit_one(struct sk_buff *skb, struct net_device *dev,
 
 	len = skb->len;
 	PRANDOM_ADD_NOISE(skb, dev, txq, len + jiffies);
-	trace_net_dev_start_xmit(skb, dev);
 	rc = netdev_start_xmit(skb, dev, txq, more);
-	trace_net_dev_xmit(skb, rc, dev, len);
 
 	return rc;
 }
@@ -4047,7 +4045,6 @@ static int __dev_queue_xmit(struct sk_buff *skb, struct net_device *sb_dev)
 	txq = netdev_core_pick_tx(dev, skb, sb_dev);
 	q = rcu_dereference_bh(txq->qdisc);
 
-	trace_net_dev_queue(skb);
 	if (q->enqueue) {
 		rc = __dev_xmit_skb(skb, q, dev, txq);
 		goto out;
@@ -4642,7 +4639,6 @@ static u32 netif_receive_generic_xdp(struct sk_buff *skb,
 		bpf_warn_invalid_xdp_action(act);
 		fallthrough;
 	case XDP_ABORTED:
-		trace_xdp_exception(skb->dev, xdp_prog, act);
 		fallthrough;
 	case XDP_DROP:
 	do_drop:
@@ -4673,7 +4669,6 @@ void generic_xdp_tx(struct sk_buff *skb, struct bpf_prog *xdp_prog)
 	}
 	HARD_TX_UNLOCK(dev, txq);
 	if (free_skb) {
-		trace_xdp_exception(dev, xdp_prog, XDP_TX);
 		kfree_skb(skb);
 	}
 }
@@ -4715,8 +4710,6 @@ static int netif_rx_internal(struct sk_buff *skb)
 	int ret;
 
 	net_timestamp_check(READ_ONCE(netdev_tstamp_prequeue), skb);
-
-	trace_netif_rx(skb);
 
 #ifdef CONFIG_RPS
 	if (static_branch_unlikely(&rps_needed)) {
@@ -4764,11 +4757,7 @@ int netif_rx(struct sk_buff *skb)
 {
 	int ret;
 
-	trace_netif_rx_entry(skb);
-
 	ret = netif_rx_internal(skb);
-	trace_netif_rx_exit(ret);
-
 	return ret;
 }
 EXPORT_SYMBOL(netif_rx);
@@ -4777,14 +4766,11 @@ int netif_rx_ni(struct sk_buff *skb)
 {
 	int err;
 
-	trace_netif_rx_ni_entry(skb);
-
 	preempt_disable();
 	err = netif_rx_internal(skb);
 	if (local_softirq_pending())
 		do_softirq();
 	preempt_enable();
-	trace_netif_rx_ni_exit(err);
 
 	return err;
 }
@@ -4823,10 +4809,6 @@ static __latent_entropy void net_tx_action(struct softirq_action *h)
 			clist = clist->next;
 
 			WARN_ON(refcount_read(&skb->users));
-			if (likely(get_kfree_skb_cb(skb)->reason == SKB_REASON_CONSUMED))
-				trace_consume_skb(skb);
-			else
-				trace_kfree_skb(skb, net_tx_action);
 
 			if (skb->fclone != SKB_FCLONE_UNAVAILABLE)
 				__kfree_skb(skb);
@@ -5076,8 +5058,6 @@ static int __netif_receive_skb_core(struct sk_buff **pskb, bool pfmemalloc,
 	__be16 type;
 
 	net_timestamp_check(!READ_ONCE(netdev_tstamp_prequeue), skb);
-
-	trace_netif_receive_skb(skb);
 
 	orig_dev = skb->dev;
 
@@ -5552,10 +5532,7 @@ int netif_receive_skb(struct sk_buff *skb)
 {
 	int ret;
 
-	trace_netif_receive_skb_entry(skb);
-
 	ret = netif_receive_skb_internal(skb);
-	trace_netif_receive_skb_exit(ret);
 
 	return ret;
 }
@@ -5573,16 +5550,9 @@ EXPORT_SYMBOL(netif_receive_skb);
  */
 void netif_receive_skb_list(struct list_head *head)
 {
-	struct sk_buff *skb;
-
 	if (list_empty(head))
 		return;
-	if (trace_netif_receive_skb_list_entry_enabled()) {
-		list_for_each_entry(skb, head, list)
-			trace_netif_receive_skb_list_entry(skb);
-	}
 	netif_receive_skb_list_internal(head);
-	trace_netif_receive_skb_list_exit(0);
 }
 EXPORT_SYMBOL(netif_receive_skb_list);
 
@@ -6067,13 +6037,10 @@ gro_result_t napi_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 	gro_result_t ret;
 
 	skb_mark_napi_id(skb, napi);
-	trace_napi_gro_receive_entry(skb);
 
 	skb_gro_reset_offset(skb, 0);
 
 	ret = napi_skb_finish(napi, skb, dev_gro_receive(napi, skb));
-	trace_napi_gro_receive_exit(ret);
-
 	return ret;
 }
 EXPORT_SYMBOL(napi_gro_receive);
@@ -6199,10 +6166,7 @@ gro_result_t napi_gro_frags(struct napi_struct *napi)
 	if (!skb)
 		return GRO_DROP;
 
-	trace_napi_gro_frags_entry(skb);
-
 	ret = napi_frags_finish(napi, skb, dev_gro_receive(napi, skb));
-	trace_napi_gro_frags_exit(ret);
 
 	return ret;
 }
@@ -6511,7 +6475,6 @@ static void busy_poll_stop(struct napi_struct *napi, void *have_poll_lock)
 	 * rearmed the napi (napi_complete_done()) in which case it could
 	 * already be running on another CPU.
 	 */
-	trace_napi_poll(napi, rc, BUSY_POLL_BUDGET);
 	netpoll_poll_unlock(have_poll_lock);
 	if (rc == BUSY_POLL_BUDGET) {
 		/* As the whole budget was spent, we still own the napi so can
@@ -6563,7 +6526,6 @@ restart:
 			napi_poll = napi->poll;
 		}
 		work = napi_poll(napi, BUSY_POLL_BUDGET);
-		trace_napi_poll(napi, work, BUSY_POLL_BUDGET);
 		gro_normal_list(napi);
 count:
 		if (work > 0)
@@ -6749,7 +6711,6 @@ static int napi_poll(struct napi_struct *n, struct list_head *repoll)
 	work = 0;
 	if (test_bit(NAPI_STATE_SCHED, &n->state)) {
 		work = n->poll(n, weight);
-		trace_napi_poll(n, work, weight);
 	}
 
 	if (unlikely(work > weight))

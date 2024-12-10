@@ -134,7 +134,6 @@ enum hrtimer_restart it_real_fn(struct hrtimer *timer)
 		container_of(timer, struct signal_struct, real_timer);
 	struct pid *leader_pid = sig->pids[PIDTYPE_TGID];
 
-	trace_itimer_expire(ITIMER_REAL, leader_pid, 0);
 	kill_pid_info(SIGALRM, SEND_SIG_PRIV, leader_pid);
 
 	return HRTIMER_NORESTART;
@@ -161,8 +160,6 @@ static void set_cpu_itimer(struct task_struct *tsk, unsigned int clock_id,
 	}
 	it->expires = nval;
 	it->incr = ninterval;
-	trace_itimer_state(clock_id == CPUCLOCK_VIRT ?
-			   ITIMER_VIRTUAL : ITIMER_PROF, value, nval);
 
 	spin_unlock_irq(&tsk->sighand->siglock);
 
@@ -209,7 +206,6 @@ again:
 		} else
 			tsk->signal->it_real_incr = 0;
 
-		trace_itimer_state(ITIMER_REAL, value, 0);
 		spin_unlock_irq(&tsk->sighand->siglock);
 		break;
 	case ITIMER_VIRTUAL:

@@ -118,14 +118,10 @@ void kernel_disable_single_step(void);
 int kernel_active_single_step(void);
 void kernel_rewind_single_step(struct pt_regs *regs);
 
-#ifdef CONFIG_HAVE_HW_BREAKPOINT
-int reinstall_suspended_bps(struct pt_regs *regs);
-#else
 static inline int reinstall_suspended_bps(struct pt_regs *regs)
 {
 	return -ENODEV;
 }
-#endif
 
 int aarch32_break_handler(struct pt_regs *regs);
 

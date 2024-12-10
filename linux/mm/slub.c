@@ -2834,23 +2834,9 @@ void *kmem_cache_alloc(struct kmem_cache *s, gfp_t gfpflags)
 {
 	void *ret = slab_alloc(s, gfpflags, _RET_IP_);
 
-	trace_kmem_cache_alloc(_RET_IP_, ret, s->object_size,
-				s->size, gfpflags);
-
 	return ret;
 }
 EXPORT_SYMBOL(kmem_cache_alloc);
-
-#ifdef CONFIG_TRACING
-void *kmem_cache_alloc_trace(struct kmem_cache *s, gfp_t gfpflags, size_t size)
-{
-	void *ret = slab_alloc(s, gfpflags, _RET_IP_);
-	trace_kmalloc(_RET_IP_, ret, size, s->size, gfpflags);
-	ret = kasan_kmalloc(s, ret, size, gfpflags);
-	return ret;
-}
-EXPORT_SYMBOL(kmem_cache_alloc_trace);
-#endif
 
 /*
  * Slow path handling. This may still be called frequently since objects
@@ -3053,7 +3039,6 @@ void kmem_cache_free(struct kmem_cache *s, void *x)
 	if (!s)
 		return;
 	slab_free(s, virt_to_head_page(x), x, NULL, 1, _RET_IP_);
-	trace_kmem_cache_free(_RET_IP_, x);
 }
 EXPORT_SYMBOL(kmem_cache_free);
 
@@ -3852,8 +3837,6 @@ void *__kmalloc(size_t size, gfp_t flags)
 
 	ret = slab_alloc(s, flags, _RET_IP_);
 
-	trace_kmalloc(_RET_IP_, ret, size, s->size, flags);
-
 	ret = kasan_kmalloc(s, ret, size, flags);
 
 	return ret;
@@ -3942,8 +3925,6 @@ void kfree(const void *x)
 {
 	struct page *page;
 	void *object = (void *)x;
-
-	trace_kfree(_RET_IP_, x);
 
 	if (unlikely(ZERO_OR_NULL_PTR(x)))
 		return;
@@ -4302,8 +4283,6 @@ void *__kmalloc_track_caller(size_t size, gfp_t gfpflags, unsigned long caller)
 	ret = slab_alloc(s, gfpflags, caller);
 
 	/* Honor the call site pointer we received. */
-	trace_kmalloc(caller, ret, size, s->size, gfpflags);
-
 	return ret;
 }
 EXPORT_SYMBOL(__kmalloc_track_caller);

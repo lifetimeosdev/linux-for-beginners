@@ -32,9 +32,7 @@ static __always_inline void rcu_irq_enter_check_tick(void)
  */
 #define __irq_enter()					\
 	do {						\
-		account_irq_enter_time(current);	\
 		preempt_count_add(HARDIRQ_OFFSET);	\
-		lockdep_hardirq_enter();		\
 	} while (0)
 
 /*
@@ -45,7 +43,6 @@ static __always_inline void rcu_irq_enter_check_tick(void)
 #define __irq_enter_raw()				\
 	do {						\
 		preempt_count_add(HARDIRQ_OFFSET);	\
-		lockdep_hardirq_enter();		\
 	} while (0)
 
 /*
@@ -62,8 +59,6 @@ void irq_enter_rcu(void);
  */
 #define __irq_exit()					\
 	do {						\
-		lockdep_hardirq_exit();			\
-		account_irq_exit_time(current);		\
 		preempt_count_sub(HARDIRQ_OFFSET);	\
 	} while (0)
 
@@ -72,7 +67,6 @@ void irq_enter_rcu(void);
  */
 #define __irq_exit_raw()				\
 	do {						\
-		lockdep_hardirq_exit();			\
 		preempt_count_sub(HARDIRQ_OFFSET);	\
 	} while (0)
 
@@ -123,11 +117,8 @@ extern void rcu_nmi_exit(void);
 #define nmi_enter()						\
 	do {							\
 		__nmi_enter();					\
-		lockdep_hardirq_enter();			\
 		rcu_nmi_enter();				\
-		instrumentation_begin();			\
 		ftrace_nmi_enter();				\
-		instrumentation_end();				\
 	} while (0)
 
 #define __nmi_exit()						\
@@ -141,11 +132,8 @@ extern void rcu_nmi_exit(void);
 
 #define nmi_exit()						\
 	do {							\
-		instrumentation_begin();			\
 		ftrace_nmi_exit();				\
-		instrumentation_end();				\
 		rcu_nmi_exit();					\
-		lockdep_hardirq_exit();				\
 		__nmi_exit();					\
 	} while (0)
 

@@ -583,8 +583,6 @@ static void enqueue_timer(struct timer_base *base, struct timer_list *timer,
 	__set_bit(idx, base->pending_map);
 	timer_set_idx(timer, idx);
 
-	trace_timer_start(timer, timer->expires, timer->flags);
-
 	/*
 	 * Check whether this is the new first expiring timer. The
 	 * effective expiry time of the timer is required here
@@ -770,13 +768,11 @@ static inline void debug_timer_assert_init(struct timer_list *timer) { }
 static inline void debug_init(struct timer_list *timer)
 {
 	debug_timer_init(timer);
-	trace_timer_init(timer);
 }
 
 static inline void debug_deactivate(struct timer_list *timer)
 {
 	debug_timer_deactivate(timer);
-	trace_timer_cancel(timer);
 }
 
 static inline void debug_assert_init(struct timer_list *timer)
@@ -1386,9 +1382,7 @@ static void call_timer_fn(struct timer_list *timer,
 	 */
 	lock_map_acquire(&lockdep_map);
 
-	trace_timer_expire_entry(timer, baseclk);
 	fn(timer);
-	trace_timer_expire_exit(timer);
 
 	lock_map_release(&lockdep_map);
 
@@ -1925,7 +1919,6 @@ static void __init init_timer_cpus(void)
 void __init init_timers(void)
 {
 	init_timer_cpus();
-	posix_cputimers_init_work();
 	open_softirq(TIMER_SOFTIRQ, run_timer_softirq);
 }
 
