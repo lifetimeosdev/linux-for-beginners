@@ -439,8 +439,6 @@ static int bringup_cpu(unsigned int cpu)
 	 * Reset stale stack state from the last time this CPU was online.
 	 */
 	scs_task_reset(idle);
-	kasan_unpoison_task_stack(idle);
-
 	/*
 	 * Some architectures have to walk the irq descriptors to
 	 * setup the vector space for the cpu which comes online.

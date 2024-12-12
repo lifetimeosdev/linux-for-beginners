@@ -2262,21 +2262,11 @@ int __tcp_bpf_recvmsg(struct sock *sk, struct sk_psock *psock,
 		      struct msghdr *msg, int len, int flags);
 #endif /* CONFIG_NET_SOCK_MSG */
 
-#ifdef CONFIG_CGROUP_BPF
-static inline void bpf_skops_init_skb(struct bpf_sock_ops_kern *skops,
-				      struct sk_buff *skb,
-				      unsigned int end_offset)
-{
-	skops->skb = skb;
-	skops->skb_data_end = skb->data + end_offset;
-}
-#else
 static inline void bpf_skops_init_skb(struct bpf_sock_ops_kern *skops,
 				      struct sk_buff *skb,
 				      unsigned int end_offset)
 {
 }
-#endif
 
 /* Call BPF_SOCK_OPS program that returns an int. If the return value
  * is < 0, then the BPF op failed (for example if the loaded BPF

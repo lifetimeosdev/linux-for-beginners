@@ -21,107 +21,17 @@
 #include <linux/writeback.h>
 #include "slab.h"
 
-#if defined(CONFIG_DEBUG_SLAB) || defined(CONFIG_SLUB_DEBUG_ON)
-static void poison_error(mempool_t *pool, void *element, size_t size,
-			 size_t byte)
-{
-	const int nr = pool->curr_nr;
-	const int start = max_t(int, byte - (BITS_PER_LONG / 8), 0);
-	const int end = min_t(int, byte + (BITS_PER_LONG / 8), size);
-	int i;
-
-	pr_err("BUG: mempool element poison mismatch\n");
-	pr_err("Mempool %p size %zu\n", pool, size);
-	pr_err(" nr=%d @ %p: %s0x", nr, element, start > 0 ? "... " : "");
-	for (i = start; i < end; i++)
-		pr_cont("%x ", *(u8 *)(element + i));
-	pr_cont("%s\n", end < size ? "..." : "");
-	dump_stack();
-}
-
-static void __check_element(mempool_t *pool, void *element, size_t size)
-{
-	u8 *obj = element;
-	size_t i;
-
-	for (i = 0; i < size; i++) {
-		u8 exp = (i < size - 1) ? POISON_FREE : POISON_END;
-
-		if (obj[i] != exp) {
-			poison_error(pool, element, size, i);
-			return;
-		}
-	}
-	memset(obj, POISON_INUSE, size);
-}
-
-static void check_element(mempool_t *pool, void *element)
-{
-	/* Mempools backed by slab allocator */
-	if (pool->free == mempool_free_slab || pool->free == mempool_kfree) {
-		__check_element(pool, element, ksize(element));
-	} else if (pool->free == mempool_free_pages) {
-		/* Mempools backed by page allocator */
-		int order = (int)(long)pool->pool_data;
-		void *addr = kmap_atomic((struct page *)element);
-
-		__check_element(pool, addr, 1UL << (PAGE_SHIFT + order));
-		kunmap_atomic(addr);
-	}
-}
-
-static void __poison_element(void *element, size_t size)
-{
-	u8 *obj = element;
-
-	memset(obj, POISON_FREE, size - 1);
-	obj[size - 1] = POISON_END;
-}
-
-static void poison_element(mempool_t *pool, void *element)
-{
-	/* Mempools backed by slab allocator */
-	if (pool->alloc == mempool_alloc_slab || pool->alloc == mempool_kmalloc) {
-		__poison_element(element, ksize(element));
-	} else if (pool->alloc == mempool_alloc_pages) {
-		/* Mempools backed by page allocator */
-		int order = (int)(long)pool->pool_data;
-		void *addr = kmap_atomic((struct page *)element);
-
-		__poison_element(addr, 1UL << (PAGE_SHIFT + order));
-		kunmap_atomic(addr);
-	}
-}
-#else /* CONFIG_DEBUG_SLAB || CONFIG_SLUB_DEBUG_ON */
 static inline void check_element(mempool_t *pool, void *element)
 {
 }
 static inline void poison_element(mempool_t *pool, void *element)
 {
 }
-#endif /* CONFIG_DEBUG_SLAB || CONFIG_SLUB_DEBUG_ON */
-
-static __always_inline void kasan_poison_element(mempool_t *pool, void *element)
-{
-	if (pool->alloc == mempool_alloc_slab || pool->alloc == mempool_kmalloc)
-		kasan_poison_kfree(element, _RET_IP_);
-	else if (pool->alloc == mempool_alloc_pages)
-		kasan_free_pages(element, (unsigned long)pool->pool_data);
-}
-
-static void kasan_unpoison_element(mempool_t *pool, void *element)
-{
-	if (pool->alloc == mempool_alloc_slab || pool->alloc == mempool_kmalloc)
-		kasan_unpoison_slab(element);
-	else if (pool->alloc == mempool_alloc_pages)
-		kasan_alloc_pages(element, (unsigned long)pool->pool_data);
-}
 
 static __always_inline void add_element(mempool_t *pool, void *element)
 {
 	BUG_ON(pool->curr_nr >= pool->min_nr);
 	poison_element(pool, element);
-	kasan_poison_element(pool, element);
 	pool->elements[pool->curr_nr++] = element;
 }
 
@@ -130,7 +40,6 @@ static void *remove_element(mempool_t *pool)
 	void *element = pool->elements[--pool->curr_nr];
 
 	BUG_ON(pool->curr_nr < 0);
-	kasan_unpoison_element(pool, element);
 	check_element(pool, element);
 	return element;
 }

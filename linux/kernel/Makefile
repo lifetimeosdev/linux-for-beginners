@@ -46,7 +46,7 @@ obj-y += irq/
 obj-y += rcu/
 # obj-y += livepatch/
 obj-y += dma/
-obj-y += entry/
+# obj-y += entry/
 
 obj-$(CONFIG_KCMP) += kcmp.o
 obj-$(CONFIG_FREEZER) += freezer.o
@@ -104,7 +104,7 @@ obj-$(CONFIG_RING_BUFFER) += trace/
 obj-$(CONFIG_TRACEPOINTS) += trace/
 obj-$(CONFIG_IRQ_WORK) += irq_work.o
 obj-$(CONFIG_CPU_PM) += cpu_pm.o
-obj-$(CONFIG_BPF) += bpf/
+# obj-$(CONFIG_BPF) += bpf/
 # obj-$(CONFIG_KCSAN) += kcsan/
 obj-$(CONFIG_SHADOW_CALL_STACK) += scs.o
 obj-$(CONFIG_HAVE_STATIC_CALL_INLINE) += static_call.o

@@ -24,7 +24,7 @@ obj-y				+= video/
 # obj-y				+= idle/
 
 # IPMI must come before ACPI in order to provide IPMI opregion support
-obj-y				+= char/ipmi/
+# obj-y				+= char/ipmi/
 
 # obj-$(CONFIG_ACPI)		+= acpi/
 # obj-$(CONFIG_SFI)		+= sfi/
@@ -70,7 +70,7 @@ obj-y				+= iommu/
 
 # obj-$(CONFIG_PARPORT)		+= parport/
 # obj-$(CONFIG_NVM)		+= lightnvm/
-obj-y				+= base/ block/ mfd/
+obj-y				+= base/ block/ # mfd/
 # obj-$(CONFIG_LIBNVDIMM)		+= nvdimm/
 # obj-$(CONFIG_DAX)		+= dax/
 obj-$(CONFIG_DMA_SHARED_BUFFER) += dma-buf/
@@ -86,7 +86,7 @@ obj-$(CONFIG_DMA_SHARED_BUFFER) += dma-buf/
 # obj-$(CONFIG_SPMI)		+= spmi/
 # obj-$(CONFIG_HSI)		+= hsi/
 # obj-$(CONFIG_SLIMBUS)		+= slimbus/
-obj-y				+= net/
+# obj-y				+= net/
 # obj-$(CONFIG_ATM)		+= atm/
 # obj-$(CONFIG_FUSION)		+= message/
 # obj-y				+= firewire/
@@ -128,7 +128,7 @@ obj-$(CONFIG_INPUT)		+= input/
 # obj-$(CONFIG_PM_OPP)		+= opp/
 # obj-$(CONFIG_CPU_FREQ)		+= cpufreq/
 # obj-$(CONFIG_CPU_IDLE)		+= cpuidle/
-obj-y				+= mmc/
+# obj-y				+= mmc/
 # obj-$(CONFIG_MEMSTICK)		+= memstick/
 # obj-$(CONFIG_NEW_LEDS)		+= leds/
 # obj-$(CONFIG_INFINIBAND)	+= infiniband/
@@ -159,7 +159,7 @@ obj-$(CONFIG_OF)		+= of/
 # obj-$(CONFIG_SOUNDWIRE)		+= soundwire/
 
 # Virtualization drivers
-obj-$(CONFIG_VIRT_DRIVERS)	+= virt/
+# obj-$(CONFIG_VIRT_DRIVERS)	+= virt/
 # obj-$(CONFIG_HYPERV)		+= hv/
 
 # obj-$(CONFIG_PM_DEVFREQ)	+= devfreq/
@@ -178,11 +178,11 @@ obj-$(CONFIG_VIRT_DRIVERS)	+= virt/
 # obj-y				+= hwtracing/intel_th/
 # obj-$(CONFIG_STM)		+= hwtracing/stm/
 # obj-$(CONFIG_ANDROID)		+= android/
-obj-$(CONFIG_NVMEM)		+= nvmem/
+# obj-$(CONFIG_NVMEM)		+= nvmem/
 # obj-$(CONFIG_FPGA)		+= fpga/
 # obj-$(CONFIG_FSI)		+= fsi/
 # obj-$(CONFIG_TEE)		+= tee/
-obj-$(CONFIG_MULTIPLEXER)	+= mux/
+# obj-$(CONFIG_MULTIPLEXER)	+= mux/
 # obj-$(CONFIG_UNISYS_VISORBUS)	+= visorbus/
 # obj-$(CONFIG_SIOX)		+= siox/
 # obj-$(CONFIG_GNSS)		+= gnss/

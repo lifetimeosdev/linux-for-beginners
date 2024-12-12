@@ -662,7 +662,7 @@ ifeq ($(KBUILD_EXTMOD),)
 core-y		:= init/ usr/
 drivers-y	:= drivers/
 # drivers-$(CONFIG_SAMPLES) += samples/
-drivers-y	+= net/
+# drivers-y	+= net/
 libs-y		:= lib/
 endif # KBUILD_EXTMOD
 
@@ -1137,7 +1137,8 @@ export MODORDER := $(extmod-prefix)modules.order
 export MODULES_NSDEPS := $(extmod-prefix)modules.nsdeps
 
 ifeq ($(KBUILD_EXTMOD),)
-core-y		+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/ block/ # io_uring/
+# core-y		+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/ block/ # io_uring/
+core-y		+= kernel/ mm/ fs/ ipc/ security/ crypto/ block/
 
 vmlinux-dirs	:= $(patsubst %/,%,$(filter %/, \
 		     $(core-y) $(core-m) $(drivers-y) $(drivers-m) \

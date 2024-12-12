@@ -356,25 +356,6 @@ typedef int (*report_zones_cb)(struct blk_zone *zone, unsigned int idx,
 
 void blk_queue_set_zoned(struct gendisk *disk, enum blk_zoned_model model);
 
-#ifdef CONFIG_BLK_DEV_ZONED
-
-#define BLK_ALL_ZONES  ((unsigned int)-1)
-int blkdev_report_zones(struct block_device *bdev, sector_t sector,
-			unsigned int nr_zones, report_zones_cb cb, void *data);
-unsigned int blkdev_nr_zones(struct gendisk *disk);
-extern int blkdev_zone_mgmt(struct block_device *bdev, enum req_opf op,
-			    sector_t sectors, sector_t nr_sectors,
-			    gfp_t gfp_mask);
-int blk_revalidate_disk_zones(struct gendisk *disk,
-			      void (*update_driver_data)(struct gendisk *disk));
-
-extern int blkdev_report_zones_ioctl(struct block_device *bdev, fmode_t mode,
-				     unsigned int cmd, unsigned long arg);
-extern int blkdev_zone_mgmt_ioctl(struct block_device *bdev, fmode_t mode,
-				  unsigned int cmd, unsigned long arg);
-
-#else /* CONFIG_BLK_DEV_ZONED */
-
 static inline unsigned int blkdev_nr_zones(struct gendisk *disk)
 {
 	return 0;
@@ -393,8 +374,6 @@ static inline int blkdev_zone_mgmt_ioctl(struct block_device *bdev,
 {
 	return -ENOTTY;
 }
-
-#endif /* CONFIG_BLK_DEV_ZONED */
 
 struct request_queue {
 	struct request		*last_merge;
@@ -497,31 +476,6 @@ struct request_queue {
 
 	unsigned int		required_elevator_features;
 
-#ifdef CONFIG_BLK_DEV_ZONED
-	/*
-	 * Zoned block device information for request dispatch control.
-	 * nr_zones is the total number of zones of the device. This is always
-	 * 0 for regular block devices. conv_zones_bitmap is a bitmap of nr_zones
-	 * bits which indicates if a zone is conventional (bit set) or
-	 * sequential (bit clear). seq_zones_wlock is a bitmap of nr_zones
-	 * bits which indicates if a zone is write locked, that is, if a write
-	 * request targeting the zone was dispatched. All three fields are
-	 * initialized by the low level device driver (e.g. scsi/sd.c).
-	 * Stacking drivers (device mappers) may or may not initialize
-	 * these fields.
-	 *
-	 * Reads of this information must be protected with blk_queue_enter() /
-	 * blk_queue_exit(). Modifying this information is only allowed while
-	 * no requests are being processed. See also blk_mq_freeze_queue() and
-	 * blk_mq_unfreeze_queue().
-	 */
-	unsigned int		nr_zones;
-	unsigned long		*conv_zones_bitmap;
-	unsigned long		*seq_zones_wlock;
-	unsigned int		max_open_zones;
-	unsigned int		max_active_zones;
-#endif /* CONFIG_BLK_DEV_ZONED */
-
 	/*
 	 * sg stuff
 	 */
@@ -529,9 +483,6 @@ struct request_queue {
 	unsigned int		sg_reserved_size;
 	int			node;
 	struct mutex		debugfs_mutex;
-#ifdef CONFIG_BLK_DEV_IO_TRACE
-	struct blk_trace __rcu	*blk_trace;
-#endif
 	/*
 	 * for flush operations
 	 */
@@ -705,8 +656,6 @@ static inline enum rpm_status queue_rpm_status(struct request_queue *q)
 static inline enum blk_zoned_model
 blk_queue_zoned_model(struct request_queue *q)
 {
-	if (IS_ENABLED(CONFIG_BLK_DEV_ZONED))
-		return q->limits.zoned;
 	return BLK_ZONED_NONE;
 }
 
@@ -726,52 +675,6 @@ static inline sector_t blk_queue_zone_sectors(struct request_queue *q)
 	return blk_queue_is_zoned(q) ? q->limits.chunk_sectors : 0;
 }
 
-#ifdef CONFIG_BLK_DEV_ZONED
-static inline unsigned int blk_queue_nr_zones(struct request_queue *q)
-{
-	return blk_queue_is_zoned(q) ? q->nr_zones : 0;
-}
-
-static inline unsigned int blk_queue_zone_no(struct request_queue *q,
-					     sector_t sector)
-{
-	if (!blk_queue_is_zoned(q))
-		return 0;
-	return sector >> ilog2(q->limits.chunk_sectors);
-}
-
-static inline bool blk_queue_zone_is_seq(struct request_queue *q,
-					 sector_t sector)
-{
-	if (!blk_queue_is_zoned(q))
-		return false;
-	if (!q->conv_zones_bitmap)
-		return true;
-	return !test_bit(blk_queue_zone_no(q, sector), q->conv_zones_bitmap);
-}
-
-static inline void blk_queue_max_open_zones(struct request_queue *q,
-		unsigned int max_open_zones)
-{
-	q->max_open_zones = max_open_zones;
-}
-
-static inline unsigned int queue_max_open_zones(const struct request_queue *q)
-{
-	return q->max_open_zones;
-}
-
-static inline void blk_queue_max_active_zones(struct request_queue *q,
-		unsigned int max_active_zones)
-{
-	q->max_active_zones = max_active_zones;
-}
-
-static inline unsigned int queue_max_active_zones(const struct request_queue *q)
-{
-	return q->max_active_zones;
-}
-#else /* CONFIG_BLK_DEV_ZONED */
 static inline unsigned int blk_queue_nr_zones(struct request_queue *q)
 {
 	return 0;
@@ -794,7 +697,6 @@ static inline unsigned int queue_max_active_zones(const struct request_queue *q)
 {
 	return 0;
 }
-#endif /* CONFIG_BLK_DEV_ZONED */
 
 static inline bool rq_is_sync(struct request *rq)
 {
@@ -1017,22 +919,6 @@ static inline unsigned int blk_rq_stats_sectors(const struct request *rq)
 {
 	return rq->stats_sectors;
 }
-
-#ifdef CONFIG_BLK_DEV_ZONED
-
-/* Helper to convert BLK_ZONE_ZONE_XXX to its string format XXX */
-const char *blk_zone_cond_str(enum blk_zone_cond zone_cond);
-
-static inline unsigned int blk_rq_zone_no(struct request *rq)
-{
-	return blk_queue_zone_no(rq->q, blk_rq_pos(rq));
-}
-
-static inline unsigned int blk_rq_zone_is_seq(struct request *rq)
-{
-	return blk_queue_zone_is_seq(rq->q, blk_rq_pos(rq));
-}
-#endif /* CONFIG_BLK_DEV_ZONED */
 
 /*
  * Some commands like WRITE SAME have a payload or data transfer size which
@@ -1879,37 +1765,6 @@ extern int bdev_read_page(struct block_device *, sector_t, struct page *);
 extern int bdev_write_page(struct block_device *, sector_t, struct page *,
 						struct writeback_control *);
 
-#ifdef CONFIG_BLK_DEV_ZONED
-bool blk_req_needs_zone_write_lock(struct request *rq);
-bool blk_req_zone_write_trylock(struct request *rq);
-void __blk_req_zone_write_lock(struct request *rq);
-void __blk_req_zone_write_unlock(struct request *rq);
-
-static inline void blk_req_zone_write_lock(struct request *rq)
-{
-	if (blk_req_needs_zone_write_lock(rq))
-		__blk_req_zone_write_lock(rq);
-}
-
-static inline void blk_req_zone_write_unlock(struct request *rq)
-{
-	if (rq->rq_flags & RQF_ZONE_WRITE_LOCKED)
-		__blk_req_zone_write_unlock(rq);
-}
-
-static inline bool blk_req_zone_is_write_locked(struct request *rq)
-{
-	return rq->q->seq_zones_wlock &&
-		test_bit(blk_rq_zone_no(rq), rq->q->seq_zones_wlock);
-}
-
-static inline bool blk_req_can_dispatch_to_zone(struct request *rq)
-{
-	if (!blk_req_needs_zone_write_lock(rq))
-		return true;
-	return !blk_req_zone_is_write_locked(rq);
-}
-#else
 static inline bool blk_req_needs_zone_write_lock(struct request *rq)
 {
 	return false;
@@ -1931,7 +1786,6 @@ static inline bool blk_req_can_dispatch_to_zone(struct request *rq)
 {
 	return true;
 }
-#endif /* CONFIG_BLK_DEV_ZONED */
 
 static inline void blk_wake_io_task(struct task_struct *waiter)
 {

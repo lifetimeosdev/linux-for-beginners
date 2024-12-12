@@ -23,6 +23,7 @@
 		"${workspaceFolder}/linux/**",
 	],
 	"C_Cpp.default.defines": [
-		"__KERNEL__"
+		"__KERNEL__",
+		"CONFIG_BLOCK"
 	]
 }

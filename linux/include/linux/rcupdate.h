@@ -249,30 +249,6 @@ static inline void destroy_rcu_head_on_stack(struct rcu_head *head) { }
 
 static inline bool rcu_lockdep_current_cpu_online(void) { return true; }
 
-#ifdef CONFIG_DEBUG_LOCK_ALLOC
-
-static inline void rcu_lock_acquire(struct lockdep_map *map)
-{
-	lock_acquire(map, 0, 0, 2, 0, NULL, _THIS_IP_);
-}
-
-static inline void rcu_lock_release(struct lockdep_map *map)
-{
-	lock_release(map, _THIS_IP_);
-}
-
-extern struct lockdep_map rcu_lock_map;
-extern struct lockdep_map rcu_bh_lock_map;
-extern struct lockdep_map rcu_sched_lock_map;
-extern struct lockdep_map rcu_callback_map;
-int debug_lockdep_rcu_enabled(void);
-int rcu_read_lock_held(void);
-int rcu_read_lock_bh_held(void);
-int rcu_read_lock_sched_held(void);
-int rcu_read_lock_any_held(void);
-
-#else /* #ifdef CONFIG_DEBUG_LOCK_ALLOC */
-
 # define rcu_lock_acquire(a)		do { } while (0)
 # define rcu_lock_release(a)		do { } while (0)
 
@@ -295,8 +271,6 @@ static inline int rcu_read_lock_any_held(void)
 {
 	return !preemptible();
 }
-
-#endif /* #else #ifdef CONFIG_DEBUG_LOCK_ALLOC */
 
 #ifdef CONFIG_PROVE_RCU
 

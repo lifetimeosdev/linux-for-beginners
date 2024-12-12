@@ -123,9 +123,6 @@ struct kernfs_elem_attr {
 struct kernfs_node {
 	atomic_t		count;
 	atomic_t		active;
-#ifdef CONFIG_DEBUG_LOCK_ALLOC
-	struct lockdep_map	dep_map;
-#endif
 	/*
 	 * Use kernfs_get_parent() and kernfs_name/path() instead of
 	 * accessing the following two fields directly.  If the node is
@@ -265,9 +262,6 @@ struct kernfs_ops {
 
 	int (*mmap)(struct kernfs_open_file *of, struct vm_area_struct *vma);
 
-#ifdef CONFIG_DEBUG_LOCK_ALLOC
-	struct lock_class_key	lockdep_key;
-#endif
 };
 
 /*
@@ -571,9 +565,6 @@ kernfs_create_file_ns(struct kernfs_node *parent, const char *name,
 {
 	struct lock_class_key *key = NULL;
 
-#ifdef CONFIG_DEBUG_LOCK_ALLOC
-	key = (struct lock_class_key *)&ops->lockdep_key;
-#endif
 	return __kernfs_create_file(parent, name, mode, uid, gid,
 				    size, ops, priv, ns, key);
 }

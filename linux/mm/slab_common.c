@@ -438,9 +438,6 @@ static void slab_caches_to_rcu_destroy_workfn(struct work_struct *work)
 
 static int shutdown_cache(struct kmem_cache *s)
 {
-	/* free asan quarantined objects */
-	kasan_cache_shutdown(s);
-
 	if (__kmem_cache_shutdown(s) != 0)
 		return -EBUSY;
 
@@ -516,7 +513,6 @@ int kmem_cache_shrink(struct kmem_cache *cachep)
 
 	get_online_cpus();
 	get_online_mems();
-	kasan_cache_shrink(cachep);
 	ret = __kmem_cache_shrink(cachep);
 	put_online_mems();
 	put_online_cpus();
@@ -814,210 +810,6 @@ void *kmalloc_order(size_t size, gfp_t flags, unsigned int order)
 }
 EXPORT_SYMBOL(kmalloc_order);
 
-#ifdef CONFIG_SLAB_FREELIST_RANDOM
-/* Randomize a generic freelist */
-static void freelist_randomize(struct rnd_state *state, unsigned int *list,
-			       unsigned int count)
-{
-	unsigned int rand;
-	unsigned int i;
-
-	for (i = 0; i < count; i++)
-		list[i] = i;
-
-	/* Fisher-Yates shuffle */
-	for (i = count - 1; i > 0; i--) {
-		rand = prandom_u32_state(state);
-		rand %= (i + 1);
-		swap(list[i], list[rand]);
-	}
-}
-
-/* Create a random sequence per cache */
-int cache_random_seq_create(struct kmem_cache *cachep, unsigned int count,
-				    gfp_t gfp)
-{
-	struct rnd_state state;
-
-	if (count < 2 || cachep->random_seq)
-		return 0;
-
-	cachep->random_seq = kcalloc(count, sizeof(unsigned int), gfp);
-	if (!cachep->random_seq)
-		return -ENOMEM;
-
-	/* Get best entropy at this stage of boot */
-	prandom_seed_state(&state, get_random_long());
-
-	freelist_randomize(&state, cachep->random_seq, count);
-	return 0;
-}
-
-/* Destroy the per-cache random freelist sequence */
-void cache_random_seq_destroy(struct kmem_cache *cachep)
-{
-	kfree(cachep->random_seq);
-	cachep->random_seq = NULL;
-}
-#endif /* CONFIG_SLAB_FREELIST_RANDOM */
-
-#if defined(CONFIG_SLAB) || defined(CONFIG_SLUB_DEBUG)
-#define SLABINFO_RIGHTS (0400)
-
-static void print_slabinfo_header(struct seq_file *m)
-{
-	/*
-	 * Output format version, so at least we can change it
-	 * without _too_ many complaints.
-	 */
-#ifdef CONFIG_DEBUG_SLAB
-	seq_puts(m, "slabinfo - version: 2.1 (statistics)\n");
-#else
-	seq_puts(m, "slabinfo - version: 2.1\n");
-#endif
-	seq_puts(m, "# name            <active_objs> <num_objs> <objsize> <objperslab> <pagesperslab>");
-	seq_puts(m, " : tunables <limit> <batchcount> <sharedfactor>");
-	seq_puts(m, " : slabdata <active_slabs> <num_slabs> <sharedavail>");
-#ifdef CONFIG_DEBUG_SLAB
-	seq_puts(m, " : globalstat <listallocs> <maxobjs> <grown> <reaped> <error> <maxfreeable> <nodeallocs> <remotefrees> <alienoverflow>");
-	seq_puts(m, " : cpustat <allochit> <allocmiss> <freehit> <freemiss>");
-#endif
-	seq_putc(m, '\n');
-}
-
-void *slab_start(struct seq_file *m, loff_t *pos)
-{
-	mutex_lock(&slab_mutex);
-	return seq_list_start(&slab_caches, *pos);
-}
-
-void *slab_next(struct seq_file *m, void *p, loff_t *pos)
-{
-	return seq_list_next(p, &slab_caches, pos);
-}
-
-void slab_stop(struct seq_file *m, void *p)
-{
-	mutex_unlock(&slab_mutex);
-}
-
-static void cache_show(struct kmem_cache *s, struct seq_file *m)
-{
-	struct slabinfo sinfo;
-
-	memset(&sinfo, 0, sizeof(sinfo));
-	get_slabinfo(s, &sinfo);
-
-	seq_printf(m, "%-17s %6lu %6lu %6u %4u %4d",
-		   s->name, sinfo.active_objs, sinfo.num_objs, s->size,
-		   sinfo.objects_per_slab, (1 << sinfo.cache_order));
-
-	seq_printf(m, " : tunables %4u %4u %4u",
-		   sinfo.limit, sinfo.batchcount, sinfo.shared);
-	seq_printf(m, " : slabdata %6lu %6lu %6lu",
-		   sinfo.active_slabs, sinfo.num_slabs, sinfo.shared_avail);
-	slabinfo_show_stats(m, s);
-	seq_putc(m, '\n');
-}
-
-static int slab_show(struct seq_file *m, void *p)
-{
-	struct kmem_cache *s = list_entry(p, struct kmem_cache, list);
-
-	if (p == slab_caches.next)
-		print_slabinfo_header(m);
-	cache_show(s, m);
-	return 0;
-}
-
-void dump_unreclaimable_slab(void)
-{
-	struct kmem_cache *s, *s2;
-	struct slabinfo sinfo;
-
-	/*
-	 * Here acquiring slab_mutex is risky since we don't prefer to get
-	 * sleep in oom path. But, without mutex hold, it may introduce a
-	 * risk of crash.
-	 * Use mutex_trylock to protect the list traverse, dump nothing
-	 * without acquiring the mutex.
-	 */
-	if (!mutex_trylock(&slab_mutex)) {
-		pr_warn("excessive unreclaimable slab but cannot dump stats\n");
-		return;
-	}
-
-	pr_info("Unreclaimable slab info:\n");
-	pr_info("Name                      Used          Total\n");
-
-	list_for_each_entry_safe(s, s2, &slab_caches, list) {
-		if (s->flags & SLAB_RECLAIM_ACCOUNT)
-			continue;
-
-		get_slabinfo(s, &sinfo);
-
-		if (sinfo.num_objs > 0)
-			pr_info("%-17s %10luKB %10luKB\n", s->name,
-				(sinfo.active_objs * s->size) / 1024,
-				(sinfo.num_objs * s->size) / 1024);
-	}
-	mutex_unlock(&slab_mutex);
-}
-
-#if defined(CONFIG_MEMCG_KMEM)
-int memcg_slab_show(struct seq_file *m, void *p)
-{
-	/*
-	 * Deprecated.
-	 * Please, take a look at tools/cgroup/slabinfo.py .
-	 */
-	return 0;
-}
-#endif
-
-/*
- * slabinfo_op - iterator that generates /proc/slabinfo
- *
- * Output layout:
- * cache-name
- * num-active-objs
- * total-objs
- * object size
- * num-active-slabs
- * total-slabs
- * num-pages-per-slab
- * + further values on SMP and with statistics enabled
- */
-static const struct seq_operations slabinfo_op = {
-	.start = slab_start,
-	.next = slab_next,
-	.stop = slab_stop,
-	.show = slab_show,
-};
-
-static int slabinfo_open(struct inode *inode, struct file *file)
-{
-	return seq_open(file, &slabinfo_op);
-}
-
-static const struct proc_ops slabinfo_proc_ops = {
-	.proc_flags	= PROC_ENTRY_PERMANENT,
-	.proc_open	= slabinfo_open,
-	.proc_read	= seq_read,
-	.proc_write	= slabinfo_write,
-	.proc_lseek	= seq_lseek,
-	.proc_release	= seq_release,
-};
-
-static int __init slab_proc_init(void)
-{
-	proc_create("slabinfo", SLABINFO_RIGHTS, NULL, &slabinfo_proc_ops);
-	return 0;
-}
-module_init(slab_proc_init);
-
-#endif /* CONFIG_SLAB || CONFIG_SLUB_DEBUG */
-
 static __always_inline void *__do_krealloc(const void *p, size_t new_size,
 					   gfp_t flags)
 {
@@ -1131,7 +923,6 @@ size_t ksize(const void *objp)
 	 * We assume that ksize callers could use whole allocated area,
 	 * so we need to unpoison this area.
 	 */
-	kasan_unpoison_shadow(objp, size);
 	return size;
 }
 EXPORT_SYMBOL(ksize);

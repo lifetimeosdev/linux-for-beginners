@@ -46,36 +46,6 @@ struct kmem_cache {
 	int align;
 
 /* 5) statistics */
-#ifdef CONFIG_DEBUG_SLAB
-	unsigned long num_active;
-	unsigned long num_allocations;
-	unsigned long high_mark;
-	unsigned long grown;
-	unsigned long reaped;
-	unsigned long errors;
-	unsigned long max_freeable;
-	unsigned long node_allocs;
-	unsigned long node_frees;
-	unsigned long node_overflow;
-	atomic_t allochit;
-	atomic_t allocmiss;
-	atomic_t freehit;
-	atomic_t freemiss;
-
-	/*
-	 * If debugging is enabled, then the allocator can add additional
-	 * fields and/or padding to every object. 'size' contains the total
-	 * object size including these internal fields, while 'obj_offset'
-	 * and 'object_size' contain the offset to the user object and its
-	 * size.
-	 */
-	int obj_offset;
-#endif /* CONFIG_DEBUG_SLAB */
-
-#ifdef CONFIG_SLAB_FREELIST_RANDOM
-	unsigned int *random_seq;
-#endif
-
 	unsigned int useroffset;	/* Usercopy region offset */
 	unsigned int usersize;		/* Usercopy region size */
 

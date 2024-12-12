@@ -646,21 +646,6 @@ typedef struct pglist_data {
 	struct page_ext *node_page_ext;
 #endif
 #endif
-#if defined(CONFIG_MEMORY_HOTPLUG) || defined(CONFIG_DEFERRED_STRUCT_PAGE_INIT)
-	/*
-	 * Must be held any time you expect node_start_pfn,
-	 * node_present_pages, node_spanned_pages or nr_zones to stay constant.
-	 * Also synchronizes pgdat->first_deferred_pfn during deferred page
-	 * init.
-	 *
-	 * pgdat_resize_lock() and pgdat_resize_unlock() are provided to
-	 * manipulate node_size_lock without checking for CONFIG_MEMORY_HOTPLUG
-	 * or CONFIG_DEFERRED_STRUCT_PAGE_INIT.
-	 *
-	 * Nests above zone->lock and zone->span_seqlock
-	 */
-	spinlock_t node_size_lock;
-#endif
 	unsigned long node_start_pfn;
 	unsigned long node_present_pages; /* total number of physical pages */
 	unsigned long node_spanned_pages; /* total size of physical page
@@ -684,14 +669,6 @@ typedef struct pglist_data {
 	/* Write-intensive fields used by page reclaim */
 	ZONE_PADDING(_pad1_)
 	spinlock_t		lru_lock;
-
-#ifdef CONFIG_DEFERRED_STRUCT_PAGE_INIT
-	/*
-	 * If memory initialisation on large machines is deferred then this
-	 * is the first PFN that needs to be initialised.
-	 */
-	unsigned long first_deferred_pfn;
-#endif /* CONFIG_DEFERRED_STRUCT_PAGE_INIT */
 
 	/* Fields commonly accessed by the page reclaim scanner */
 

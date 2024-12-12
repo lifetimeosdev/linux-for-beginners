@@ -37,9 +37,6 @@ struct rt_mutex {
 	int			line;
 	void			*magic;
 #endif
-#ifdef CONFIG_DEBUG_LOCK_ALLOC
-	struct lockdep_map	dep_map;
-#endif
 };
 
 struct rt_mutex_waiter;
@@ -75,12 +72,7 @@ do { \
 # define rt_mutex_debug_task_free(t)			do { } while (0)
 #endif
 
-#ifdef CONFIG_DEBUG_LOCK_ALLOC
-#define __DEP_MAP_RT_MUTEX_INITIALIZER(mutexname) \
-	, .dep_map = { .name = #mutexname }
-#else
 #define __DEP_MAP_RT_MUTEX_INITIALIZER(mutexname)
-#endif
 
 #define __RT_MUTEX_INITIALIZER(mutexname) \
 	{ .wait_lock = __RAW_SPIN_LOCK_UNLOCKED(mutexname.wait_lock) \
@@ -106,13 +98,8 @@ static inline int rt_mutex_is_locked(struct rt_mutex *lock)
 extern void __rt_mutex_init(struct rt_mutex *lock, const char *name, struct lock_class_key *key);
 extern void rt_mutex_destroy(struct rt_mutex *lock);
 
-#ifdef CONFIG_DEBUG_LOCK_ALLOC
-extern void rt_mutex_lock_nested(struct rt_mutex *lock, unsigned int subclass);
-#define rt_mutex_lock(lock) rt_mutex_lock_nested(lock, 0)
-#else
 extern void rt_mutex_lock(struct rt_mutex *lock);
 #define rt_mutex_lock_nested(lock, subclass) rt_mutex_lock(lock)
-#endif
 
 extern int rt_mutex_lock_interruptible(struct rt_mutex *lock);
 extern int rt_mutex_timed_lock(struct rt_mutex *lock,

@@ -81,14 +81,7 @@ slab_flags_t kmem_cache_flags(unsigned int object_size,
 			 SLAB_CACHE_DMA32 | SLAB_PANIC | \
 			 SLAB_TYPESAFE_BY_RCU | SLAB_DEBUG_OBJECTS )
 
-#if defined(CONFIG_DEBUG_SLAB)
-#define SLAB_DEBUG_FLAGS (SLAB_RED_ZONE | SLAB_POISON | SLAB_STORE_USER)
-#elif defined(CONFIG_SLUB_DEBUG)
-#define SLAB_DEBUG_FLAGS (SLAB_RED_ZONE | SLAB_POISON | SLAB_STORE_USER | \
-			  SLAB_TRACE | SLAB_CONSISTENCY_CHECKS)
-#else
 #define SLAB_DEBUG_FLAGS (0)
-#endif
 
 #define SLAB_CACHE_FLAGS (SLAB_NOLEAKTRACE | SLAB_RECLAIM_ACCOUNT | \
 			  SLAB_TEMPORARY | SLAB_ACCOUNT)
@@ -150,19 +143,9 @@ static inline int cache_vmstat_idx(struct kmem_cache *s)
 	return (s->flags & SLAB_RECLAIM_ACCOUNT) ?
 		NR_SLAB_RECLAIMABLE_B : NR_SLAB_UNRECLAIMABLE_B;
 }
-
-#ifdef CONFIG_SLUB_DEBUG
-#ifdef CONFIG_SLUB_DEBUG_ON
-DECLARE_STATIC_KEY_TRUE(slub_debug_enabled);
-#else
-DECLARE_STATIC_KEY_FALSE(slub_debug_enabled);
-#endif
-extern void print_tracking(struct kmem_cache *s, void *object);
-#else
 static inline void print_tracking(struct kmem_cache *s, void *object)
 {
 }
-#endif
 
 /*
  * Returns true if any of the specified slub_debug flags is enabled for the
@@ -171,11 +154,6 @@ static inline void print_tracking(struct kmem_cache *s, void *object)
  */
 static inline bool kmem_cache_debug_flags(struct kmem_cache *s, slab_flags_t flags)
 {
-#ifdef CONFIG_SLUB_DEBUG
-	VM_WARN_ON_ONCE(!(flags & SLAB_DEBUG_FLAGS));
-	if (static_branch_unlikely(&slub_debug_enabled))
-		return s->flags & flags;
-#endif
 	return false;
 }
 
@@ -416,14 +394,6 @@ static inline struct kmem_cache *cache_from_obj(struct kmem_cache *s, void *x)
 
 static inline size_t slab_ksize(const struct kmem_cache *s)
 {
-# ifdef CONFIG_SLUB_DEBUG
-	/*
-	 * Debugging requires use of the padding between object
-	 * and whatever may come after it.
-	 */
-	if (s->flags & (SLAB_RED_ZONE | SLAB_POISON))
-		return s->object_size;
-# endif
 	if (s->flags & SLAB_KASAN)
 		return s->object_size;
 	/*
@@ -484,12 +454,6 @@ struct kmem_cache_node {
 
 	unsigned long nr_partial;
 	struct list_head partial;
-#ifdef CONFIG_SLUB_DEBUG
-	atomic_long_t nr_slabs;
-	atomic_long_t total_objects;
-	struct list_head full;
-#endif
-
 };
 
 static inline struct kmem_cache_node *get_node(struct kmem_cache *s, int node)
@@ -510,29 +474,18 @@ void *slab_start(struct seq_file *m, loff_t *pos);
 void *slab_next(struct seq_file *m, void *p, loff_t *pos);
 void slab_stop(struct seq_file *m, void *p);
 int memcg_slab_show(struct seq_file *m, void *p);
-
-#if defined(CONFIG_SLAB) || defined(CONFIG_SLUB_DEBUG)
-void dump_unreclaimable_slab(void);
-#else
 static inline void dump_unreclaimable_slab(void)
 {
 }
-#endif
 
 void ___cache_free(struct kmem_cache *cache, void *x, unsigned long addr);
 
-#ifdef CONFIG_SLAB_FREELIST_RANDOM
-int cache_random_seq_create(struct kmem_cache *cachep, unsigned int count,
-			gfp_t gfp);
-void cache_random_seq_destroy(struct kmem_cache *cachep);
-#else
 static inline int cache_random_seq_create(struct kmem_cache *cachep,
 					unsigned int count, gfp_t gfp)
 {
 	return 0;
 }
 static inline void cache_random_seq_destroy(struct kmem_cache *cachep) { }
-#endif /* CONFIG_SLAB_FREELIST_RANDOM */
 
 static inline bool slab_want_init_on_alloc(gfp_t flags, struct kmem_cache *c)
 {

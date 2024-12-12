@@ -29,10 +29,6 @@ SUBSYS(io)
 SUBSYS(memory)
 #endif
 
-#if IS_ENABLED(CONFIG_CGROUP_DEVICE)
-SUBSYS(devices)
-#endif
-
 #if IS_ENABLED(CONFIG_CGROUP_FREEZER)
 SUBSYS(freezer)
 #endif

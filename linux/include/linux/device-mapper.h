@@ -187,9 +187,6 @@ struct target_type {
 	dm_status_fn status;
 	dm_message_fn message;
 	dm_prepare_ioctl_fn prepare_ioctl;
-#ifdef CONFIG_BLK_DEV_ZONED
-	dm_report_zones_fn report_zones;
-#endif
 	dm_busy_fn busy;
 	dm_iterate_devices_fn iterate_devices;
 	dm_io_hints_fn io_hints;
@@ -261,14 +258,8 @@ struct target_type {
 #define DM_TARGET_NOWAIT		0x00000080
 #define dm_target_supports_nowait(type) ((type)->features & DM_TARGET_NOWAIT)
 
-#ifdef CONFIG_BLK_DEV_ZONED
-#define DM_TARGET_MIXED_ZONED_MODEL	0x00000200
-#define dm_target_supports_mixed_zoned_model(type) \
-	((type)->features & DM_TARGET_MIXED_ZONED_MODEL)
-#else
 #define DM_TARGET_MIXED_ZONED_MODEL	0x00000000
 #define dm_target_supports_mixed_zoned_model(type) (false)
-#endif
 
 struct dm_target {
 	struct dm_table *table;
@@ -447,21 +438,6 @@ int dm_post_suspending(struct dm_target *ti);
 int dm_noflush_suspending(struct dm_target *ti);
 void dm_accept_partial_bio(struct bio *bio, unsigned n_sectors);
 union map_info *dm_get_rq_mapinfo(struct request *rq);
-
-#ifdef CONFIG_BLK_DEV_ZONED
-struct dm_report_zones_args {
-	struct dm_target *tgt;
-	sector_t next_sector;
-
-	void *orig_data;
-	report_zones_cb orig_cb;
-	unsigned int zone_idx;
-
-	/* must be filled by ->report_zones before calling dm_report_zones_cb */
-	sector_t start;
-};
-int dm_report_zones_cb(struct blk_zone *zone, unsigned int idx, void *data);
-#endif /* CONFIG_BLK_DEV_ZONED */
 
 /*
  * Device mapper functions to parse and create devices specified by the

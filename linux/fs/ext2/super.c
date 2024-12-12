@@ -511,23 +511,12 @@ static int parse_options(char *options, struct super_block *sb,
 			ext2_msg(sb, KERN_INFO, "dax option not supported");
 			break;
 
-#if defined(CONFIG_QUOTA)
-		case Opt_quota:
-		case Opt_usrquota:
-			set_opt(opts->s_mount_opt, USRQUOTA);
-			break;
-
-		case Opt_grpquota:
-			set_opt(opts->s_mount_opt, GRPQUOTA);
-			break;
-#else
 		case Opt_quota:
 		case Opt_usrquota:
 		case Opt_grpquota:
 			ext2_msg(sb, KERN_INFO,
 				"quota operations not supported");
 			break;
-#endif
 
 		case Opt_reservation:
 			set_opt(opts->s_mount_opt, RESERVATION);

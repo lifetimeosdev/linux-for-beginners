@@ -112,13 +112,6 @@ void device_links_read_unlock(int not_used)
 	up_read(&device_links_lock);
 }
 
-#ifdef CONFIG_DEBUG_LOCK_ALLOC
-int device_links_read_lock_held(void)
-{
-	return lockdep_is_held(&device_links_lock);
-}
-#endif
-
 static inline void device_link_synchronize_removal(void)
 {
 }

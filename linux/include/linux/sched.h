@@ -678,10 +678,6 @@ struct task_struct {
 	struct hlist_head		preempt_notifiers;
 #endif
 
-#ifdef CONFIG_BLK_DEV_IO_TRACE
-	unsigned int			btrace_seq;
-#endif
-
 	unsigned int			policy;
 	int				nr_cpus_allowed;
 	const cpumask_t			*cpus_ptr;
@@ -950,11 +946,6 @@ struct task_struct {
 	struct task_struct		*pi_top_task;
 	/* Deadlock detection and priority inheritance handling: */
 	struct rt_mutex_waiter		*pi_blocked_on;
-#endif
-
-#ifdef CONFIG_DEBUG_MUTEXES
-	/* Mutex deadlock detection: */
-	struct mutex_waiter		*blocked_on;
 #endif
 
 #if defined(CONFIG_UBSAN) && !defined(CONFIG_UBSAN_TRAP)

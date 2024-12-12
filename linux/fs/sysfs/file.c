@@ -298,11 +298,6 @@ int sysfs_add_file_mode_ns(struct kernfs_node *parent,
 		size = battr->size;
 	}
 
-#ifdef CONFIG_DEBUG_LOCK_ALLOC
-	if (!attr->ignore_lockdep)
-		key = attr->key ?: (struct lock_class_key *)&attr->skey;
-#endif
-
 	kn = __kernfs_create_file(parent, attr->name, mode & 0777, uid, gid,
 				  size, ops, (void *)attr, ns, key);
 	if (IS_ERR(kn)) {

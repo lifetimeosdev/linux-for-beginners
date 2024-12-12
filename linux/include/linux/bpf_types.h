@@ -10,14 +10,6 @@ BPF_PROG_TYPE(BPF_PROG_TYPE_SCHED_ACT, tc_cls_act,
 	      struct __sk_buff, struct sk_buff)
 BPF_PROG_TYPE(BPF_PROG_TYPE_XDP, xdp,
 	      struct xdp_md, struct xdp_buff)
-#ifdef CONFIG_CGROUP_BPF
-BPF_PROG_TYPE(BPF_PROG_TYPE_CGROUP_SKB, cg_skb,
-	      struct __sk_buff, struct sk_buff)
-BPF_PROG_TYPE(BPF_PROG_TYPE_CGROUP_SOCK, cg_sock,
-	      struct bpf_sock, struct sock)
-BPF_PROG_TYPE(BPF_PROG_TYPE_CGROUP_SOCK_ADDR, cg_sock_addr,
-	      struct bpf_sock_addr, struct bpf_sock_addr_kern)
-#endif
 BPF_PROG_TYPE(BPF_PROG_TYPE_LWT_IN, lwt_in,
 	      struct __sk_buff, struct sk_buff)
 BPF_PROG_TYPE(BPF_PROG_TYPE_LWT_OUT, lwt_out,
@@ -49,14 +41,6 @@ BPF_PROG_TYPE(BPF_PROG_TYPE_RAW_TRACEPOINT_WRITABLE, raw_tracepoint_writable,
 BPF_PROG_TYPE(BPF_PROG_TYPE_TRACING, tracing,
 	      void *, void *)
 #endif
-#ifdef CONFIG_CGROUP_BPF
-BPF_PROG_TYPE(BPF_PROG_TYPE_CGROUP_DEVICE, cg_dev,
-	      struct bpf_cgroup_dev_ctx, struct bpf_cgroup_dev_ctx)
-BPF_PROG_TYPE(BPF_PROG_TYPE_CGROUP_SYSCTL, cg_sysctl,
-	      struct bpf_sysctl, struct bpf_sysctl_kern)
-BPF_PROG_TYPE(BPF_PROG_TYPE_CGROUP_SOCKOPT, cg_sockopt,
-	      struct bpf_sockopt, struct bpf_sockopt_kern)
-#endif
 #ifdef CONFIG_BPF_LIRC_MODE2
 BPF_PROG_TYPE(BPF_PROG_TYPE_LIRC_MODE2, lirc_mode2,
 	      __u32, u32)
@@ -82,10 +66,6 @@ BPF_MAP_TYPE(BPF_MAP_TYPE_ARRAY, array_map_ops)
 BPF_MAP_TYPE(BPF_MAP_TYPE_PERCPU_ARRAY, percpu_array_map_ops)
 BPF_MAP_TYPE(BPF_MAP_TYPE_PROG_ARRAY, prog_array_map_ops)
 BPF_MAP_TYPE(BPF_MAP_TYPE_PERF_EVENT_ARRAY, perf_event_array_map_ops)
-#ifdef CONFIG_CGROUP_BPF
-BPF_MAP_TYPE(BPF_MAP_TYPE_CGROUP_STORAGE, cgroup_storage_map_ops)
-BPF_MAP_TYPE(BPF_MAP_TYPE_PERCPU_CGROUP_STORAGE, cgroup_storage_map_ops)
-#endif
 BPF_MAP_TYPE(BPF_MAP_TYPE_HASH, htab_map_ops)
 BPF_MAP_TYPE(BPF_MAP_TYPE_PERCPU_HASH, htab_percpu_map_ops)
 BPF_MAP_TYPE(BPF_MAP_TYPE_LRU_HASH, htab_lru_map_ops)
@@ -124,9 +104,6 @@ BPF_MAP_TYPE(BPF_MAP_TYPE_RINGBUF, ringbuf_map_ops)
 
 BPF_LINK_TYPE(BPF_LINK_TYPE_RAW_TRACEPOINT, raw_tracepoint)
 BPF_LINK_TYPE(BPF_LINK_TYPE_TRACING, tracing)
-#ifdef CONFIG_CGROUP_BPF
-BPF_LINK_TYPE(BPF_LINK_TYPE_CGROUP, cgroup)
-#endif
 BPF_LINK_TYPE(BPF_LINK_TYPE_ITER, iter)
 #ifdef CONFIG_NET
 BPF_LINK_TYPE(BPF_LINK_TYPE_NETNS, netns)

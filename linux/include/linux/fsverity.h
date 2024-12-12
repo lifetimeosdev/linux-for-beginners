@@ -111,41 +111,6 @@ struct fsverity_operations {
 				       u64 index, int log_blocksize);
 };
 
-#ifdef CONFIG_FS_VERITY
-
-static inline struct fsverity_info *fsverity_get_info(const struct inode *inode)
-{
-	/*
-	 * Pairs with the cmpxchg_release() in fsverity_set_info().
-	 * I.e., another task may publish ->i_verity_info concurrently,
-	 * executing a RELEASE barrier.  We need to use smp_load_acquire() here
-	 * to safely ACQUIRE the memory the other task published.
-	 */
-	return smp_load_acquire(&inode->i_verity_info);
-}
-
-/* enable.c */
-
-int fsverity_ioctl_enable(struct file *filp, const void __user *arg);
-
-/* measure.c */
-
-int fsverity_ioctl_measure(struct file *filp, void __user *arg);
-
-/* open.c */
-
-int fsverity_file_open(struct inode *inode, struct file *filp);
-int fsverity_prepare_setattr(struct dentry *dentry, struct iattr *attr);
-void fsverity_cleanup_inode(struct inode *inode);
-
-/* verify.c */
-
-bool fsverity_verify_page(struct page *page);
-void fsverity_verify_bio(struct bio *bio);
-void fsverity_enqueue_verify_work(struct work_struct *work);
-
-#else /* !CONFIG_FS_VERITY */
-
 static inline struct fsverity_info *fsverity_get_info(const struct inode *inode)
 {
 	return NULL;
@@ -200,8 +165,6 @@ static inline void fsverity_enqueue_verify_work(struct work_struct *work)
 {
 	WARN_ON(1);
 }
-
-#endif	/* !CONFIG_FS_VERITY */
 
 /**
  * fsverity_active() - do reads from the inode need to go through fs-verity?

@@ -48,7 +48,7 @@ source "drivers/block/Kconfig"
 
 # source "drivers/macintosh/Kconfig"
 
-source "drivers/net/Kconfig"
+# source "drivers/net/Kconfig"
 
 # source "drivers/isdn/Kconfig"
 
@@ -92,7 +92,7 @@ source "drivers/char/Kconfig"
 
 # source "drivers/bcma/Kconfig"
 
-source "drivers/mfd/Kconfig"
+# source "drivers/mfd/Kconfig"
 
 # source "drivers/regulator/Kconfig"
 
@@ -106,7 +106,7 @@ source "drivers/video/Kconfig"
 
 #source "drivers/usb/Kconfig"
 
-source "drivers/mmc/Kconfig"
+# source "drivers/mmc/Kconfig"
 
 # source "drivers/memstick/Kconfig"
 
@@ -134,7 +134,7 @@ source "drivers/dma-buf/Kconfig"
 
 # source "drivers/vlynq/Kconfig"
 
-source "drivers/virt/Kconfig"
+# source "drivers/virt/Kconfig"
 
 source "drivers/virtio/Kconfig"
 
@@ -210,7 +210,7 @@ source "drivers/phy/Kconfig"
 
 # source "drivers/dax/Kconfig"
 
-source "drivers/nvmem/Kconfig"
+# source "drivers/nvmem/Kconfig"
 
 # source "drivers/hwtracing/Kconfig"
 
@@ -220,7 +220,7 @@ source "drivers/nvmem/Kconfig"
 
 # source "drivers/tee/Kconfig"
 
-source "drivers/mux/Kconfig"
+# source "drivers/mux/Kconfig"
 
 # source "drivers/opp/Kconfig"
 

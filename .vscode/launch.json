@@ -22,6 +22,12 @@
 				"engineLogging": false
 			},
 			"MIMode": "gdb",
+			"sourceFileMap": {
+				"${workspaceRoot}": {
+					"editorPath": "${workspaceRoot}",
+					"useForBreakpoints": true
+				}
+			},
 			"setupCommands": [
 				{
 					"text": "-enable-pretty-printing",

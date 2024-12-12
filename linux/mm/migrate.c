@@ -255,17 +255,6 @@ static bool remove_migration_pte(struct page *page, struct vm_area_struct *vma,
 				pte = pte_swp_mkuffd_wp(pte);
 		}
 
-#ifdef CONFIG_HUGETLB_PAGE
-		if (PageHuge(new)) {
-			pte = pte_mkhuge(pte);
-			pte = arch_make_huge_pte(pte, vma, new, 0);
-			set_huge_pte_at(vma->vm_mm, pvmw.address, pvmw.pte, pte);
-			if (PageAnon(new))
-				hugepage_add_anon_rmap(new, vma, pvmw.address);
-			else
-				page_dup_rmap(new, true);
-		} else
-#endif
 		{
 			set_pte_at(vma->vm_mm, pvmw.address, pvmw.pte, pte);
 

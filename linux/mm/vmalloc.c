@@ -1348,8 +1348,6 @@ static bool __purge_vmap_area_lazy(unsigned long start, unsigned long end)
 	spin_lock(&free_vmap_area_lock);
 	llist_for_each_entry_safe(va, n_va, valist, purge_list) {
 		unsigned long nr = (va->va_end - va->va_start) >> PAGE_SHIFT;
-		unsigned long orig_start = va->va_start;
-		unsigned long orig_end = va->va_end;
 
 		/*
 		 * Finally insert or merge lazily-freed area. It is
@@ -1361,10 +1359,6 @@ static bool __purge_vmap_area_lazy(unsigned long start, unsigned long end)
 
 		if (!va)
 			continue;
-
-		if (is_vmalloc_or_module_addr((void *)orig_start))
-			kasan_release_vmalloc(orig_start, orig_end,
-					      va->va_start, va->va_end);
 
 		atomic_long_sub(nr, &vmap_lazy_nr);
 
@@ -1804,8 +1798,6 @@ void vm_unmap_ram(const void *mem, unsigned int count)
 	BUG_ON(addr > VMALLOC_END);
 	BUG_ON(!PAGE_ALIGNED(addr));
 
-	kasan_poison_vmalloc(mem, size);
-
 	if (likely(count <= VMAP_MAX_ALLOC)) {
 		debug_check_no_locks_freed(mem, size);
 		vb_free(addr, size);
@@ -1855,8 +1847,6 @@ void *vm_map_ram(struct page **pages, unsigned int count, int node)
 		addr = va->va_start;
 		mem = (void *)addr;
 	}
-
-	kasan_unpoison_vmalloc(mem, size);
 
 	if (map_kernel_range(addr, size, PAGE_KERNEL, pages) < 0) {
 		vm_unmap_ram(mem, count);
@@ -2054,7 +2044,6 @@ static struct vm_struct *__get_vm_area_node(unsigned long size,
 {
 	struct vmap_area *va;
 	struct vm_struct *area;
-	unsigned long requested_size = size;
 
 	BUG_ON(in_interrupt());
 	size = PAGE_ALIGN(size);
@@ -2077,8 +2066,6 @@ static struct vm_struct *__get_vm_area_node(unsigned long size,
 		kfree(area);
 		return NULL;
 	}
-
-	kasan_unpoison_vmalloc((void *)va->va_start, requested_size);
 
 	setup_vmalloc_vm(area, va, flags, caller);
 
@@ -2163,7 +2150,6 @@ struct vm_struct *remove_vm_area(const void *addr)
 		va->vm = NULL;
 		spin_unlock(&vmap_area_lock);
 
-		kasan_free_shadow(vm);
 		free_unmap_vmap_area(va);
 
 		return vm;
@@ -2250,8 +2236,6 @@ static void __vunmap(const void *addr, int deallocate_pages)
 
 	debug_check_no_locks_freed(area->addr, get_vm_area_size(area));
 	debug_check_no_obj_freed(area->addr, get_vm_area_size(area));
-
-	kasan_poison_vmalloc(area->addr, get_vm_area_size(area));
 
 	vm_remove_mappings(area, deallocate_pages);
 
@@ -3317,9 +3301,6 @@ retry:
 	for (area = 0; area < nr_vms; area++) {
 		if (kasan_populate_vmalloc(vas[area]->va_start, sizes[area]))
 			goto err_free_shadow;
-
-		kasan_unpoison_vmalloc((void *)vas[area]->va_start,
-				       sizes[area]);
 	}
 
 	/* insert all vm's */
@@ -3347,9 +3328,6 @@ recovery:
 		orig_end = vas[area]->va_end;
 		va = merge_or_add_vmap_area(vas[area], &free_vmap_area_root,
 					    &free_vmap_area_list);
-		if (va)
-			kasan_release_vmalloc(orig_start, orig_end,
-				va->va_start, va->va_end);
 		vas[area] = NULL;
 	}
 
@@ -3397,9 +3375,6 @@ err_free_shadow:
 		orig_end = vas[area]->va_end;
 		va = merge_or_add_vmap_area(vas[area], &free_vmap_area_root,
 					    &free_vmap_area_list);
-		if (va)
-			kasan_release_vmalloc(orig_start, orig_end,
-				va->va_start, va->va_end);
 		vas[area] = NULL;
 		kfree(vms[area]);
 	}

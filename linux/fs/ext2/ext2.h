@@ -122,11 +122,6 @@ sb_bgl_lock(struct ext2_sb_info *sbi, unsigned int block_group)
 }
 
 /*
- * Define EXT2FS_DEBUG to produce debug messages
- */
-#undef EXT2FS_DEBUG
-
-/*
  * Define EXT2_RESERVATION to reserve data blocks for expanding files
  */
 #define EXT2_DEFAULT_RESERVE_BLOCKS     8
@@ -139,18 +134,7 @@ sb_bgl_lock(struct ext2_sb_info *sbi, unsigned int block_group)
 #define EXT2FS_DATE		"95/08/09"
 #define EXT2FS_VERSION		"0.5b"
 
-/*
- * Debug code
- */
-#ifdef EXT2FS_DEBUG
-#	define ext2_debug(f, a...)	{ \
-					printk ("EXT2-fs DEBUG (%s, %d): %s:", \
-						__FILE__, __LINE__, __func__); \
-				  	printk (f, ## a); \
-					}
-#else
 #	define ext2_debug(f, a...)	/**/
-#endif
 
 /*
  * Special inode numbers

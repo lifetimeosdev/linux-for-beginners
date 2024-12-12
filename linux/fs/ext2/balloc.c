@@ -1437,49 +1437,11 @@ ext2_fsblk_t ext2_new_block(struct inode *inode, unsigned long goal, int *errp)
 	return ext2_new_blocks(inode, goal, &count, errp);
 }
 
-#ifdef EXT2FS_DEBUG
-
-unsigned long ext2_count_free(struct buffer_head *map, unsigned int numchars)
-{
-	return numchars * BITS_PER_BYTE - memweight(map->b_data, numchars);
-}
-
-#endif  /*  EXT2FS_DEBUG  */
-
 unsigned long ext2_count_free_blocks (struct super_block * sb)
 {
 	struct ext2_group_desc * desc;
 	unsigned long desc_count = 0;
 	int i;
-#ifdef EXT2FS_DEBUG
-	unsigned long bitmap_count, x;
-	struct ext2_super_block *es;
-
-	es = EXT2_SB(sb)->s_es;
-	desc_count = 0;
-	bitmap_count = 0;
-	desc = NULL;
-	for (i = 0; i < EXT2_SB(sb)->s_groups_count; i++) {
-		struct buffer_head *bitmap_bh;
-		desc = ext2_get_group_desc (sb, i, NULL);
-		if (!desc)
-			continue;
-		desc_count += le16_to_cpu(desc->bg_free_blocks_count);
-		bitmap_bh = read_block_bitmap(sb, i);
-		if (!bitmap_bh)
-			continue;
-		
-		x = ext2_count_free(bitmap_bh, sb->s_blocksize);
-		printk ("group %d: stored = %d, counted = %lu\n",
-			i, le16_to_cpu(desc->bg_free_blocks_count), x);
-		bitmap_count += x;
-		brelse(bitmap_bh);
-	}
-	printk("ext2_count_free_blocks: stored = %lu, computed = %lu, %lu\n",
-		(long)le32_to_cpu(es->s_free_blocks_count),
-		desc_count, bitmap_count);
-	return bitmap_count;
-#else
         for (i = 0; i < EXT2_SB(sb)->s_groups_count; i++) {
                 desc = ext2_get_group_desc (sb, i, NULL);
                 if (!desc)
@@ -1487,7 +1449,6 @@ unsigned long ext2_count_free_blocks (struct super_block * sb)
                 desc_count += le16_to_cpu(desc->bg_free_blocks_count);
 	}
 	return desc_count;
-#endif
 }
 
 static inline int test_root(int a, int b)

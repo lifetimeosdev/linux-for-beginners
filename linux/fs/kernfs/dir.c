@@ -40,11 +40,7 @@ static bool kernfs_active(struct kernfs_node *kn)
 
 static bool kernfs_lockdep(struct kernfs_node *kn)
 {
-#ifdef CONFIG_DEBUG_LOCK_ALLOC
-	return kn->flags & KERNFS_LOCKDEP;
-#else
 	return false;
-#endif
 }
 
 static int kernfs_name_locked(struct kernfs_node *kn, char *buf, size_t buflen)

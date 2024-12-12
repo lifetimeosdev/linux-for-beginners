@@ -1970,35 +1970,3 @@ void rmap_walk_locked(struct page *page, struct rmap_walk_control *rwc)
 	else
 		rmap_walk_file(page, rwc, true);
 }
-
-#ifdef CONFIG_HUGETLB_PAGE
-/*
- * The following two functions are for anonymous (private mapped) hugepages.
- * Unlike common anonymous pages, anonymous hugepages have no accounting code
- * and no lru code, because we handle hugepages differently from common pages.
- */
-void hugepage_add_anon_rmap(struct page *page,
-			    struct vm_area_struct *vma, unsigned long address)
-{
-	struct anon_vma *anon_vma = vma->anon_vma;
-	int first;
-
-	BUG_ON(!PageLocked(page));
-	BUG_ON(!anon_vma);
-	/* address might be in next vma when migration races vma_adjust */
-	first = atomic_inc_and_test(compound_mapcount_ptr(page));
-	if (first)
-		__page_set_anon_rmap(page, vma, address, 0);
-}
-
-void hugepage_add_new_anon_rmap(struct page *page,
-			struct vm_area_struct *vma, unsigned long address)
-{
-	BUG_ON(address < vma->vm_start || address >= vma->vm_end);
-	atomic_set(compound_mapcount_ptr(page), 0);
-	if (hpage_pincount_available(page))
-		atomic_set(compound_pincount_ptr(page), 0);
-
-	__page_set_anon_rmap(page, vma, address, 1);
-}
-#endif /* CONFIG_HUGETLB_PAGE */

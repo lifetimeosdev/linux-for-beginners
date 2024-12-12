@@ -763,12 +763,6 @@ static void show_rcu_tasks_rude_gp_kthread(void) {}
 // way allows rcu_preempt and rcu_sched readers to also do so.
 
 // The lockdep state must be outside of #ifdef to be useful.
-#ifdef CONFIG_DEBUG_LOCK_ALLOC
-static struct lock_class_key rcu_lock_trace_key;
-struct lockdep_map rcu_trace_lock_map =
-	STATIC_LOCKDEP_MAP_INIT("rcu_read_lock_trace", &rcu_lock_trace_key);
-EXPORT_SYMBOL_GPL(rcu_trace_lock_map);
-#endif /* #ifdef CONFIG_DEBUG_LOCK_ALLOC */
 
 #ifdef CONFIG_TASKS_TRACE_RCU
 

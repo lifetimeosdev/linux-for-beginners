@@ -560,11 +560,6 @@ static __always_inline void clear_compound_head(struct page *page)
 
 #define PG_head_mask ((1UL << PG_head))
 
-#ifdef CONFIG_HUGETLB_PAGE
-int PageHuge(struct page *page);
-int PageHeadHuge(struct page *page);
-bool page_huge_active(struct page *page);
-#else
 TESTPAGEFLAG_FALSE(Huge)
 TESTPAGEFLAG_FALSE(HeadHuge)
 
@@ -572,8 +567,6 @@ static inline bool page_huge_active(struct page *page)
 {
 	return 0;
 }
-#endif
-
 
 TESTPAGEFLAG_FALSE(TransHuge)
 TESTPAGEFLAG_FALSE(TransCompound)

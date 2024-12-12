@@ -1470,21 +1470,6 @@ static inline void __rt_mutex_lock(struct rt_mutex *lock, unsigned int subclass)
 	rt_mutex_fastlock(lock, TASK_UNINTERRUPTIBLE, rt_mutex_slowlock);
 }
 
-#ifdef CONFIG_DEBUG_LOCK_ALLOC
-/**
- * rt_mutex_lock_nested - lock a rt_mutex
- *
- * @lock: the rt_mutex to be locked
- * @subclass: the lockdep subclass
- */
-void __sched rt_mutex_lock_nested(struct rt_mutex *lock, unsigned int subclass)
-{
-	__rt_mutex_lock(lock, subclass);
-}
-EXPORT_SYMBOL_GPL(rt_mutex_lock_nested);
-
-#else /* !CONFIG_DEBUG_LOCK_ALLOC */
-
 /**
  * rt_mutex_lock - lock a rt_mutex
  *
@@ -1495,7 +1480,6 @@ void __sched rt_mutex_lock(struct rt_mutex *lock)
 	__rt_mutex_lock(lock, 0);
 }
 EXPORT_SYMBOL_GPL(rt_mutex_lock);
-#endif
 
 /**
  * rt_mutex_lock_interruptible - lock a rt_mutex interruptible

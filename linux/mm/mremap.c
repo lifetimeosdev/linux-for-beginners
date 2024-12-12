@@ -501,9 +501,6 @@ static struct vm_area_struct *vma_to_resize(unsigned long addr,
 			vma->vm_flags & VM_SHARED))
 		return ERR_PTR(-EINVAL);
 
-	if (is_vm_hugetlb_page(vma))
-		return ERR_PTR(-EINVAL);
-
 	/* We can't remap across vm area boundaries */
 	if (old_len > vma->vm_end - addr)
 		return ERR_PTR(-EFAULT);
