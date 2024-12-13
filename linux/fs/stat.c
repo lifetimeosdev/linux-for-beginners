@@ -124,11 +124,6 @@ EXPORT_SYMBOL(vfs_getattr_nosec);
 int vfs_getattr(const struct path *path, struct kstat *stat,
 		u32 request_mask, unsigned int query_flags)
 {
-	// int retval;
-
-	// retval = security_inode_getattr(path);
-	// if (retval)
-	// 	return retval;
 	return vfs_getattr_nosec(path, stat, request_mask, query_flags);
 }
 EXPORT_SYMBOL(vfs_getattr);
